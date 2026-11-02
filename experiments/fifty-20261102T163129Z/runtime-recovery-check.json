@@ -1,0 +1,17 @@
+{
+  "run_id": "fifty-20261102T163129Z",
+  "source_sha": "dfb78d59491b976286d0c0a7c5fb04c4e9306b69",
+  "model_revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+  "tick": 60,
+  "before_hash": "2617dc989c93a40ca89849355434aaa46b7c9ea6b40fdbf7a162ee38a18d5402",
+  "after_hash": "2617dc989c93a40ca89849355434aaa46b7c9ea6b40fdbf7a162ee38a18d5402",
+  "equal_after_colab_restart_session": true,
+  "restart_kind": "Colab Restart session (kernel)",
+  "vm_replacement_tested": false,
+  "drive_available": true,
+  "backend": "TransformersLFM3Backend",
+  "model_id": "LiquidAI/LFM3-1.7B",
+  "post_snapshot_status": 405,
+  "viewer_http_status": 200,
+  "root_hidden": true
+}
