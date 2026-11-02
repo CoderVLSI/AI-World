@@ -144,7 +144,7 @@ function render(s){
 
  $('ecology').textContent=`${s.width}   ${s.depth} terrain   ${s.climate?.season||''}   ${s.climate?.weather||''}   ${s.climate?.temperature_c??''} C   ${Object.keys(s.resource_catalog||{}).length||15} resource types`;
 
- $('badge').textContent=`${replay?'REPLAY':'LIVE'}   tick ${s.tick}   ${Object.values(s.agents).filter(a=>a.alive).length} inhabitants   ${s.status}`;
+ $('badge').textContent=`${replay?'REPLAY':s.execution?.running===false?'PAUSED':'LIVE'}   tick ${s.tick}   ${Object.values(s.agents).filter(a=>a.alive).length} inhabitants   ${s.execution?.running===false?s.execution.reason.replaceAll('_',' '):s.status}`;
 
  if(!replay)$('tick').max=s.tick;
 

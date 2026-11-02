@@ -25,19 +25,23 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     published=world.public()
     committed_count=len(world.events)
     stop=asyncio.Event()
+    execution={'running':False,'reason':'read_only' if not live else 'not_started'}
     async def worker():
         import time
         nonlocal published,committed_count
         started=time.monotonic();starting_tick=world.tick
+        execution.update(running=True,reason=None)
         cursor = len(world.events)
         try:
             while not stop.is_set():
                 await asyncio.sleep(interval)
                 if stop.is_set():break
                 if (max_ticks is not None and world.tick-starting_tick>=max_ticks) or (max_seconds is not None and time.monotonic()-started>=max_seconds):
+                    execution['reason']='budget_reached'
                     return
                 if (directory/"events.jsonl").exists() and (directory/"events.jsonl").stat().st_size > max_journal_bytes:
                     world.status="PAUSED_RESOURCE_LIMIT"
+                    execution['reason']='journal_limit'
                     published=world.public()
                     world.checkpoint(directory)
                     return
@@ -53,7 +57,11 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
                 with (directory/"metrics.jsonl").open("a",encoding="utf-8") as f:
                     f.write(json.dumps(world.metrics(),separators=(",",":"))+"\n")
                 if world.tick % 60 == 0: world.checkpoint(directory)
+        except BaseException:
+            execution['reason']='worker_error'
+            raise
         finally:
+            execution.update(running=False,reason=execution['reason'] or 'stopped')
             world.checkpoint(directory)
             if report_dir:
                 from .experiment import summarize, source_revision
@@ -75,9 +83,9 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     app=FastAPI(title="CAITANYA read-only witness",lifespan=lifespan)
     app.state.world=world
     @app.get("/api/v1/health")
-    def health(): return {"status":world.status,"schema_version":1,"mode":world.manifest["inference_backend"]}
+    def health(): return {"status":world.status,"schema_version":1,"mode":world.manifest["inference_backend"],"execution":dict(execution)}
     @app.get("/api/v1/world/snapshot")
-    def snapshot(): return published
+    def snapshot(): return published | {'execution':dict(execution)}
     @app.get("/api/v1/world/events")
     def events(after:int=0):
         if after < 0 or after > committed_count: raise HTTPException(400,"Invalid cursor")
