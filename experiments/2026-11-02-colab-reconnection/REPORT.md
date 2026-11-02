@@ -26,3 +26,7 @@ A subsequent Drive authorization attempt displayed `Access blocked: Authorizatio
 - Local automated tests: 30 passed before this operations branch; storage-specific checks recorded in HISTORY.md after execution.
 
 The phase remains incomplete. The useful result is a documented failure boundary and a reproducible workflow that refuses to label an ephemeral or mock run as a successful persistent AI experiment.
+
+## Retry at approximately 21:41 IST
+
+Reloaded Colab, reran the Drive mount and continued Google's existing-account sign-in. Colab again displayed its expired-login/third-party-cookie output error. The mount ended with `ValueError: mount failed` after approximately 121.685 seconds. A separate code cell then printed `DRIVE_READY False` and `GPU Tesla T4`. No persistent simulation was started. GPU allocation works; Drive mounting remains blocked.
