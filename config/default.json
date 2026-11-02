@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "world": {"width": 256, "depth": 256, "seed": 314159},
+  "agents": {"initial_count": 50, "development_count": 5, "decision_interval_ticks": 3},
+  "model": {"model_id": "LiquidAI/LFM3-1.7B", "backend": "mock", "revision": null},
+  "runtime": {"checkpoint_every_ticks": 60, "max_journal_bytes": 100000000},
+  "viewer": {"witness_read_only": true, "poll_interval_ms": 1500}
+}
