@@ -14,7 +14,7 @@ from .lifecycle import BiologyConfig, stage
 
 ROOT = Path(__file__).resolve().parent.parent
 
-def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_journal_bytes=100_000_000):
+def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_journal_bytes=100_000_000, max_ticks=None, max_seconds=None, report_dir=None):
     world = world or World()
     directory = Path(run_dir)
     directory.mkdir(parents=True,exist_ok=True)
@@ -26,12 +26,16 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     committed_count=len(world.events)
     stop=asyncio.Event()
     async def worker():
+        import time
         nonlocal published,committed_count
+        started=time.monotonic();starting_tick=world.tick
         cursor = len(world.events)
         try:
             while not stop.is_set():
                 await asyncio.sleep(interval)
                 if stop.is_set():break
+                if (max_ticks is not None and world.tick-starting_tick>=max_ticks) or (max_seconds is not None and time.monotonic()-started>=max_seconds):
+                    return
                 if (directory/"events.jsonl").exists() and (directory/"events.jsonl").stat().st_size > max_journal_bytes:
                     world.status="PAUSED_RESOURCE_LIMIT"
                     published=world.public()
@@ -46,9 +50,20 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
                 cursor=len(world.events)
                 published=world.public()
                 committed_count=cursor
+                with (directory/"metrics.jsonl").open("a",encoding="utf-8") as f:
+                    f.write(json.dumps(world.metrics(),separators=(",",":"))+"\n")
                 if world.tick % 60 == 0: world.checkpoint(directory)
         finally:
             world.checkpoint(directory)
+            if report_dir:
+                from .experiment import summarize, source_revision
+                from .engine import digest
+                recovered=World.recover(directory,backend=world.backend)
+                summarize(world,report_dir,{'date_utc':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),
+                    'commit_sha':source_revision(),'root_mode':world.root.data['mode'],
+                    'acceptance':{'checkpoint_journal_recovery':digest(recovered.state())==digest(world.state()),
+                                  'live_worker_stopped':True},
+                    'journal_bytes':(directory/'events.jsonl').stat().st_size if (directory/'events.jsonl').exists() else 0})
 
     @asynccontextmanager
     async def lifespan(app):
@@ -112,6 +127,9 @@ def main():
     p.add_argument("--seed",type=int,default=314159); p.add_argument("--port",type=int,default=8000)
     p.add_argument("--width",type=int,default=256);p.add_argument("--depth",type=int,default=256)
     p.add_argument("--backend",choices=["mock","lfm3"],default="mock");p.add_argument("--revision")
+    p.add_argument("--root-mode",choices=["off","observe","crisis"],default="crisis")
+    p.add_argument("--max-ticks",type=int);p.add_argument("--max-seconds",type=float)
+    p.add_argument("--report-dir")
     p.add_argument("--days-per-tick",type=float,default=1/144,help="World calendar rate; baseline ten minutes per tick. Accelerated experiments must be labeled.")
     p.add_argument("--resume"); p.add_argument("--run-dir",default="runs/local")
     p.add_argument("--recover",help="Restore newest valid image and replay its committed journal tail")
@@ -121,6 +139,6 @@ def main():
         backend=TransformersLFM3Backend(revision=args.revision)
     else:backend=None
     if args.resume and args.recover:p.error("Choose either --resume or --recover")
-    world=World.recover(args.recover,backend=backend) if args.recover else World.restore(args.resume,backend=backend) if args.resume else World(seed=args.seed,population=args.population,width=args.width,depth=args.depth,backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick))
-    uvicorn.run(create_app(world,args.run_dir),host="127.0.0.1",port=args.port)
+    world=World.recover(args.recover,backend=backend) if args.recover else World.restore(args.resume,backend=backend) if args.resume else World(seed=args.seed,population=args.population,width=args.width,depth=args.depth,backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),root_mode=args.root_mode)
+    uvicorn.run(create_app(world,args.run_dir,max_ticks=args.max_ticks,max_seconds=args.max_seconds,report_dir=args.report_dir),host="127.0.0.1",port=args.port)
 if __name__=="__main__": main()

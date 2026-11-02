@@ -120,7 +120,7 @@ class MockInferenceBackend:
         return Intent(a["id"], observation["tick"], action, params, "deterministic mock policy")
 
 class World:
-    def __init__(self, seed=314159, population=5, width=64, depth=64, backend=None, biology=None, spawn_radius=8):
+    def __init__(self, seed=314159, population=5, width=64, depth=64, backend=None, biology=None, spawn_radius=8, root_mode="crisis"):
         if not (1 <= population and width >= 8 and depth >= 8):
             raise ValueError("invalid world dimensions or population")
         if type(spawn_radius) is not int or spawn_radius<1:raise ValueError("invalid starting radius")
@@ -173,7 +173,7 @@ class World:
             starting_radius=spawn_radius,
             configuration_hash=digest(dict(seed=seed, population=population, width=width, depth=depth,biology=asdict(self.biology),spawn_radius=spawn_radius)))
         self.manifest.update(getattr(self.backend,"metadata",{}))
-        self.root = BrahmanAgent()
+        self.root = BrahmanAgent(mode=root_mode)
         self.root.register(self)
         self.manifest["engine_version"] = "0.4.0"
         self.initial_state = self.state()
@@ -277,6 +277,8 @@ class World:
         cost = 2 if action in ("MOVE","GATHER","PLACE","WRITE","REVISE","TEACH") else 0
         if a.energy < cost: return self.reject(intent,"insufficient energy")
         a.energy -= cost
+        before = dict(x=a.x,z=a.z,energy=a.energy+cost,hunger=a.hunger,thirst=a.thirst,
+                      health=a.health,inventory=copy.deepcopy(a.inventory))
         payload = dict(parameters=copy.deepcopy(p), reason_summary=intent.reason_summary)
         if action == "MOVE": a.x += p["dx"]; a.z += p["dz"]
         elif action == "GATHER": n["amount"] -= 1; a.inventory[n["kind"]] += 1
@@ -314,6 +316,9 @@ class World:
         a.memories.append(dict(tick=self.tick, action=action, confirmed=True))
         a.memories[:] = a.memories[-40:]
         self.emit(action.lower(),a.id,payload,"validated_action")
+        self.events[-1]["payload"]["confirmed_state"] = {"before":before,"after":dict(
+            x=a.x,z=a.z,energy=a.energy,hunger=a.hunger,thirst=a.thirst,health=a.health,
+            inventory=copy.deepcopy(a.inventory))}
         self.root.register(self)
         self.root.record(a.id, action, payload)
         return True,"accepted"
