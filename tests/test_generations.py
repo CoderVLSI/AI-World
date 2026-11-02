@@ -1,11 +1,14 @@
-"""Explicit test-harness proposals; these tests do not claim autonomous births."""
+"""Explicit test-harness proposals; these tests do not claim autonomous births.
+
+They pin ``autonomy='legacy'``: their fixtures use a 365-day tick, which time-based
+physiology (correctly) refuses, and they assert v0.4.0 per-tick need arithmetic."""
 import pytest
 from caitanya.engine import World, Intent, digest
 from caitanya.lifecycle import BiologyConfig, age
 
 def family_world():
     # Accelerated fixture clocks are recorded and never used as baseline biology.
-    w=World(population=4,biology=BiologyConfig(days_per_tick=365,gestation_days=365,recovery_days=365))
+    w=World(population=4,biology=BiologyConfig(days_per_tick=365,gestation_days=365,recovery_days=365),autonomy='legacy')
     adults=list(w.agents.values())
     for i,a in enumerate(adults):
         a.x,a.z=adults[0].x,adults[0].z
