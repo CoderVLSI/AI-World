@@ -1,16 +1,13 @@
 const $=id=>document.getElementById(id);
+import {createAnimalModel,animateAnimalModel} from './animal-models.mjs';
 
 let world,selected='',replay=false,following=false,cursor=0,events=[];
 
 let THREE,scene,camera,renderer,controls,group,sun,terrainGroup,firstView=true;
 
 const meshes=new Map();const previousPositions=new Map();
-const animalTextures=new Map();
-function animalSprite(a,species){
- const definition=species[a.species];let texture=animalTextures.get(a.species);
- if(!texture){const c=document.createElement('canvas');c.width=96;c.height=96;const ctx=c.getContext('2d');ctx.font='72px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(definition.icon,48,48);texture=new THREE.CanvasTexture(c);animalTextures.set(a.species,texture);}
- const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true}));sprite.scale.set(2.5,2.5,1);sprite.position.set(a.x,heightAt(a.x,a.z)+(definition.group==='bird'?3:definition.group==='insect'?2:1),a.z);group.add(sprite);
-}
+const animalMeshes=new Map();
+const animalHeadings=new Map();
 
 try {
 
@@ -30,11 +27,11 @@ try {
 
  const ray=new THREE.Raycaster(), pointer=new THREE.Vector2();
 
- renderer.domElement.addEventListener('click',e=>{pointer.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects([...meshes.values()],true)[0];if(hit){let obj=hit.object;while(obj&&!obj.userData.id)obj=obj.parent;selected=obj?.userData.id||'';$('agents').value=selected;inspect();}});
+ renderer.domElement.addEventListener('click',e=>{pointer.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects([...meshes.values(),...animalMeshes.values()],true)[0];if(hit){let obj=hit.object;while(obj&&!obj.userData.id)obj=obj.parent;selected=obj?.userData.id||'';$('agents').value=selected;inspect();}});
 
  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 
- let last=0;function animate(t){requestAnimationFrame(animate);if(t-last<33)return;last=t;for(const avatar of meshes.values()){const moving=avatar.position.distanceTo(avatar.userData.target)>.025;avatar.position.lerp(avatar.userData.target,.15);for(const child of avatar.children){if(['upper arm','forearm','thigh','lower leg'].includes(child.name))child.rotation.x=moving?Math.sin(t*.008)*(child.position.x>0?1:-1)*.28:0;}}if(following&&meshes.has(selected))controls.target.lerp(meshes.get(selected).position,.15);controls.update();renderer.render(scene,camera)}requestAnimationFrame(animate);
+ let last=0;function animate(t){requestAnimationFrame(animate);if(t-last<33)return;last=t;for(const avatar of meshes.values()){const moving=avatar.position.distanceTo(avatar.userData.target)>.025;avatar.position.lerp(avatar.userData.target,.15);for(const child of avatar.children){if(['upper arm','forearm','thigh','lower leg'].includes(child.name))child.rotation.x=moving?Math.sin(t*.008)*(child.position.x>0?1:-1)*.28:0;}}for(const animal of animalMeshes.values()){const delta=animal.userData.target.clone().sub(animal.position),moving=delta.length()>.025;if(moving)animal.rotation.y=Math.atan2(-delta.x,-delta.z);animalHeadings.set(animal.userData.id,animal.rotation.y);animal.position.lerp(animal.userData.target,.15);animateAnimalModel(animal,t,moving);}const followed=meshes.get(selected)||animalMeshes.get(selected);if(following&&followed)controls.target.lerp(followed.position,.15);controls.update();renderer.render(scene,camera)}requestAnimationFrame(animate);
 
 }catch(error){$('fallback').style.display='block';$('badge').textContent='2D fallback   '+error.message;}
 
@@ -116,7 +113,7 @@ function render(s){
 
  if(renderer){
 
-  group.traverse(o=>{o.geometry?.dispose();o.material?.dispose()});for(const [id,m] of meshes)previousPositions.set(id,m.position.clone());group.clear();meshes.clear();
+  group.traverse(o=>{o.geometry?.dispose();o.material?.dispose()});for(const [id,m] of [...meshes,...animalMeshes])previousPositions.set(id,m.position.clone());group.clear();meshes.clear();animalMeshes.clear();
 
   if(firstView){drawTerrain(s);const first=Object.values(s.agents)[0];controls.target.set(first.x,0,first.z);camera.position.set(first.x+18,22,first.z+24);firstView=false;}
 
@@ -129,7 +126,7 @@ function render(s){
   nodes.forEach((n,i)=>{const tree=n.kind==='wood';dummy.position.set(n.x,heightAt(n.x,n.z)+(tree?1.6:.45),n.z);dummy.scale.set(tree?2:.65,tree?3:.65,tree?2:.65);dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix);inst.setColorAt(i,new THREE.Color(resourceColors[n.kind]||'#aaa'));});
 
   for(const a of Object.values(s.agents)){if(a.alive)meshes.set(a.id,person(a));}
-  for(const a of s.wildlife?.animals||[])if(a.alive)animalSprite(a,s.wildlife.species);
+  for(const a of s.wildlife?.animals||[])if(a.alive){const definition=s.wildlife.species[a.species],model=createAnimalModel(THREE,a,definition);model.position.set(a.x,heightAt(a.x,a.z)+(definition.group==='bird'?(a.action==='flying'?2.4:0):definition.group==='insect'?1.3:definition.group==='fish'?.1:0),a.z);model.rotation.y=animalHeadings.get(a.id)??Math.PI;model.userData.target=model.position.clone();if(previousPositions.has(a.id))model.position.copy(previousPositions.get(a.id));animalMeshes.set(a.id,model);group.add(model);}
 
   const hour=s.climate?.hour||12;sun.intensity=Math.max(.35,Math.sin((hour-6)/12*Math.PI)*2);sun.position.set(s.width/2,60,s.depth/2);
 
@@ -151,15 +148,15 @@ function render(s){
 
  if(!replay)$('tick').max=s.tick;
 
- const current=$('agents').value;$('agents').replaceChildren(new Option('Choose an inhabitant',''),...Object.values(s.agents).map(a=>new Option(`${a.id} / ${a.life_stage||'adult'} / G${a.generation||0}`,a.id)));$('agents').value=current;
+ const current=$('agents').value;$('agents').replaceChildren(new Option('Choose a human or animal',''),...Object.values(s.agents).map(a=>new Option(`${a.id} / ${a.life_stage||'adult'} / G${a.generation||0}`,a.id)),...(s.wildlife?.animals||[]).map(a=>new Option(`${s.wildlife.species[a.species].name} / ${a.id}`,a.id)));$('agents').value=current;
 
  inspect();
 
 }
 
-function inspect(){const a=world?.agents[selected];$('anatomy').textContent=a?Object.entries(a.body?.parts||{}).map(([name,value])=>`${name.replaceAll('_',' ')}: ${value.health}`).join('\n'):'Select an inhabitant.';$('detail').textContent=a?`${a.id}\n${a.gender||"unspecified"}   sex: ${a.biological_sex||"unspecified"}\nAge ${(a.age_years??a.age_years_at_start??25).toFixed(2)}   Height ${a.height_cm||170} cm\nStage ${a.life_stage||"adult"} / Generation ${a.generation||0}\nParents ${(a.parent_ids||[]).join(", ")||"founder"}\nPosition ${a.x}, ${a.z}\nThirst ${a.thirst||0}\nBody: ${Object.keys(a.body?.parts||{}).length} parts tracked\nEnergy ${a.energy} / Hunger ${a.hunger}\nHealth ${a.health}\nInventory ${JSON.stringify(a.inventory)}\nSkills ${JSON.stringify(a.skills||{})}\nLearned records ${a.knowledge?.length||0}\nAlive ${a.alive}`:'Select an inhabitant.';}
+function inspect(){const animal=world?.wildlife?.animals.find(a=>a.id===selected);if(animal){const d=world.wildlife.species[animal.species];$('detail').textContent=`${d.name} / ${animal.id}\n${d.group} · ${animal.sex}\nAge ${animal.age_days.toFixed(2)} simulated days\nPosition ${animal.x}, ${animal.z}\nEnergy ${animal.energy.toFixed(1)} / Health ${animal.health.toFixed(1)}\nBehavior: ${animal.action}\nParents: ${animal.parent_ids.join(', ')||'initial population'}\nAlive ${animal.alive}\nDeterministic ecology; not an LLM decision-maker.`;const parts=[];animalMeshes.get(animal.id)?.traverse(p=>{if(p.isMesh)parts.push(p.name);});$('anatomy').textContent='Rendered anatomy (not organ physiology):\n'+[...new Set(parts)].join('\n');return;}const a=world?.agents[selected];$('anatomy').textContent=a?Object.entries(a.body?.parts||{}).map(([name,value])=>`${name.replaceAll('_',' ')}: ${value.health}`).join('\n'):'Select an inhabitant.';$('detail').textContent=a?`${a.id}\n${a.gender||"unspecified"}   sex: ${a.biological_sex||"unspecified"}\nAge ${(a.age_years??a.age_years_at_start??25).toFixed(2)}   Height ${a.height_cm||170} cm\nStage ${a.life_stage||"adult"} / Generation ${a.generation||0}\nParents ${(a.parent_ids||[]).join(", ")||"founder"}\nPosition ${a.x}, ${a.z}\nThirst ${a.thirst||0}\nBody: ${Object.keys(a.body?.parts||{}).length} parts tracked\nEnergy ${a.energy} / Hunger ${a.hunger}\nHealth ${a.health}\nInventory ${JSON.stringify(a.inventory)}\nSkills ${JSON.stringify(a.skills||{})}\nLearned records ${a.knowledge?.length||0}\nAlive ${a.alive}`:'Select an inhabitant.';}
 
-$('agents').onchange=e=>{selected=e.target.value;inspect()};$('follow').onclick=()=>{following=!following;if(following&&meshes.has(selected)){const p=meshes.get(selected).position;controls.target.copy(p);camera.position.copy(p).add(new THREE.Vector3(5,3,6));}$('follow').textContent=following?'Stop following':'Follow selected'};
+$('agents').onchange=e=>{selected=e.target.value;inspect()};$('follow').onclick=()=>{following=!following;const target=meshes.get(selected)||animalMeshes.get(selected);if(following&&target){const p=target.position;controls.target.copy(p);camera.position.copy(p).add(new THREE.Vector3(5,3,6));}$('follow').textContent=following?'Stop following':'Follow selected'};
 
 $('replay').onclick=async()=>{try{const n=Number($('tick').value);const r=await fetch(`/api/v1/history?from_tick=${n}&to_tick=${n}`);if(!r.ok)throw Error('Tick unavailable');replay=true;render(await r.json());$('events').textContent='Historical snapshot selected. Return to live for the live event feed.';$('mode').textContent='HISTORICAL   live simulation continues';}catch(e){$('mode').textContent=e.message}};
 

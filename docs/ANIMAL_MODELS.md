@@ -1,0 +1,11 @@
+# Articulated 3D animal models
+
+The shared witness now uses procedural mesh geometry for all twelve wildlife species instead of emoji billboards. Humans retain their existing body models. This is a visual update only: no animal behavior, human decisions, prompts, resources, root records or checkpoint rules are changed.
+
+Mammals have articulated legs, paws, body, head, ears, muzzle and tail; deer have antlers, boar have tusks and rabbits have long ears/cotton tails. Birds have two legs, wings and beaks, with owl facial disks and duck bills. Carp have tail, dorsal and pectoral fins. Bees and butterflies have segmented bodies, antennae, six legs and wings. These are stylized low-poly visual assets, not full organ physiology or calibrated anatomical models.
+
+Walking/swimming direction follows existing recorded movement. Legs, wings and tails animate visually; animation never changes authoritative coordinates or creates an action. Select animals through the shared inhabitant selector or click their mesh, inspect rendered body parts, and use Follow selected. Human selection/follow remains available. Dead animals remain records but have no living model to follow.
+
+Open `/viewer` for the shared world or `/static/animal-gallery.html` to inspect the models individually. The gallery uses one WebGL renderer and scales models to fit each card; its walking poses are visual demonstrations and do not spawn animals or advance simulation time. No external art/model downloads or extra dependencies are needed. The separate 2D species census still uses small emoji icons as its legend; the main 3D world does not.
+
+Validation: `node --test tests/animal-models.test.mjs tests/chronicle.test.mjs` passes five tests. They verify all twelve species produce finite 3D mesh geometry without sprites or data mutation, articulated geometry remains attached to its joints, species-specific parts exist, and movement animation operates. Syntax checks pass. Browser QA verified the gallery, shared human/animal scene, animal anatomy selection and follow control using the saved tick-60 mock preview. The local world still contains five humans and 76 animals. No new real-model experiment or biological milestone is claimed.
