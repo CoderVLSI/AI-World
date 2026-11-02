@@ -16,6 +16,8 @@ Open http://127.0.0.1:8000/viewer. The default is an explicitly labeled determin
 
 ## World and generations
 
+Shared-world integration: new CLI worlds now include humans and twelve wildlife species together. Both populations share the clock, terrain and finite resources; nearby animals are visible in human observations. The main witness renders both, with links to the same world's animal census and family timeline. Set `--wildlife-per-species 0` to disable ecology in a new run. Existing checkpoints remain unchanged. See [shared-world setup and limits](docs/SHARED_WORLD.md). The combined feature is tested with mock humans; the older real-model benchmark reports predate this integration.
+
 Six biomes and fifteen representative resources support movement, gathering, eating, drinking, rest, local speech, writing, reading, revisions, primitive placement, gifts and teaching with provenance. Minerals are finite; renewable resources regenerate.
 
 Agents have independent gender and biological sex, simplified anatomy, needs, age and lineage. Reproduction requires reciprocal adult parenting proposals, compatible reproductive roles, proximity, resources and health. Underage and close-family pairings are rejected. Gestation, birth, caregiving, growth and aging are simplified. Children have separate memories. No sexual scenes are simulated.

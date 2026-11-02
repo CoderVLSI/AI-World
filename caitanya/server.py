@@ -104,6 +104,10 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
             state["climate"]=climate(from_tick,biology.days_per_tick)
             state.pop("rng_state")
             state.pop("root",None)
+            if 'fauna' in state:
+                from fauna.ecology import Ecosystem
+                state['wildlife']=Ecosystem.restore(state.pop('fauna')).public()
+                state['wildlife']['mode']='Integrated deterministic ecology — shared human world'
             for a in state["agents"].values():
                 a.pop("memories");a.pop("parenting_proposals",None)
                 a["age_years"]=round(a["age_years_at_start"]+(from_tick-a["born_tick"])*biology.days_per_tick/365,3)
@@ -111,6 +115,11 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
         except ValueError as e: raise HTTPException(400,str(e))
     @app.get("/api/v1/metrics")
     def metrics(): return published["metrics"]
+    @app.get('/api/v1/wildlife')
+    def wildlife():
+        return published.get('wildlife',{'mode':'No wildlife recorded in this run','animals':[],'species':{},'counts':{},'events':[],'tick':published['tick'],'elapsed_days':0})
+    @app.get('/api/v1/wildlife/terrain')
+    def wildlife_terrain():return dict(width=world.width,depth=world.depth,terrain=world.terrain)
     @app.get("/api/v1/families")
     def families():
         return {"lineage":[{"id":a["id"],"parent_ids":a["parent_ids"],"guardian_ids":a["guardian_ids"],"generation":a["generation"],"alive":a["alive"]}
@@ -119,6 +128,7 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     @app.get("/viewer")
     def viewer(): return FileResponse(ROOT/"web"/"index.html")
     app.mount("/static",StaticFiles(directory=ROOT/"web"),name="static")
+    app.mount('/fauna',StaticFiles(directory=ROOT/'fauna'/'web',html=True),name='fauna')
     return app
 
 def main():
@@ -130,6 +140,7 @@ def main():
     p.add_argument("--root-mode",choices=["off","observe","crisis"],default="crisis")
     p.add_argument("--max-ticks",type=int);p.add_argument("--max-seconds",type=float)
     p.add_argument("--report-dir")
+    p.add_argument('--wildlife-per-species',type=int,default=6,help='Initial animals per species for NEW worlds; 0 disables wildlife. Recovery preserves saved ecology.')
     p.add_argument("--days-per-tick",type=float,default=1/144,help="World calendar rate; baseline ten minutes per tick. Accelerated experiments must be labeled.")
     p.add_argument("--resume"); p.add_argument("--run-dir",default="runs/local")
     p.add_argument("--recover",help="Restore newest valid image and replay its committed journal tail")
@@ -139,6 +150,6 @@ def main():
         backend=TransformersLFM3Backend(revision=args.revision)
     else:backend=None
     if args.resume and args.recover:p.error("Choose either --resume or --recover")
-    world=World.recover(args.recover,backend=backend) if args.recover else World.restore(args.resume,backend=backend) if args.resume else World(seed=args.seed,population=args.population,width=args.width,depth=args.depth,backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),root_mode=args.root_mode)
+    world=World.recover(args.recover,backend=backend) if args.recover else World.restore(args.resume,backend=backend) if args.resume else World(seed=args.seed,population=args.population,width=args.width,depth=args.depth,backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),root_mode=args.root_mode,wildlife_per_species=args.wildlife_per_species)
     uvicorn.run(create_app(world,args.run_dir,max_ticks=args.max_ticks,max_seconds=args.max_seconds,report_dir=args.report_dir),host="127.0.0.1",port=args.port)
 if __name__=="__main__": main()

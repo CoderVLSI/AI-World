@@ -120,7 +120,7 @@ class MockInferenceBackend:
         return Intent(a["id"], observation["tick"], action, params, "deterministic mock policy")
 
 class World:
-    def __init__(self, seed=314159, population=5, width=64, depth=64, backend=None, biology=None, spawn_radius=8, root_mode="crisis"):
+    def __init__(self, seed=314159, population=5, width=64, depth=64, backend=None, biology=None, spawn_radius=8, root_mode="crisis", wildlife_per_species=0):
         if not (1 <= population and width >= 8 and depth >= 8):
             raise ValueError("invalid world dimensions or population")
         if type(spawn_radius) is not int or spawn_radius<1:raise ValueError("invalid starting radius")
@@ -175,22 +175,33 @@ class World:
         self.manifest.update(getattr(self.backend,"metadata",{}))
         self.root = BrahmanAgent(mode=root_mode)
         self.root.register(self)
+        self.fauna=None
+        if wildlife_per_species:
+            from fauna.ecology import Ecosystem
+            self.fauna=Ecosystem(self,seed=seed+2718,per_species=wildlife_per_species,days_per_tick=self.biology.days_per_tick)
+            self.manifest['wildlife']={'version':1,'initial_per_species':wildlife_per_species,'days_per_tick':self.biology.days_per_tick}
         self.manifest["engine_version"] = "0.4.0"
         self.initial_state = self.state()
         self._last_committed_state=copy.deepcopy(self.initial_state)
 
     def state(self):
         rng=self.rng.getstate()
-        return dict(schema_version=1, seed=self.seed, width=self.width, depth=self.depth, tick=self.tick,
+        state=dict(schema_version=1, seed=self.seed, width=self.width, depth=self.depth, tick=self.tick,
             status=self.status, root=self.root.state(), agents={k: asdict(v) for k,v in self.agents.items()},
             resources=copy.deepcopy(self.resources), works=copy.deepcopy(self.works),
             parts=copy.deepcopy(self.parts), manifest=copy.deepcopy(self.manifest), rng_state=[rng[0],list(rng[1]),rng[2]],decision_cursor=self.decision_cursor,
             biology=asdict(self.biology),pregnancies=copy.deepcopy(self.pregnancies),next_agent_id=self.next_agent_id,next_pregnancy_id=self.next_pregnancy_id)
+        if self.fauna is not None:state['fauna']=self.fauna.state()
+        return state
 
     def public(self):
         state = self.state()
         state.pop("rng_state")
         state.pop("root", None)
+        if self.fauna is not None:
+            state.pop('fauna',None)
+            state['wildlife']=self.fauna.public()
+            state['wildlife']['mode']='Integrated deterministic ecology — shared human world'
         for a in state["agents"].values():
             a.pop("memories")
             a.pop("parenting_proposals")
@@ -211,6 +222,8 @@ class World:
         own["knowledge"]=own["knowledge"][-6:]
         nearby_agents=[b for b in self.agents.values() if b.id!=aid and b.alive and nearby(asdict(b))]
         return dict(tick=self.tick, self=own, resources=[copy.deepcopy(n) for n in self.resources.values() if nearby(n)],
+            wildlife=[dict(id=b.id,species=b.species,x=b.x,z=b.z,behavior=b.action)
+                for b in self.fauna.animals.values() if b.alive and abs(b.x-a.x)+abs(b.z-a.z)<=8] if self.fauna else [],
             climate=climate(self.tick,self.biology.days_per_tick),
             eligible_parenting_partners=[b.id for b in nearby_agents if pairing_error(self,a,b) is None],
             parenting_requests=[b.id for b in nearby_agents if b.parenting_proposals.get(aid,-1)>=self.tick*self.biology.days_per_tick],
@@ -340,6 +353,11 @@ class World:
             if not a.health: a.alive=False; self.emit("death",a.id,{"cause":"scarcity"},"world_rule")
         advance_lifecycle(self)
         self.root.sustain(self)
+        if self.fauna is not None:
+            offset=len(self.fauna.events)
+            self.fauna.step(self)
+            for event in self.fauna.events[offset:]:
+                self.emit('wildlife_'+event['type'],None,{k:v for k,v in event.items() if k not in {'source','type'}},'deterministic_ecology')
         if self.tick % 12 == 0:
             for n in self.resources.values():
                 if n.get("renewable",True):n["amount"] = min(n["capacity"],n["amount"]+1)
@@ -402,6 +420,10 @@ class World:
         return obj
 
     def load_state(self,s):
+        self.fauna=None
+        if 'fauna' in s:
+            from fauna.ecology import Ecosystem
+            self.fauna=Ecosystem.restore(s['fauna'])
         self.biology=BiologyConfig(**s.get("biology",{}));self.pregnancies=copy.deepcopy(s.get("pregnancies",[]))
         self.next_agent_id=s.get("next_agent_id",len(s["agents"]));self.next_pregnancy_id=s.get("next_pregnancy_id",0)
         self.decision_cursor=s.get("decision_cursor",0)

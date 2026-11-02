@@ -1,5 +1,7 @@
 # Optional wildlife extension
 
+Integration update: this checkout now also supports humans and animals in the same World. See [SHARED_WORLD.md](SHARED_WORLD.md). The standalone preview instructions below remain available, but the earlier statement that ecology is not wired into World applies only to the original codex/fauna branch, not this integration.
+
 This isolated branch adds twelve representative species: deer, rabbit, wild boar, wolf, fox, sparrow, crow, duck, owl, carp, butterfly and bee. These common-name groups are illustrative, not a complete taxonomic inventory. All behavior is lightweight deterministic simulation. No animal has an LLM instance, and no human receives new instructions, hunting knowledge or domestication knowledge.
 
 From the checkout root, run `python -m fauna.preview`, then open http://127.0.0.1:8011/. This is an independent read-only ecology preview, explicitly labeled as disconnected from the civilization. It does not modify the running Colab experiment or Claude's code. The preview creates a separate world for terrain/resources and does not step its human inhabitants or load a language model. Its state is temporary; do not present it as a persistent real-agent experiment.

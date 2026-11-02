@@ -5,6 +5,12 @@ let world,selected='',replay=false,following=false,cursor=0,events=[];
 let THREE,scene,camera,renderer,controls,group,sun,terrainGroup,firstView=true;
 
 const meshes=new Map();const previousPositions=new Map();
+const animalTextures=new Map();
+function animalSprite(a,species){
+ const definition=species[a.species];let texture=animalTextures.get(a.species);
+ if(!texture){const c=document.createElement('canvas');c.width=96;c.height=96;const ctx=c.getContext('2d');ctx.font='72px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(definition.icon,48,48);texture=new THREE.CanvasTexture(c);animalTextures.set(a.species,texture);}
+ const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true}));sprite.scale.set(2.5,2.5,1);sprite.position.set(a.x,heightAt(a.x,a.z)+(definition.group==='bird'?3:definition.group==='insect'?2:1),a.z);group.add(sprite);
+}
 
 try {
 
@@ -123,6 +129,7 @@ function render(s){
   nodes.forEach((n,i)=>{const tree=n.kind==='wood';dummy.position.set(n.x,heightAt(n.x,n.z)+(tree?1.6:.45),n.z);dummy.scale.set(tree?2:.65,tree?3:.65,tree?2:.65);dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix);inst.setColorAt(i,new THREE.Color(resourceColors[n.kind]||'#aaa'));});
 
   for(const a of Object.values(s.agents)){if(a.alive)meshes.set(a.id,person(a));}
+  for(const a of s.wildlife?.animals||[])if(a.alive)animalSprite(a,s.wildlife.species);
 
   const hour=s.climate?.hour||12;sun.intensity=Math.max(.35,Math.sin((hour-6)/12*Math.PI)*2);sun.position.set(s.width/2,60,s.depth/2);
 
@@ -133,6 +140,9 @@ function render(s){
  }else{const c=$('fallback');c.width=innerWidth;c.height=innerHeight;const ctx=c.getContext('2d'),scale=Math.min(innerWidth/s.width,innerHeight/s.depth);ctx.fillStyle='#142922';ctx.fillRect(0,0,c.width,c.height);for(const n of Object.values(s.resources)){ctx.fillStyle=n.kind==='food'?'#b7bd64':'#4c7850';if(n.amount)ctx.fillRect(n.x*scale,n.z*scale,3,3)}for(const a of Object.values(s.agents)){ctx.fillStyle='#f2d29c';ctx.fillRect(a.x*scale,a.z*scale,5,5)}}
 
  $('generations').textContent=`Day ${Math.floor(s.tick*(s.biology?.days_per_tick||1/144))} | ${s.metrics?.births??Object.values(s.agents).filter(a=>a.generation>0).length} births | ${s.pregnancies?.length||0} pregnancies | generation ${Math.max(...Object.values(s.agents).map(a=>a.generation||0))}${(s.biology?.days_per_tick||0)>1/144?' | ACCELERATED CALENDAR':''}`;
+ let wildlifeInfo=$('wildlife-info');if(!wildlifeInfo){wildlifeInfo=document.createElement('p');wildlifeInfo.id='wildlife-info';document.querySelector('header').append(wildlifeInfo);}
+ wildlifeInfo.textContent=s.wildlife?`${s.wildlife.animals.filter(a=>a.alive).length} animals · ${Object.values(s.wildlife.counts).filter(n=>n>0).length} species · same world / shared resources`:'No wildlife recorded in this run';
+ let links=$('world-pages');if(!links){links=document.createElement('p');links.id='world-pages';const family=document.createElement('a');family.href='static/chronicle.html';family.textContent='Family tree & timeline';family.style.color='#c2df9c';const animals=document.createElement('a');animals.href='fauna/';animals.textContent='Animal census';animals.style.color='#c2df9c';links.append(family,document.createTextNode(' · '),animals);document.querySelector('aside').prepend(links);}
  $('backend').textContent=s.manifest.inference_backend==='MockInferenceBackend'?'DETERMINISTIC MOCK   no language model running':`SHARED MODEL   ${s.manifest.model_id}`;
 
  $('ecology').textContent=`${s.width}   ${s.depth} terrain   ${s.climate?.season||''}   ${s.climate?.weather||''}   ${s.climate?.temperature_c??''} C   ${Object.keys(s.resource_catalog||{}).length||15} resource types`;

@@ -1,5 +1,7 @@
 # Implementation status — 0.4.0
 
+Shared-world integration branch: wildlife is now wired into the authoritative World tick, shared resource consumption, local human observations, delta journal, checkpoints and replay. The witness displays humans and animals together. Animal census and family history read the same server. Verified locally with mock human decisions, not yet with real LFM3 inference. Legacy checkpoints do not silently acquire animals. See docs/SHARED_WORLD.md. The integrated suite passed 56 Python tests plus three frontend tests; targeted route/recovery checks were rerun after adding the census endpoints.
+
 New: persistent Brahman root-agent ownership and delegation, private cross-life identity threads, a factual action/outcome ledger, bounded crisis manifestation, and optional private reflection. The supervisor is a deterministic policy using the existing inference backend for embodied delegates. It is not a separate omniscient LLM. No discovery or autonomous spiritual realization is claimed. See README for precise policy and information boundaries. The previously observed Colab process has not been upgraded by publishing this source.
 
 Implemented: seeded terrain, validated actions, individual bounded memories, a read-only 3D witness, shared LFM3 native tool calls, simplified lifecycle and mutual adult parenting proposals, gestation, lineage, care, growth, teaching, aging, compact journals and committed-tail recovery.
