@@ -88,6 +88,7 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
             biology=BiologyConfig(**state.get("biology",{}))
             state["climate"]=climate(from_tick,biology.days_per_tick)
             state.pop("rng_state")
+            state.pop("root",None)
             for a in state["agents"].values():
                 a.pop("memories");a.pop("parenting_proposals",None)
                 a["age_years"]=round(a["age_years_at_start"]+(from_tick-a["born_tick"])*biology.days_per_tick/365,3)

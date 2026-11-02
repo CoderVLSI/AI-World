@@ -1,6 +1,6 @@
 # CAITANYA — AI World
 
-Experimental civilization simulation, version 0.3.0, with individual identities and memories, an optional shared LFM3 model, and a read-only 3D witness. Consciousness is not established.
+Experimental civilization simulation, version 0.4.0, with a persistent Brahman root agent, individual sub-agent identities and memories, an optional shared LFM3 model, and a read-only 3D witness. Consciousness is not established.
 
 ## Run locally
 
@@ -20,7 +20,19 @@ Six biomes and fifteen representative resources support movement, gathering, eat
 
 Agents have independent gender and biological sex, simplified anatomy, needs, age and lineage. Reproduction requires reciprocal adult parenting proposals, compatible reproductive roles, proximity, resources and health. Underage and close-family pairings are rejected. Gestation, birth, caregiving, growth and aging are simplified. Children have separate memories. No sexual scenes are simulated.
 
-The baseline calendar advances ten minutes per tick. `--days-per-tick 1` enables a labeled accelerated experiment. Physiology is not scientifically calibrated. Pretrained language is not evidence of language evolving from scratch. There is no hidden divine or parent decision-maker.
+The baseline calendar advances ten minutes per tick. `--days-per-tick 1` enables a labeled accelerated experiment. Physiology is not scientifically calibrated. Pretrained language is not evidence of language evolving from scratch.
+
+## Root agent, continuity and inquiry
+
+`BrahmanAgent` is the private persistent root of the simulation. Its scope is the whole world state, including inhabitants, ecology and objects; it delegates each inhabitant decision through that individual's observations to the shared inference backend. It uses a bounded deterministic supervisory policy, not a second language model or an infinite consciousness. Individual decisions remain local. This implementation is a computational interpretation of the requested cosmology, not a claim about religious truth.
+
+The root is formless by default. If every living inhabitant has hunger or thirst of at least 85, it may create an ordinary adult body near an inhabitant, with a practical helping goal and standard initial provisions. There can be only one living manifestation and at least 1,000 ticks between arrivals. The body uses normal inference, needs and action validation; it cannot rewrite minds or bypass world rules. This policy does not guarantee successful preservation. Its arrival is visible; its underlying identity is not disclosed.
+
+All inhabitants are privately registered as children of the root. Biological parentage remains separate. When a later newborn is registered, it receives the first available deceased continuity thread in stable identifier order, or a new thread if none is available. Personal memories, skills, status and beliefs do not transfer. A private ledger retains action counts and confirmed social outcomes across lives. This is factual causal continuity called karma in the design, without a moral score, punishment, reward or determination of birth conditions.
+
+The REFLECT action records private, unverified reflection. No scripture, revelation, Brahman identity, root registry or prior-life ledger is placed in inhabitant prompts. An inhabitant may form any interpretation or none. No realization classifier or scripted discovery exists. The pretrained model can already know religious concepts, so their appearance cannot establish independent discovery.
+
+Root state is included in private checksummed checkpoints and replay deltas, and omitted from witness snapshots and historical responses. This is a simulation information boundary, not security against the operator who owns the source and run files. Older checkpoints gain a root registry when loaded; they cannot reconstruct continuity that was never recorded. Existing running processes must be restarted with this version to use these mechanics.
 
 ## Persistence
 

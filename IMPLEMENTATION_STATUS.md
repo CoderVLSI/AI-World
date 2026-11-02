@@ -1,4 +1,6 @@
-# Implementation status — 0.3.0
+# Implementation status — 0.4.0
+
+New: persistent Brahman root-agent ownership and delegation, private cross-life identity threads, a factual action/outcome ledger, bounded crisis manifestation, and optional private reflection. The supervisor is a deterministic policy using the existing inference backend for embodied delegates. It is not a separate omniscient LLM. No discovery or autonomous spiritual realization is claimed. See README for precise policy and information boundaries. The previously observed Colab process has not been upgraded by publishing this source.
 
 Implemented: seeded terrain, validated actions, individual bounded memories, a read-only 3D witness, shared LFM3 native tool calls, simplified lifecycle and mutual adult parenting proposals, gestation, lineage, care, growth, teaching, aging, compact journals and committed-tail recovery.
 

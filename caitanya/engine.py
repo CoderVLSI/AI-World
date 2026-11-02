@@ -9,13 +9,13 @@ import random
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Literal
 from .nature import RESOURCE_TYPES, EDIBLE, geography, anatomy, climate
 from .lifecycle import BiologyConfig, age, stage, roles_for, validate_social, apply_social, advance_lifecycle, pairing_error
 from .history import changes, apply_changes
+from .root import BrahmanAgent
 
 SCHEMA_VERSION = 1
-PROMPT_VERSION = "neutral-v3-generations"
+PROMPT_VERSION = "neutral-v4-inquiry"
 FOUNDATION = """You are an inhabitant of your environment.
 You can observe nearby things, remember events, communicate with others,
 move, rest, gather materials, make objects, and learn from what happens.
@@ -68,7 +68,7 @@ class Agent:
 class Intent:
     agent_id: str
     observed_tick: int
-    action: Literal["MOVE", "GATHER", "REST", "EAT", "DRINK", "WAIT", "SPEAK", "WRITE", "READ", "PLACE", "REPRODUCE", "WITHDRAW_CONSENT", "CARE", "GIVE", "TEACH", "REVISE"]
+    action: str
     parameters: dict = field(default_factory=dict)
     reason_summary: str = ""
 
@@ -173,13 +173,16 @@ class World:
             starting_radius=spawn_radius,
             configuration_hash=digest(dict(seed=seed, population=population, width=width, depth=depth,biology=asdict(self.biology),spawn_radius=spawn_radius)))
         self.manifest.update(getattr(self.backend,"metadata",{}))
+        self.root = BrahmanAgent()
+        self.root.register(self)
+        self.manifest["engine_version"] = "0.4.0"
         self.initial_state = self.state()
         self._last_committed_state=copy.deepcopy(self.initial_state)
 
     def state(self):
         rng=self.rng.getstate()
         return dict(schema_version=1, seed=self.seed, width=self.width, depth=self.depth, tick=self.tick,
-            status=self.status, agents={k: asdict(v) for k,v in self.agents.items()},
+            status=self.status, root=self.root.state(), agents={k: asdict(v) for k,v in self.agents.items()},
             resources=copy.deepcopy(self.resources), works=copy.deepcopy(self.works),
             parts=copy.deepcopy(self.parts), manifest=copy.deepcopy(self.manifest), rng_state=[rng[0],list(rng[1]),rng[2]],decision_cursor=self.decision_cursor,
             biology=asdict(self.biology),pregnancies=copy.deepcopy(self.pregnancies),next_agent_id=self.next_agent_id,next_pregnancy_id=self.next_pregnancy_id)
@@ -187,6 +190,7 @@ class World:
     def public(self):
         state = self.state()
         state.pop("rng_state")
+        state.pop("root", None)
         for a in state["agents"].values():
             a.pop("memories")
             a.pop("parenting_proposals")
@@ -235,7 +239,7 @@ class World:
         expected = {"MOVE":{"dx","dz"}, "GATHER":{"resource_id"}, "REST":set(), "EAT":set(), "DRINK":set(), "WAIT":set(),
                     "SPEAK":{"text"}, "WRITE":{"title","text"}, "READ":{"work_id"}, "PLACE":{"material","shape"},
                     "REPRODUCE":{"target_id"},"WITHDRAW_CONSENT":{"target_id"},"CARE":{"target_id"},
-                    "GIVE":{"target_id","resource","amount"},"TEACH":{"target_id","topic","text"},"REVISE":{"work_id","text"}}
+                    "GIVE":{"target_id","resource","amount"},"TEACH":{"target_id","topic","text"},"REVISE":{"work_id","text"},"REFLECT":{"text"}}
         if action not in expected or set(p) != expected[action]: return self.reject(intent, "invalid action parameters")
         years=age(self,a)
         if years<3 and action not in {"REST","WAIT","EAT","DRINK"}:return self.reject(intent,"infant cannot perform this action")
@@ -257,7 +261,7 @@ class World:
             if not n or (n["x"],n["z"]) != (a.x,a.z) or n["amount"] <= 0: return self.reject(intent,"resource unavailable")
         if action == "EAT" and not any(a.inventory.get(k,0) for k in EDIBLE): return self.reject(intent,"no food")
         if action == "DRINK" and a.inventory.get("water",0)<1:return self.reject(intent,"no water")
-        if action in {"SPEAK","WRITE"}:
+        if action in {"SPEAK","WRITE","REFLECT"}:
             if any(not isinstance(v,str) for v in p.values()) or len(p["text"]) > 2000 or not p["text"].strip():
                 return self.reject(intent,"invalid text")
             if action == "WRITE" and len(p["title"]) > 100: return self.reject(intent,"title too long")
@@ -277,6 +281,9 @@ class World:
         if action == "MOVE": a.x += p["dx"]; a.z += p["dz"]
         elif action == "GATHER": n["amount"] -= 1; a.inventory[n["kind"]] += 1
         elif action == "REST": a.energy = min(100,a.energy+15)
+        elif action == "REFLECT":
+            a.memories.append(dict(tick=self.tick, reflection=p["text"], verified=False))
+            payload = {"outcome": "private_reflection_recorded"}
         elif action == "EAT":
             kind=next(k for k in EDIBLE if a.inventory.get(k,0)>0)
             a.inventory[kind]-=1; a.hunger=max(0,a.hunger-30)
@@ -307,6 +314,8 @@ class World:
         a.memories.append(dict(tick=self.tick, action=action, confirmed=True))
         a.memories[:] = a.memories[-40:]
         self.emit(action.lower(),a.id,payload,"validated_action")
+        self.root.register(self)
+        self.root.record(a.id, action, payload)
         return True,"accepted"
 
     def emit(self, kind, actor, payload, source):
@@ -325,6 +334,7 @@ class World:
             if a.thirst == 100:a.health=max(0,a.health-3)
             if not a.health: a.alive=False; self.emit("death",a.id,{"cause":"scarcity"},"world_rule")
         advance_lifecycle(self)
+        self.root.sustain(self)
         if self.tick % 12 == 0:
             for n in self.resources.values():
                 if n.get("renewable",True):n["amount"] = min(n["capacity"],n["amount"]+1)
@@ -338,7 +348,7 @@ class World:
                 if real and time.monotonic()-start>=20:break
                 aid=ids[self.decision_cursor%len(ids)];self.decision_cursor+=1
                 try:
-                    accepted,reason=self.apply(self.backend.decide(self.observe(aid)))
+                    accepted,reason=self.apply(self.root.delegate(self,aid))
                     if real and accepted:
                         self.events[-1]["model_request_id"]=self.backend.last_request["request_id"]
                     self.agents[aid].memories.append(dict(tick=self.tick,feedback=reason,accepted=accepted))
@@ -393,6 +403,8 @@ class World:
         for k in ("seed","width","depth","tick","status","resources","works","parts","manifest"):
             setattr(self,k,copy.deepcopy(s[k]))
         self.agents={k:Agent(**v) for k,v in s["agents"].items()}
+        self.root=BrahmanAgent(s.get("root"))
+        self.root.register(self)
         for aid,a in self.agents.items():
             if "reproductive_roles" not in s["agents"][aid]:a.reproductive_roles=roles_for(a.biological_sex)
             if "adult_height_cm" not in s["agents"][aid]:a.adult_height_cm=a.height_cm

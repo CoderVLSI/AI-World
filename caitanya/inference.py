@@ -10,6 +10,7 @@ from .engine import FOUNDATION, Intent
 class InferenceFailure(RuntimeError): pass
 
 PARAMETERS={
+    "REFLECT":{"text":{"type":"string","maxLength":2000}},
     "MOVE":{"dx":{"type":"integer","minimum":-1,"maximum":1},"dz":{"type":"integer","minimum":-1,"maximum":1}},
     "GATHER":{"resource_id":{"type":"string"}},"REST":{},"EAT":{},"DRINK":{},"WAIT":{},
     "SPEAK":{"text":{"type":"string","maxLength":2000}},
@@ -21,7 +22,7 @@ PARAMETERS={
     "TEACH":{"target_id":{"type":"string"},"topic":{"type":"string","maxLength":80},"text":{"type":"string","maxLength":500}},
     "REVISE":{"work_id":{"type":"string"},"text":{"type":"string","maxLength":2000}},
 }
-DESCRIPTIONS={"MOVE":"Walk one cardinal grid step; dx and dz must have absolute sum 1. Respect blocked adjacent coordinates.",
+DESCRIPTIONS={"REFLECT":"Privately examine your experiences, questions or assumptions. Reflection records an interpretation, not a verified fact. No particular conclusion is required.","MOVE":"Walk one cardinal grid step; dx and dz must have absolute sum 1. Respect blocked adjacent coordinates.",
  "GATHER":"Gather one unit from an observed resource at your exact position.","EAT":"Consume one carried food unit.",
  "DRINK":"Consume one carried water unit.","REST":"Recover energy.","WAIT":"Wait for one decision.",
  "SPEAK":"Say words to inhabitants within hearing range.","WRITE":"Create a text at your location.",
