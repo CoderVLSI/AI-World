@@ -162,7 +162,7 @@ def redact_private(state):
 
 class World:
     def __init__(self, seed=314159, population=5, width=64, depth=64, backend=None, biology=None, spawn_radius=8,
-                 root_mode="crisis", autonomy=None):
+                 root_mode="crisis", autonomy=None, wildlife_per_species=0):
         if not (1 <= population and width >= 8 and depth >= 8):
             raise ValueError("invalid world dimensions or population")
         if type(spawn_radius) is not int or spawn_radius<1:raise ValueError("invalid starting radius")
@@ -226,6 +226,13 @@ class World:
         self.manifest.update(getattr(self.backend,"metadata",{}))
         self.root = BrahmanAgent(mode=root_mode)
         self.root.register(self)
+        self.fauna=None
+        if wildlife_per_species:
+            if self.biology.days_per_tick>1:
+                raise ValueError('Wildlife requires days_per_tick <= 1; use --wildlife-per-species 0 for coarse legacy clocks')
+            from fauna.ecology import Ecosystem
+            self.fauna=Ecosystem(self,seed=seed+2718,per_species=wildlife_per_species,days_per_tick=self.biology.days_per_tick)
+            self.manifest['wildlife']={'version':1,'initial_per_species':wildlife_per_species,'days_per_tick':self.biology.days_per_tick}
         self.manifest["engine_version"] = ENGINE_VERSION
         self.manifest["autonomy_hash"] = digest(self.autonomy.to_dict())
         self.initial_state = self.state()
@@ -260,16 +267,22 @@ class World:
 
     def state(self):
         rng=self.rng.getstate()
-        return dict(schema_version=SCHEMA_VERSION, seed=self.seed, width=self.width, depth=self.depth, tick=self.tick,
+        state=dict(schema_version=SCHEMA_VERSION, seed=self.seed, width=self.width, depth=self.depth, tick=self.tick,
             status=self.status, root=self.root.state(), agents={k: asdict(v) for k,v in self.agents.items()},
             autonomy=self.autonomy.to_dict(), scheduler=self.scheduler.state(), objects=copy.deepcopy(self.objects),
             next_object_id=self.next_object_id, ledger=dict(self.ledger),
             resources=copy.deepcopy(self.resources), works=copy.deepcopy(self.works),
             parts=copy.deepcopy(self.parts), manifest=copy.deepcopy(self.manifest), rng_state=[rng[0],list(rng[1]),rng[2]],decision_cursor=self.decision_cursor,
             biology=asdict(self.biology),pregnancies=copy.deepcopy(self.pregnancies),next_agent_id=self.next_agent_id,next_pregnancy_id=self.next_pregnancy_id)
+        if self.fauna is not None:state['fauna']=self.fauna.state()
+        return state
 
     def public(self):
         state = redact_private(self.state())
+        if self.fauna is not None:
+            state.pop('fauna',None)
+            state['wildlife']=self.fauna.public()
+            state['wildlife']['mode']='Integrated deterministic ecology — shared human world'
         for a in state["agents"].values():
             a["age_years"]=round(age(self,self.agents[a["id"]]),3)
             a["life_stage"]=stage(self,self.agents[a["id"]])
@@ -289,6 +302,10 @@ class World:
         own.pop("ltm",None);own.pop("task",None);ill=own.pop("illness",None);busy=own.pop("busy_until_tick",0)
         nearby_agents=[b for b in self.agents.values() if b.id!=aid and b.alive and nearby(asdict(b))]
         extra={}
+        if self.fauna is not None:
+            extra['wildlife']=[dict(id=b.id,species=b.species,x=b.x,z=b.z,behavior=b.action)
+                for b in sorted(self.fauna.animals.values(),key=lambda b:(abs(b.x-a.x)+abs(b.z-a.z),b.id))
+                if b.alive and abs(b.x-a.x)+abs(b.z-a.z)<=8][:12]
         if not self.autonomy.legacy:
             for need in ("hunger","thirst","energy","health"):own[need]=round(own[need])
             own["unwell"]=bool(ill)
@@ -497,6 +514,7 @@ class World:
         physiology.advance(self)
         advance_lifecycle(self)
         self.root.sustain(self)
+        self._step_wildlife()
         physiology.regrow(self)
         if self.autonomy.experiments.enabled:
             from .experiments import advance_objects
@@ -514,6 +532,7 @@ class World:
             if not a.health: a.alive=False; self.emit("death",a.id,{"cause":"scarcity"},"world_rule")
         advance_lifecycle(self)
         self.root.sustain(self)
+        self._step_wildlife()
         if self.tick % 12 == 0:
             for n in self.resources.values():
                 if n.get("renewable",True):n["amount"] = min(n["capacity"],n["amount"]+1)
@@ -536,6 +555,14 @@ class World:
                     self.reject(Intent(aid,self.tick,"WAIT"),"inference_failed: "+str(exc)[:200])
                     self.emit("inference_failed",aid,{"error":str(exc)[:200]},"inference_error")
                     self.agents[aid].memories.append(dict(tick=self.tick,feedback="No action executed; decision failed."))
+
+    def _step_wildlife(self):
+        """Same-clock ecology in both modes, attributed separately from decisions."""
+        if self.fauna is None:return
+        offset=len(self.fauna.events)
+        self.fauna.step(self)
+        for event in self.fauna.events[offset:]:
+            self.emit('wildlife_'+event['type'],None,{k:v for k,v in event.items() if k not in {'source','type'}},'deterministic_ecology')
 
     def metrics(self):
         return dict(tick=self.tick,population=sum(a.alive for a in self.agents.values()),
@@ -590,6 +617,10 @@ class World:
         self.scheduler=DecisionScheduler(self.autonomy.scheduler,s.get("scheduler"))
         self.objects=copy.deepcopy(s.get("objects",{}));self.next_object_id=s.get("next_object_id",0)
         self.ledger=dict(s.get("ledger",{"dispersed_g":0.0,"atmosphere_g":0.0}))
+        self.fauna=None
+        if 'fauna' in s:
+            from fauna.ecology import Ecosystem
+            self.fauna=Ecosystem.restore(s['fauna'])
         self._meta,self._selected_by={},None
         self._build_registry()
         self.biology=BiologyConfig(**s.get("biology",{}));self.pregnancies=copy.deepcopy(s.get("pregnancies",[]))

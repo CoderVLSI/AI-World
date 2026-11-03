@@ -1,0 +1,3152 @@
+{
+  "metadata": {
+    "date_utc": "2026-11-02T16:27:01.974461+00:00",
+    "commit_sha": "dfb78d59491b976286d0c0a7c5fb04c4e9306b69",
+    "root_mode": "observe",
+    "acceptance": {
+      "checkpoint_journal_recovery": true,
+      "live_worker_stopped": true
+    },
+    "journal_bytes": 113010
+  },
+  "model_id": "LiquidAI/LFM3-1.7B",
+  "model_revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+  "backend": "TransformersLFM3Backend",
+  "classification": "real-model",
+  "tick_range": [
+    0,
+    30
+  ],
+  "starting_population": 5,
+  "ending_population": 5,
+  "births": 0,
+  "deaths": 0,
+  "highest_generation": 0,
+  "root_mode": "observe",
+  "seed": 314159,
+  "width": 256,
+  "depth": 256,
+  "biology": {
+    "days_per_tick": 0.006944444444444444,
+    "adulthood_years": 18,
+    "gestation_days": 280,
+    "recovery_days": 365,
+    "proposal_lifetime_days": 7,
+    "max_births_per_tick": 3
+  },
+  "inference": {
+    "model_calls": 50,
+    "parse_or_inference_failures": 0,
+    "output_tokens": 718,
+    "gpu_allocated_bytes": 3466130432,
+    "gpu_peak_allocated_bytes": 4032325120,
+    "inference_seconds": 56.015,
+    "tokens_per_second": 12.82,
+    "successful_inference_calls": 50,
+    "model_id": "LiquidAI/LFM3-1.7B",
+    "hardware": "Tesla T4",
+    "model_instances": 1,
+    "device": "cuda",
+    "model_revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7"
+  },
+  "verified_real_agent_ids": [
+    "agent-0000",
+    "agent-0001",
+    "agent-0002",
+    "agent-0003",
+    "agent-0004"
+  ],
+  "per_agent_validated_model_actions": {
+    "agent-0000": 10,
+    "agent-0001": 10,
+    "agent-0002": 10,
+    "agent-0003": 10,
+    "agent-0004": 10
+  },
+  "action_counts": {
+    "eat": 14,
+    "wait": 11,
+    "speak": 12,
+    "drink": 12,
+    "rest": 1
+  },
+  "failure_events": [],
+  "actions": [
+    {
+      "event_id": "evt-000000002",
+      "tick": 3,
+      "actor": "agent-0000",
+      "action": "eat",
+      "model_request_id": "22427858-de58-413e-9dc2-7f9383017a60",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 3,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 0,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 2,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000003",
+      "tick": 3,
+      "actor": "agent-0001",
+      "action": "wait",
+      "model_request_id": "ed620962-deb2-4e9d-9242-243ace52d93d",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 3,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 3,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000004",
+      "tick": 3,
+      "actor": "agent-0002",
+      "action": "eat",
+      "model_request_id": "82b15b47-9bd0-46c3-aacf-06e1f8e380ec",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 3,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 0,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 2,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000005",
+      "tick": 3,
+      "actor": "agent-0003",
+      "action": "eat",
+      "model_request_id": "c64daefc-000b-4eda-b701-24daa88925c7",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 3,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 0,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 2,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000006",
+      "tick": 3,
+      "actor": "agent-0004",
+      "action": "eat",
+      "model_request_id": "270c86ef-c2e2-48f6-99b7-6cba81c917b4",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 3,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 0,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 2,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000010",
+      "tick": 6,
+      "actor": "agent-0000",
+      "action": "eat",
+      "model_request_id": "02241025-60dc-43eb-b04c-911c12b129ff",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 2,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 0,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000011",
+      "tick": 6,
+      "actor": "agent-0001",
+      "action": "eat",
+      "model_request_id": "df0dbcc5-5a9d-42b5-84d5-bd38d665604e",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 6,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 3,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 0,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 2,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000012",
+      "tick": 6,
+      "actor": "agent-0002",
+      "action": "eat",
+      "model_request_id": "c8866713-3e57-465a-9aa5-2dcb62c4d8f0",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 2,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 0,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000013",
+      "tick": 6,
+      "actor": "agent-0003",
+      "action": "eat",
+      "model_request_id": "0e598202-775c-49bf-b970-e87d22c1cc91",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 2,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 0,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000014",
+      "tick": 6,
+      "actor": "agent-0004",
+      "action": "eat",
+      "model_request_id": "d31f8b10-6112-4034-844d-d8b0b890bd23",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 2,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 0,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000018",
+      "tick": 9,
+      "actor": "agent-0000",
+      "action": "eat",
+      "model_request_id": "4dfb647f-0de8-465d-8337-52f396c0debe",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 0,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000019",
+      "tick": 9,
+      "actor": "agent-0001",
+      "action": "wait",
+      "model_request_id": "4ee3926e-61bf-4d12-b4d7-688a337561be",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 2,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 2,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000020",
+      "tick": 9,
+      "actor": "agent-0002",
+      "action": "eat",
+      "model_request_id": "ab3b82f6-5693-4b23-86cc-c798136973f2",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 0,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000021",
+      "tick": 9,
+      "actor": "agent-0003",
+      "action": "eat",
+      "model_request_id": "094de33e-4974-40e5-aa64-9414d7e1f493",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 0,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000022",
+      "tick": 9,
+      "actor": "agent-0004",
+      "action": "eat",
+      "model_request_id": "a1702028-66aa-42e8-8fdb-5cfff111f671",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 0,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000027",
+      "tick": 12,
+      "actor": "agent-0000",
+      "action": "speak",
+      "model_request_id": "ef7a66b0-4b9a-4d70-8de2-788b9e936889",
+      "parameters": {
+        "text": "I see you've been eating several times already (at ticks 3, 6, 9). Your hunger is low (3) but thirst is high (12). Consider drinking some water and maybe resting if needed."
+      },
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 12,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 12,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000028",
+      "tick": 12,
+      "actor": "agent-0001",
+      "action": "eat",
+      "model_request_id": "46253e21-98a9-4cad-8f05-b1e4167591aa",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 6,
+          "thirst": 12,
+          "health": 100,
+          "inventory": {
+            "food": 2,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 0,
+          "thirst": 12,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000029",
+      "tick": 12,
+      "actor": "agent-0002",
+      "action": "speak",
+      "model_request_id": "6422e920-dc11-456c-a0de-146ee6d50472",
+      "parameters": {
+        "text": "I see you've been eating several times already (at ticks 3, 6, 9). Your hunger is low (3) but thirst is high (12). Want me to drink some water?"
+      },
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 12,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 12,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000030",
+      "tick": 12,
+      "actor": "agent-0003",
+      "action": "drink",
+      "model_request_id": "b33ffe51-0492-4fd5-82db-c59411fcfdaf",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 12,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 0,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000031",
+      "tick": 12,
+      "actor": "agent-0004",
+      "action": "drink",
+      "model_request_id": "0e3ed540-62bd-430d-aa1f-8c6b70cc7f95",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 12,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 0,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000035",
+      "tick": 15,
+      "actor": "agent-0000",
+      "action": "drink",
+      "model_request_id": "67cfd490-dbf4-45f3-90ba-40b729e64fd7",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 6,
+          "thirst": 15,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 6,
+          "thirst": 0,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000036",
+      "tick": 15,
+      "actor": "agent-0001",
+      "action": "drink",
+      "model_request_id": "789fb624-f916-4ab1-9e61-888f1836403c",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 15,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 3,
+          "thirst": 0,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000037",
+      "tick": 15,
+      "actor": "agent-0002",
+      "action": "drink",
+      "model_request_id": "7fbf4b8b-1f4f-4b0d-bbc4-55dbd2ae1fa6",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 6,
+          "thirst": 15,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 3,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 6,
+          "thirst": 0,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000038",
+      "tick": 15,
+      "actor": "agent-0003",
+      "action": "speak",
+      "model_request_id": "3f151d7e-6611-4bf9-b2cd-0e3e7ca73c9b",
+      "parameters": {
+        "text": "I see you've been eating several times already. Your hunger is low (3) but thirst is high (12). Have you had any water? I just drank some water for you earlier. Would you like to drink more?"
+      },
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 6,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 6,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000039",
+      "tick": 15,
+      "actor": "agent-0004",
+      "action": "drink",
+      "model_request_id": "8f57d848-4fd6-428a-8440-9e75cf3bfa64",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 6,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 6,
+          "thirst": 0,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 1,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000043",
+      "tick": 18,
+      "actor": "agent-0000",
+      "action": "wait",
+      "model_request_id": "b5818b05-b3ee-4e2e-889b-0f5e01002146",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 9,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 9,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000044",
+      "tick": 18,
+      "actor": "agent-0001",
+      "action": "drink",
+      "model_request_id": "2826db19-f546-43fd-b22f-7301a4ff6c9a",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 6,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 6,
+          "thirst": 0,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 1,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000045",
+      "tick": 18,
+      "actor": "agent-0002",
+      "action": "wait",
+      "model_request_id": "d3bda815-f000-4260-a225-1522d6d26972",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 9,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 9,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000046",
+      "tick": 18,
+      "actor": "agent-0003",
+      "action": "drink",
+      "model_request_id": "db7a7cfb-c0d5-4902-af56-20f6f486e992",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 9,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 9,
+          "thirst": 0,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 1,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000047",
+      "tick": 18,
+      "actor": "agent-0004",
+      "action": "drink",
+      "model_request_id": "4f8a36d6-2786-4eec-bc8a-0dcd81d4c856",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 9,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 1,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 9,
+          "thirst": 0,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000051",
+      "tick": 21,
+      "actor": "agent-0000",
+      "action": "wait",
+      "model_request_id": "841a1b5d-ad07-4154-aec3-ad13749dad02",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 12,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 12,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000052",
+      "tick": 21,
+      "actor": "agent-0001",
+      "action": "drink",
+      "model_request_id": "408eaac6-cf04-44be-a4a7-1d031a29ad00",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 9,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 1,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 9,
+          "thirst": 0,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000053",
+      "tick": 21,
+      "actor": "agent-0002",
+      "action": "speak",
+      "model_request_id": "5b1f4246-14b7-4a23-b432-968a66077569",
+      "parameters": {
+        "text": "Hey! I noticed you've been drinking water earlier. You said your thirst is high (12), but my memory says you're low on hunger. Want me to help you drink more water?"
+      },
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 12,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 12,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000054",
+      "tick": 21,
+      "actor": "agent-0003",
+      "action": "drink",
+      "model_request_id": "52fd0794-70c8-4f34-9e36-4a0a50229770",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 12,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 1,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 12,
+          "thirst": 0,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000055",
+      "tick": 21,
+      "actor": "agent-0004",
+      "action": "rest",
+      "model_request_id": "67d14541-1250-4a43-92bb-df9814f5bec0",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 12,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 12,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000060",
+      "tick": 24,
+      "actor": "agent-0000",
+      "action": "speak",
+      "model_request_id": "73c5315d-6e0d-4fc2-b8fc-0d89d9d85207",
+      "parameters": {
+        "text": "I see you've been drinking water earlier. You mentioned thirst is high (12). Would you like to drink more?"
+      },
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 15,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 15,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000061",
+      "tick": 24,
+      "actor": "agent-0001",
+      "action": "wait",
+      "model_request_id": "463efe90-e760-41b1-beb9-ecc40301eaf9",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 12,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 12,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000062",
+      "tick": 24,
+      "actor": "agent-0002",
+      "action": "wait",
+      "model_request_id": "08168c50-095f-461f-86ec-d406ce904514",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 15,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 15,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000063",
+      "tick": 24,
+      "actor": "agent-0003",
+      "action": "speak",
+      "model_request_id": "f93dea93-c6a5-4d78-b228-47c59b40bc81",
+      "parameters": {
+        "text": "I see you've been drinking water earlier. Would you like to drink more?"
+      },
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 15,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 15,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000064",
+      "tick": 24,
+      "actor": "agent-0004",
+      "action": "wait",
+      "model_request_id": "b003e42e-2c6d-47f5-99f8-7263add737f6",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 15,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 15,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000068",
+      "tick": 27,
+      "actor": "agent-0000",
+      "action": "speak",
+      "model_request_id": "98eba0e6-43b0-49b5-a3f2-448e30c0bb32",
+      "parameters": {
+        "text": "Would you like to drink more water?"
+      },
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 18,
+          "thirst": 12,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 18,
+          "thirst": 12,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000069",
+      "tick": 27,
+      "actor": "agent-0001",
+      "action": "wait",
+      "model_request_id": "24791c14-f8ce-491e-a08c-f58cb4e5c6b8",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 15,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 15,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000070",
+      "tick": 27,
+      "actor": "agent-0002",
+      "action": "drink",
+      "model_request_id": "5afd7693-1f67-4f7a-9737-9ff948200289",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 18,
+          "thirst": 12,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 18,
+          "thirst": 0,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 1,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000071",
+      "tick": 27,
+      "actor": "agent-0003",
+      "action": "speak",
+      "model_request_id": "562a76e6-07c4-446a-b870-ba099464dc2b",
+      "parameters": {
+        "text": "Would you like to drink more water?"
+      },
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 18,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 18,
+          "thirst": 6,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000072",
+      "tick": 27,
+      "actor": "agent-0004",
+      "action": "wait",
+      "model_request_id": "e02d86bb-a535-4164-a479-eeb0ec13e258",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 18,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 18,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000076",
+      "tick": 30,
+      "actor": "agent-0000",
+      "action": "speak",
+      "model_request_id": "72994923-5f7a-4ea5-bc2d-c680c42afc3b",
+      "parameters": {
+        "text": "Do you want to drink more water?"
+      },
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 21,
+          "thirst": 15,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 68,
+          "z": 125,
+          "energy": 100,
+          "hunger": 21,
+          "thirst": 15,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 2,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000077",
+      "tick": 30,
+      "actor": "agent-0001",
+      "action": "wait",
+      "model_request_id": "837dcae5-9397-4e88-aaf0-c1c1e8736565",
+      "parameters": {},
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 18,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 131,
+          "energy": 100,
+          "hunger": 18,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 1,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000078",
+      "tick": 30,
+      "actor": "agent-0002",
+      "action": "speak",
+      "model_request_id": "78232847-baa1-47fb-ae62-a3ddd41c6c50",
+      "parameters": {
+        "text": "Do you want to drink more water?"
+      },
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 21,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 1,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 134,
+          "energy": 100,
+          "hunger": 21,
+          "thirst": 3,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 1,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000079",
+      "tick": 30,
+      "actor": "agent-0003",
+      "action": "speak",
+      "model_request_id": "d66e7bc1-4da7-4ea0-aed8-b98cb464cd2b",
+      "parameters": {
+        "text": "Do you want to drink more water?"
+      },
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 21,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 69,
+          "z": 129,
+          "energy": 100,
+          "hunger": 21,
+          "thirst": 9,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-000000080",
+      "tick": 30,
+      "actor": "agent-0004",
+      "action": "speak",
+      "model_request_id": "14d0575e-a585-442c-b09d-d77d51f136ec",
+      "parameters": {
+        "text": "Do you want to drink more water?"
+      },
+      "outcome": null,
+      "confirmed_state": {
+        "before": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 21,
+          "thirst": 12,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        },
+        "after": {
+          "x": 70,
+          "z": 124,
+          "energy": 100,
+          "hunger": 21,
+          "thirst": 12,
+          "health": 100,
+          "inventory": {
+            "food": 0,
+            "wood": 0,
+            "stone": 0,
+            "fruit": 0,
+            "grain": 0,
+            "water": 0,
+            "clay": 0,
+            "sand": 0,
+            "iron_ore": 0,
+            "copper_ore": 0,
+            "coal": 0,
+            "salt": 0,
+            "herbs": 0,
+            "plant_fiber": 0,
+            "fish": 0
+          }
+        }
+      }
+    }
+  ],
+  "works": [],
+  "objects": []
+}

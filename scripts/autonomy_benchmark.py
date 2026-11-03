@@ -18,14 +18,18 @@ import json
 import math
 import os
 import platform
-import resource
+import subprocess
+try:
+    import resource
+except ImportError:  # Windows has no POSIX resource module.
+    resource = None
 import sys
 import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from caitanya.autonomy import AutonomyConfig, load_experiment_file  # noqa: E402
-from caitanya.engine import World  # noqa: E402
+from caitanya.engine import World, digest  # noqa: E402
 from caitanya.lifecycle import BiologyConfig  # noqa: E402
 
 EXPERIMENT_EVENTS = {"inspect", "strike", "combine", "separate", "heat", "cool", "rub", "feed_fire", "test",
@@ -71,7 +75,7 @@ def summarize(world, started, real_seconds, run_dir, args, cpu_start):
     journal = run_dir / "events.jsonl"
     checkpoints = sorted(run_dir.glob("checkpoint-*.json"))
     metrics = world.metrics()
-    ru = resource.getrusage(resource.RUSAGE_SELF)
+    ru = resource.getrusage(resource.RUSAGE_SELF) if resource else None
     sim_days = world.tick * world.biology.days_per_tick
     return {
         "status": "completed" if sim_days >= args.sim_days else "stopped_at_wall_clock_limit",
@@ -80,6 +84,14 @@ def summarize(world, started, real_seconds, run_dir, args, cpu_start):
         "seed": world.seed, "population_start": args.population, "days_per_tick": world.biology.days_per_tick,
         "autonomy": world.autonomy.to_dict(), "backend": world.manifest["model_id"],
         "model_revision": world.manifest["model_revision"],
+        "commit_sha": subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+        "wildlife_per_species": args.wildlife_per_species,
+        "action_counts": dict(collections.Counter(e['type'] for e in events if e['source']=='validated_action')),
+        "validated_decisions_per_agent": dict(collections.Counter(e['actor_id'] for e in events
+            if e['source']=='validated_action' and e.get('origin')=='lfm_decision' and e.get('model_request_id'))),
+        "sample_decisions": [dict(event_id=e['event_id'],tick=e['world_tick'],actor=e['actor_id'],action=e['type'],
+            model_request_id=e.get('model_request_id'),outcome=e['payload'].get('outcome')) for e in events
+            if e['source']=='validated_action' and e.get('origin')=='lfm_decision'][:10],
         "living": metrics["population"], "pregnancies_active": metrics["pregnancies"], "births": births,
         "highest_generation": metrics["highest_generation"], "deaths_by_cause": metrics["deaths"],
         "scheduler": metrics["scheduler"], "inference": metrics["inference"],
@@ -89,7 +101,7 @@ def summarize(world, started, real_seconds, run_dir, args, cpu_start):
         "root_manifestations": len(world.root.data["manifestations"]),
         "fires_ever_lit": sum(e["type"] == "rub" and e["payload"].get("result") == "ignited" for e in events),
         "knowledge": metrics["knowledge"], "material_ledger_g": dict(world.ledger),
-        "resources": {"cpu_seconds": round(time.process_time() - cpu_start, 2), "max_rss_mb": round(ru.ru_maxrss / 1024, 1),
+        "resources": {"cpu_seconds": round(time.process_time() - cpu_start, 2), "max_rss_mb": round(ru.ru_maxrss / 1024, 1) if ru else None,
                       "gpu_max_allocated_mb": gpu_memory_mb(),
                       "journal_bytes": journal.stat().st_size if journal.exists() else 0,
                       "checkpoint_bytes_total": sum(p.stat().st_size for p in checkpoints)},
@@ -111,9 +123,13 @@ def main():
     p.add_argument("--decisions-per-tick", type=int)
     p.add_argument("--config")
     p.add_argument("--legacy", action="store_true")
+    p.add_argument("--wildlife-per-species", type=int, default=6)
     p.add_argument("--run-dir", default="runs/benchmark")
     p.add_argument("--out", required=True)
+    p.add_argument("--max-journal-bytes", type=int, default=100_000_000)
     args = p.parse_args()
+    if Path(args.out).exists():
+        p.error('Output already exists; choose a new --out path')
 
     env = environment(args.backend)
     if args.backend == "lfm3" and not env["gpu"]:
@@ -134,12 +150,13 @@ def main():
     if any(run_dir.iterdir()):
         sys.exit(f"{run_dir} is not empty; existing run data is never overwritten. Choose a new --run-dir.")
     world = World(seed=args.seed, population=args.population, width=args.width, depth=args.depth,
-                  backend=build_backend(args.backend, args.revision), autonomy=autonomy,
+                  backend=build_backend(args.backend, args.revision), autonomy=autonomy,wildlife_per_species=args.wildlife_per_species,
                   biology=BiologyConfig(days_per_tick=args.days_per_tick))
     world.checkpoint(run_dir)
     cursor = len(world.events)
     started, cpu_start = time.monotonic(), time.process_time()
     target_ticks = math.ceil(args.sim_days / world.biology.days_per_tick - 1e-6)
+    stop_reason = None
     with (run_dir / "events.jsonl").open("a", encoding="utf-8") as journal:
         while world.tick < target_ticks:
             world.step()
@@ -148,12 +165,28 @@ def main():
             journal.flush()
             os.fsync(journal.fileno())
             cursor = len(world.events)
+            # Public counters only: useful if a runtime ends before the final report.
+            (run_dir / 'progress.json').write_text(json.dumps({'completed_ticks': world.tick,
+                'completed_sim_days': world.tick * world.biology.days_per_tick,
+                'real_seconds': time.monotonic() - started, 'metrics': world.metrics()}, indent=2), encoding='utf-8')
             if world.tick % 60 == 0:
                 world.checkpoint(run_dir)
             if args.max_real_seconds and time.monotonic() - started >= args.max_real_seconds:
                 break
+            if journal.tell() >= args.max_journal_bytes:
+                stop_reason = 'stopped_at_journal_limit'
+                break
     world.checkpoint(run_dir)
     record = summarize(world, started, time.monotonic() - started, run_dir, args, cpu_start)
+    if stop_reason:
+        record['status'] = stop_reason
+    recovered = World.recover(run_dir, backend=world.backend)
+    record['checkpoint_recovery'] = {'equal': digest(world.state()) == digest(recovered.state()), 'tick': recovered.tick,
+                                     'scope': 'same-process restore; runtime restart is a separate check'}
+    from caitanya.experiment import summarize as export_evidence
+    from scripts.audit_evidence import audit
+    evidence = export_evidence(world, run_dir / 'summary', {'commit_sha': record['commit_sha']})
+    record['evidence_audit'] = audit(evidence)
     Path(args.out).write_text(json.dumps(record, indent=2))
     print(json.dumps({k: record[k] for k in ("status", "completed_ticks", "completed_sim_days", "real_seconds",
                                               "living", "births", "deaths_by_cause")}, indent=2))

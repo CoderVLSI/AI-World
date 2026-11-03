@@ -1,6 +1,6 @@
 # Implementation status — 0.5.0
 
-Branch `feature/caitanya-autonomy-foundations`. This is what is genuinely implemented, what is measured, and what is not. See [docs/MERGE_CHECKLIST.md](docs/MERGE_CHECKLIST.md) for breaking changes and risks and [docs/EXPERIMENT_RESULTS.md](docs/EXPERIMENT_RESULTS.md) for measurements.
+Integration branch `codex/wildlife-on-autonomy`, based on main a38b935. This is what is genuinely implemented, what is measured, and what is not. See [docs/MERGE_CHECKLIST.md](docs/MERGE_CHECKLIST.md) for breaking changes and risks and [docs/EXPERIMENT_RESULTS.md](docs/EXPERIMENT_RESULTS.md) for measurements.
 
 ## Implemented (CPU-tested; 177 tests, including those on `main`)
 
@@ -17,7 +17,7 @@ Branch `feature/caitanya-autonomy-foundations`. This is what is genuinely implem
 
 ## Not implemented / not verified
 
-* **Animals and ecology (P4): deferred.**
-* **No real-model run.** Stage A (5 inhabitants, 30 days), Stage B (50 inhabitants) and Stage C (generational) were not run for lack of a GPU; the harness records them as `unverified`. No autonomous civilization, reproduction, invention or discovery is claimed, and no consciousness or divine agency is established.
+* **Animals and ecology:** optional deterministic layer integrated in foundations and legacy; twelve species, shared finite resources, bounded local observations, persistence and read-only witness. Animal behavior is not LLM inference.
+* **Integrated real-model runs are pending verification.** Earlier legacy runs are historical evidence only. Stage A (5 inhabitants, 30 days), Stage B (50 inhabitants) and Stage C (generational) were not run for lack of a GPU; the harness records them as `unverified`. No autonomous civilization, reproduction, invention or discovery is claimed, and no consciousness or divine agency is established.
 * Persistence growth: about 67 KB of journal per tick at 50 inhabitants and quadratic checkpoint growth; the 100 MB journal limit is reached after roughly 10 simulated days at that population. No automatic off-machine backups, no authentication for public deployment, no permanent Colab hosting.
 * Simplified physiology and materials (no metallurgy, containers, spoilage or movement-blocking structures); no calibrated genetics or evolution; no advanced institutions.

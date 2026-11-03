@@ -17,10 +17,11 @@ def summarize(world, directory, metadata):
     events=[e for e in world.events if e['world_tick']<=last and e['type']!='tick_committed']
     actions=[e for e in events if e['source']=='validated_action']
     public_actions=[dict(event_id=e['event_id'],tick=e['world_tick'],actor=e['actor_id'],
-        action=e['type'],model_request_id=e.get('model_request_id'),
+        action=e['type'],model_request_id=e.get('model_request_id'),origin=e.get('origin','direct'),
+        task_id=e.get('task_id',e['payload'].get('task_id')),
         parameters={} if e['type']=='reflect' else e['payload'].get('parameters',{}),
         outcome=e['payload'].get('outcome'),confirmed_state=e['payload'].get('confirmed_state',{})) for e in actions]
-    counts=collections.Counter(e['actor_id'] for e in actions if e.get('model_request_id'))
+    counts=collections.Counter(e['actor_id'] for e in actions if e.get('model_request_id') and e.get('origin')!='mechanical_execution')
     real=world.manifest['model_id']=='LiquidAI/LFM3-1.7B' and type(world.backend).__name__=='TransformersLFM3Backend'
     evidence={'metadata':metadata,'model_id':world.manifest['model_id'],
         'model_revision':world.manifest['model_revision'],'backend':type(world.backend).__name__,
