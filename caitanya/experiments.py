@@ -1191,7 +1191,7 @@ TOOL_DESCRIPTIONS = {
     "STOW": "Put an unmodified whole held piece back into your carried supplies.",
     "TAKE": "Pick up an object lying at or next to your position.",
     "DROP": "Put a held object down where you stand.",
-    "INSPECT": "Examine an object, a nearby resource id, or 'inventory:<material>' to observe its properties.",
+    "INSPECT": "Examine something to observe its properties. subject must be an exact id: an object you hold or that is within one step of you, a resource id within one step of you (resources farther away cannot be inspected; a material name such as 'water' is not an id), or 'inventory:<material>' for a material you carry.",
     "STRIKE": "Strike a target object with a striker object using force 1-10, then observe what happens to both.",
     "COMBINE": "Attach objects. parts is a comma-separated list of object ids. method: lash (the list must include a loose plant_fiber piece), clay_bond (must include a loose clay piece) or stack (loose, not attached).",
     "SEPARATE": "Take an assembled object apart into its components.",
