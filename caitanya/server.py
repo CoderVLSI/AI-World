@@ -18,22 +18,36 @@ from .witness import terrain_grid, live_view, recent_speech
 ROOT = Path(__file__).resolve().parent.parent
 
 def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_journal_bytes=100_000_000, max_ticks=None, max_seconds=None, report_dir=None, checkpoint_every=60,
-               segment_bytes=25_000_000, max_run_bytes=5_000_000_000):
+               segment_bytes=25_000_000, max_run_bytes=5_000_000_000, playback=None, loop=True):
     if type(checkpoint_every) is not int or checkpoint_every < 1:raise ValueError("checkpoint_every must be a positive integer")
-    world = world or World()
-    directory = Path(run_dir)
-    directory.mkdir(parents=True,exist_ok=True)
-    # A freshly created world sits at tick 0 (it already holds its genesis events); a recovered one does not.
-    if storage.has_history(directory) and world.tick == 0:
-        raise ValueError("Existing run history: use --recover or choose a new --run-dir")
-    # A tick-zero image makes even a pre-first-periodic-checkpoint crash recoverable.
-    if not any(directory.glob("checkpoint-*.json")):world.checkpoint(directory)
-    # Slim checkpoints (constant size) are used when the journal files cover every event; otherwise full images.
-    slim=storage.ensure_covered(world,directory)
+    if playback is not None:
+        # Read-only replay of a finished run: nothing is written, no model runs (see playback.py).
+        world,live,directory,slim=playback.world,True,Path(playback.directory),False
+    else:
+        world = world or World()
+        directory = Path(run_dir)
+        directory.mkdir(parents=True,exist_ok=True)
+        # A freshly created world sits at tick 0 (it already holds its genesis events); a recovered one does not.
+        if storage.has_history(directory) and world.tick == 0:
+            raise ValueError("Existing run history: use --recover or choose a new --run-dir")
+        # A tick-zero image makes even a pre-first-periodic-checkpoint crash recoverable.
+        if not any(directory.glob("checkpoint-*.json")):world.checkpoint(directory)
+        # Slim checkpoints (constant size) are used when the journal files cover every event; otherwise full images.
+        slim=storage.ensure_covered(world,directory)
     published=world.public()
     committed_count=len(world.events)
     stop=asyncio.Event()
     execution={'running':False,'reason':'read_only' if not live else 'not_started'}
+    async def playback_worker():
+        nonlocal published,committed_count
+        execution.update(running=True,reason='playback')
+        while not stop.is_set():
+            await asyncio.sleep(interval)
+            if stop.is_set():break
+            if not await asyncio.to_thread(playback.advance,loop):
+                execution.update(running=False,reason='playback_finished')
+                return
+            published=world.public();committed_count=len(world.events)
     async def worker():
         import time
         nonlocal published,committed_count
@@ -90,7 +104,7 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
 
     @asynccontextmanager
     async def lifespan(app):
-        task=asyncio.create_task(worker()) if live else None
+        task=asyncio.create_task(playback_worker() if playback is not None else worker()) if live else None
         yield
         if task:
             stop.set()
@@ -202,6 +216,9 @@ def build_parser():
     p.add_argument("--families",type=int,default=0,help="Found the NEW world with this many households (a woman, a man and children); overrides --population")
     p.add_argument("--children-per-family",type=int,default=2)
     p.add_argument("--recover",help="Restore newest valid image and replay its committed journal tail")
+    p.add_argument("--playback",help="Watch a FINISHED run folder read-only (no model, no GPU, nothing written); for example one made on Colab")
+    p.add_argument("--speed",type=float,default=2.0,help="Playback ticks per second")
+    p.add_argument("--no-loop",action="store_true",help="Stop at the end of the recorded run instead of starting over")
     return p
 
 def build_world(args,p,backend=None):
@@ -221,6 +238,13 @@ def build_world(args,p,backend=None):
 def main():
     import uvicorn
     p=build_parser();args=p.parse_args()
+    if args.playback:
+        if args.speed<=0:p.error("--speed must be positive")
+        from .playback import Playback
+        pb=Playback(args.playback)
+        print(f"Playback of {args.playback}: {pb.final_tick} recorded ticks, model {pb.backend.model_id}. Read-only; no model is loaded.")
+        uvicorn.run(create_app(playback=pb,interval=1/args.speed,loop=not args.no_loop),host="127.0.0.1",port=args.port)
+        return
     if args.backend=="lfm3":
         from .inference import TransformersLFM3Backend
         backend=TransformersLFM3Backend(revision=args.revision)
