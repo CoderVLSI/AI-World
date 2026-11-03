@@ -12,6 +12,7 @@ from .engine import World, redact_private
 from .nature import climate
 from .autonomy import AutonomyConfig, load_experiment_file
 from .lifecycle import BiologyConfig, stage
+from .witness import terrain_grid, live_view
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -121,6 +122,18 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
         return published["metrics"].get("knowledge") or {}
     @app.get("/api/v1/objects")
     def objects(): return published.get("objects", {})
+    terrain_cache={}
+    @app.get("/api/v1/terrain")
+    def terrain(step:int=2):
+        """Static heightmap + biome grid for viewers (cache it; it depends only on the seed)."""
+        if step not in terrain_cache:
+            try:terrain_cache[step]=terrain_grid(world,step)
+            except ValueError as e:raise HTTPException(400,str(e))
+        return terrain_cache[step]
+    @app.get("/api/v1/live")
+    def live_snapshot():   # not named `live`: that would shadow the create_app(live=...) flag
+        """Light polling view for viewers: positions, plans, resources, objects, optional wildlife."""
+        return live_view(published)
     @app.get("/api/v1/families")
     def families():
         return {"lineage":[{"id":a["id"],"parent_ids":a["parent_ids"],"guardian_ids":a["guardian_ids"],"generation":a["generation"],"alive":a["alive"]}
