@@ -52,6 +52,6 @@ choices; insects are drawn larger than life so they can be seen. Poses come from
 the simulation **recorded** (`resting`, `foraging`, `hunting`, `avoiding predator`, `grazing aquatic food`,
 `swimming`, `flying`, `roaming`) plus real movement: legs swing only while the animal actually moves, a bird is
 airborne only when recorded as flying, and an unknown action is an idle animal. A test cross-checks that list
-against `fauna/ecology.py`. Press `G` to focus the animals, or start with `--focus=<animal id>`.
+against `fauna/ecology.py`. The picture above is reproducible: `OUT=pic.png xvfb-run -a godot --path godot --rendering-driver opengl3 --script res://tests/animal_gallery.gd`. Press `G` to focus the animals, or start with `--focus=<animal id>`.
 
 ![all species](../docs/images/animals_gallery.png)
