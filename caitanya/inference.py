@@ -170,8 +170,13 @@ class TransformersLFM3Backend:
                 raise InferenceFailure(str(exc)) from exc
             finally:self.elapsed_seconds+=time.monotonic()-start
     def metrics(self):
+        import torch
         return {"model_calls":self.calls,"parse_or_inference_failures":self.failures,"output_tokens":self.output_tokens,
+            "gpu_allocated_bytes":torch.cuda.memory_allocated() if self.device=="cuda" else 0,
+            "gpu_peak_allocated_bytes":torch.cuda.max_memory_allocated() if self.device=="cuda" else 0,
             "inference_seconds":round(self.elapsed_seconds,3),"tokens_per_second":round(self.output_tokens/max(.001,self.elapsed_seconds),2),
+            "successful_inference_calls":self.calls-self.failures,
+            "model_id":self.model_id,"hardware":self.metadata.get("device"),
             "model_instances":1,"device":self.device,"model_revision":self.model_revision}
 
 # Experiment tools (offered only in foundations worlds; see experiments.py)

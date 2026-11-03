@@ -31,12 +31,13 @@ python -m pytest -q
 | Decision/mechanical attribution, failures without mock fallback | `tests/test_scheduler.py`, `tests/test_lfm_path.py` |
 | Obsolete or blocked plans end; invalid intentions rejected without mutation | `tests/test_scheduler.py` |
 | Time-based survival at two speeds (10 min and 1 h ticks) and three seeds; scarcity, illness, infant care | `tests/test_physiology.py` |
-| Experiments, meaningful failure, conservation fuzz, invalid-action safety | `tests/test_experiments.py` |
+| Experiments, meaningful failure, conservation fuzz, invalid-action safety | `tests/test_physics_experiments.py` |
 | Memory persistence, retrieval bounds, isolation, evidence status, revision | `tests/test_memory.py` |
 | Cross-generational transmission with provenance | `tests/test_memory.py` |
-| Checkpoint, replay, journal recovery, schema migration from a real v0.4.0 run | `tests/test_recovery.py`, `tests/test_migration.py`, `tests/test_scheduler.py`, `tests/test_experiments.py`, `tests/test_memory.py` |
+| Checkpoint, replay, journal recovery, schema migration from a real v0.4.0 run | `tests/test_recovery.py`, `tests/test_migration.py`, `tests/test_scheduler.py`, `tests/test_physics_experiments.py`, `tests/test_memory.py` |
 | Root privacy, continuity and manifestation (unchanged v0.4.0 tests) | `tests/test_root.py`, `tests/test_memory.py` |
-| Prompt unchanged (SHA-256 against the reference commit), no religion/recipe words in tool text | `tests/test_experiments.py` |
+| Prompt unchanged (SHA-256 against the reference commit), no religion/recipe words in tool text | `tests/test_physics_experiments.py` |
+| Root modes (`off`/`observe`/`crisis`), evidence export and confirmed state (owner's tests plus integration) | `tests/test_experiments.py`, `tests/test_integration_main.py` |
 | Read-only witness and new endpoints | `tests/test_witness.py` |
 | Explicit configuration, `--config`, default.json never auto-loaded | `tests/test_config.py` |
 

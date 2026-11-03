@@ -62,6 +62,14 @@ Public GET endpoints omit private memories and parenting proposals. Run historie
 
 ## Colab
 
+The notebook fetches and prints the latest main SHA, installs GPU dependencies, explicitly launches `--backend lfm3`, saves raw histories under Google Drive/MyDrive/CAITANYA, checks the backend and read-only routes, and uses Colab's authenticated viewer proxy. It never launches a public tunnel. An existing run ID triggers recovery using its original model revision and root mode. Keep the run ID across runtime restarts. Google Drive mounting requires account consent and may fail or time out; startup must fail rather than silently switch to ephemeral storage.
+
+Use `--root-mode off` for a neutral baseline (no root records or intervention), `observe` for private records without intervention, or `crisis` for existing bounded intervention. Crisis remains the backwards-compatible default. Modes are private checkpoint configuration and are not supplied to inhabitants. On recovery the stored mode wins; use a new run for a different mode.
+
+`--max-ticks 30 --max-seconds 180 --report-dir <summary-directory>` bounds a worker and produces an event-backed REPORT.md and evidence.json after it stops. A request already started may exceed the cooperative time budget. The server remains available as a read-only witness after the worker stops. Metrics are written per committed tick to metrics.jsonl. Inference counts are scoped to a model process; a recovered process starts new counters, while event IDs and validated action history continue. Reports distinguish successfully parsed calls from validated actions. Only identities with validated actions linked to model request IDs count as verified real agents. In `foundations` mode the scheduler may ask up to `--decisions-per-tick` (default 8) inhabitants on every tick, where v0.4.0 asked five every third tick, so a worker bounded by `--max-seconds` completes fewer ticks per second with a real model; lower `--decisions-per-tick` or raise `--max-seconds` accordingly. Action events carry a confirmed before/after state except routine mechanical path steps (journaled separately with their `task_id`).
+
+Review sanitized reports before publishing them. They include public speech/writings and confirmed action state changes, but exclude private memories, reflection text, model reasoning and root continuity records. No automatic cultural-discovery detector is used. The model's official tool format is documented in the [Liquid AI model card](https://huggingface.co/LiquidAI/LFM3-1.7B).
+
 [Open the notebook](https://colab.research.google.com/github/CoderVLSI/AI-World/blob/main/notebooks/CAITANYA_Colab.ipynb). Colab runtimes are temporary: back up run directories before disconnecting. No weights or credentials are distributed here.
 
 See [implementation status](IMPLEMENTATION_STATUS.md). Code and vendored Three.js are MIT licensed; dependencies and model weights retain their own licenses.

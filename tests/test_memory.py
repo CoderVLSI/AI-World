@@ -2,12 +2,17 @@
 import json
 import pytest
 from conftest import IdleBackend
-from test_experiments import lab, do, pick, comp, make_fire, haft, CONFIG, dry_land
+from test_physics_experiments import lab, do, pick, comp, make_fire, haft, CONFIG, dry_land
 from caitanya import memory as mem
 from caitanya.autonomy import AutonomyConfig
 from caitanya.engine import World, Agent, Intent, digest
 from caitanya.lifecycle import BiologyConfig, age
 from caitanya.nature import RESOURCE_TYPES
+
+
+def result_only(payload):
+    """Payload without the confirmed-state evidence block added to every action (positions and needs only)."""
+    return {k: v for k, v in payload.items() if k != "confirmed_state"}
 
 
 def entry(a, category, **match):
@@ -126,7 +131,7 @@ def test_hypotheses_are_private_unverified_and_need_matching_evidence():
     inspect_stone(w, a)
     ok, why, payload = do(w, a, "HYPOTHESIZE", statement="zxqv-private-idea: dull pieces make sharp ones", subject="stone")
     assert ok, why
-    assert "zxqv" not in json.dumps(w.events) and "zxqv" not in json.dumps(w.public()) and payload == {"result": "hypothesis_recorded"}
+    assert "zxqv" not in json.dumps(w.events) and "zxqv" not in json.dumps(w.public()) and result_only(payload) == {"result": "hypothesis_recorded"}
     hyp = a.ltm["hypotheses"][0]
     assert hyp["status"] == "unverified" and hyp["confidence"] == 0.3
     evidence = entry(a, "practical", subject="stone", property="hardness")
@@ -165,7 +170,7 @@ def test_compare_returns_private_side_by_side_recall():
     inspect_stone(w, a)
     do(w, a, "INSPECT", subject="inventory:wood")
     ok, _, payload = do(w, a, "COMPARE", first="stone", second="wood")
-    assert ok and payload == {"result": "compared", "entries": 6}
+    assert ok and result_only(payload) == {"result": "compared", "entries": 6}
     rows = next(m for m in reversed(a.memories) if "comparison" in m)["comparison"]
     assert rows["stone"][0]["property"] in ("hardness", "density", "flexibility") and rows["wood"]
     assert not do(w, a, "COMPARE", first="", second="wood")[0]

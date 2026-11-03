@@ -1,7 +1,7 @@
 """P3: the witness stays read-only and sees progress without seeing private state."""
 import json
 from fastapi.testclient import TestClient
-from test_experiments import lab, do, haft, make_fire, dry_land
+from test_physics_experiments import lab, do, haft, make_fire, dry_land
 from test_memory import inspect_stone
 from caitanya.engine import World
 from caitanya.server import create_app

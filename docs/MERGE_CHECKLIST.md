@@ -1,6 +1,28 @@
 # Merge checklist - `feature/caitanya-autonomy-foundations` (v0.4.0 -> v0.5.0)
 
-Base: `main` @ `26be6300d56f8aaab026ace59b4d500592f9e91c`. Do not merge before the owner has reviewed this branch.
+Branched from `main` @ `26be6300d56f8aaab026ace59b4d500592f9e91c`. While this work was in progress `main` advanced to
+`dfb78d5` (root modes, bounded real-model workflow, evidence export); that commit was **merged into this branch** (a
+merge commit; no history was rewritten or force-pushed) and the code adapted to it. Do not merge this branch before
+the owner has reviewed it.
+
+### What the merge with `dfb78d5` involved
+
+* **Kept the owner's code as-is:** `caitanya/root.py` (root modes), `caitanya/experiment.py`, the Colab notebook, the
+  `--root-mode/--max-ticks/--max-seconds/--report-dir` workflow, `metrics.jsonl`, GPU metrics. `git diff main --
+  caitanya/root.py` is empty.
+* **Name collision:** both sides added `tests/test_experiments.py`. The owner's file keeps its path; mine is now
+  `tests/test_physics_experiments.py`.
+* **`confirmed_state`** (before/after position, needs, inventory) is attached to every decision and direct action,
+  including the new experiment, memory and intention actions, but **not** to routine mechanical path steps (tens of
+  thousands per run; they are journaled with `task_id` instead).
+* **Root registry gains `mode`** (upstream). The migration test projects it away; the default `crisis` is the v0.4.0
+  behaviour, so schema-1 runs still reproduce v0.4.0 exactly.
+* **Evidence export:** `summarize()` was re-verified with experiments and private memory in play
+  (`tests/test_integration_main.py`): no hypothesis text, memory ids, `ltm` or root data appear in `evidence.json` or
+  `REPORT.md`. `WRITE_FINDINGS` publishes only its title (the findings text is the public work).
+* **Colab notebook runs unchanged** (flags verified), but it now asks up to 8 inhabitants per tick instead of 5 per
+  3 ticks, so a `--max-seconds`-bounded real run completes fewer ticks. Lower `--decisions-per-tick` or raise
+  `--max-seconds` in the launch cell when comparing with earlier runs.
 
 ## Verdict
 
@@ -66,7 +88,7 @@ behaviour is unverified (no GPU was available). P4 (animals and ecology) is defe
 
 ## Test results
 
-`python -m pytest -q` -> **166 passed** (25 original + 141 new), about 55 s. See EXPERIMENT_RESULTS.md for the
+`python -m pytest -q` -> **177 passed** (30 on `main` including the owner's 5 new tests + 147 new), about 60 s. See EXPERIMENT_RESULTS.md for the
 measured mock runs. Reproduce:
 
 ```sh
@@ -78,9 +100,9 @@ python scripts/autonomy_benchmark.py --backend mock --population 5 --sim-days 30
 
 1. **No real-model evidence.** The 1.7B model may handle 41 tools, intentions and experiments poorly; survival may
    fail for reasons the mock cannot show. Run Stages A/B before drawing conclusions.
-2. **Persistence growth (measured).** About 63 KB of journal per tick at 50 inhabitants means the 100 MB journal limit
-   pauses the worker after roughly 11 simulated days at baseline. Each periodic checkpoint embeds the whole event
-   history: 1.3 GB of checkpoints for a 5-inhabitant, 30-day run. Existing behaviour, made more visible by richer
+2. **Persistence growth (measured).** About 67 KB of journal per tick at 50 inhabitants means the 100 MB journal limit
+   pauses the worker after roughly 10 simulated days at baseline. Each periodic checkpoint embeds the whole event
+   history: 1.4 GB of checkpoints for a 5-inhabitant, 30-day run. Existing behaviour, made more visible by richer
    events. Mitigations available now: `--checkpoint-every`, off-machine backups. Follow-ups (not done, they change
    the on-disk format): checkpoints without the full event list, journal segmenting, list-diff patches. Old
    checkpoints are never deleted automatically.

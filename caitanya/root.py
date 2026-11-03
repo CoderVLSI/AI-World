@@ -5,12 +5,17 @@ import copy
 class BrahmanAgent:
     id = "brahman"
 
-    def __init__(self, state=None):
+    def __init__(self, state=None, mode="crisis"):
+        if mode not in {"off", "observe", "crisis"}:
+            raise ValueError("invalid root mode")
         self.data = copy.deepcopy(state) if state is not None else {
             "id": self.id, "policy_version": "preserve-v1", "children": {},
             "threads": {}, "next_thread": 0, "manifestations": [],
             "last_manifestation_tick": -1000, "decisions": 0,
         }
+        self.data.setdefault("mode", mode)
+        if self.data["mode"] not in {"off", "observe", "crisis"}:
+            raise ValueError("invalid stored root mode")
 
     def register(self, world):
         """A deceased identity can continue in a later biological birth.
@@ -19,6 +24,8 @@ class BrahmanAgent:
         Existing children remain separate identities even after bodily death.
         """
         d = self.data
+        if d["mode"] == "off":
+            return
         for aid, agent in sorted(world.agents.items()):
             if aid in d["children"]:
                 continue
@@ -34,6 +41,8 @@ class BrahmanAgent:
             d["children"][aid] = {"parent": self.id, "thread": tid}
 
     def record(self, aid, action, payload):
+        if self.data["mode"] == "off":
+            return
         child = self.data["children"][aid]
         thread = self.data["threads"][child["thread"]]
         counts = thread["action_counts"]
@@ -51,7 +60,11 @@ class BrahmanAgent:
         The embodied delegate uses the same inference and action validation.
         """
         self.register(world)
+        if self.data["mode"] == "off":
+            return
         self.data["decisions"] += 1
+        if self.data["mode"] != "crisis":
+            return
         living = [a for a in world.agents.values() if a.alive]
         active = any(world.agents[m["agent_id"]].alive for m in self.data["manifestations"])
         crisis = living and all(a.hunger >= 85 or a.thirst >= 85 for a in living)
@@ -74,7 +87,7 @@ class BrahmanAgent:
 
     def delegate(self, world, aid):
         self.register(world)
-        if aid not in self.data["children"]:
+        if self.data["mode"] != "off" and aid not in self.data["children"]:
             raise ValueError("unregistered sub-agent")
         return world.backend.decide(world.observe(aid))
 

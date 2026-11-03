@@ -1,5 +1,7 @@
 # Experiment results (v0.5.0 development run)
 
+All numbers were re-measured on the branch *after* merging `main` (`dfb78d5`); behaviour (decisions, steps, survival, fairness) was identical before and after the merge, and only journal and checkpoint sizes grew (about 6%).
+
 Everything here was measured by the commands in [EXPERIMENT_PROTOCOL.md](EXPERIMENT_PROTOCOL.md); raw JSON is in
 [`results/`](results/). Environment: Linux, Python 3.13, 4 CPUs, 15 GB RAM, **no GPU, no torch installed**.
 
@@ -17,10 +19,10 @@ Everything here was measured by the commands in [EXPERIMENT_PROTOCOL.md](EXPERIM
 
 ## Automated tests
 
-`python -m pytest -q` -> **166 passed** in about 55 s. 25 are the original v0.4.0 tests (the root tests are
-unchanged; 7 legacy-coupled tests construct `autonomy='legacy'` explicitly, see MERGE_CHECKLIST). 141 are new:
-scheduler 27, physiology 19, experiments 40, memory 21, witness 3, config 21, migration 6, real-backend path 3,
-recovery +1.
+`python -m pytest -q` -> **177 passed** in about 60 s. 30 come from `main` (the 25 v0.4.0 tests, whose root tests
+are unchanged, with 7 legacy-coupled ones constructing `autonomy='legacy'` explicitly, plus the owner's 5 root-mode and
+export tests). 147 are new: scheduler 27, physiology 19, physical experiments 40, memory 21, witness 3, config 21,
+migration 6, real-backend path 3, integration with root modes and evidence export 6, recovery +1.
 
 ## Mock runs, completed durations (all reached the requested simulated time)
 
@@ -29,11 +31,11 @@ findings. Needs are time-based (see ARCHITECTURE); the mock had 8 model calls pe
 
 | Run | Sim. time reached | Real time | Living at end | Deaths | Model-labelled decisions | Mechanical steps | Intentions started / completed | Interruptions |
 |---|---|---|---|---|---|---|---|---|
-| 5 inhabitants, 10-min ticks | 30.0 d (4320 ticks) | 75.8 s (57 ticks/s) | 5 / 5 | none | 4,269 | 17,331 | 2,884 / 2,878 | illness 3 |
-| 5 inh., 1-h ticks, seed 314159 | 30.0 d (720) | 9.5 s | 5 / 5 | none | 2,309 | 1,291 | 1,088 / 1,085 | illness 2 |
-| 5 inh., 1-h ticks, seed 2 | 30.0 d (720) | 9.5 s | 5 / 5 | none | 2,324 | 1,276 | 1,009 / 1,006 | none |
-| 5 inh., 1-h ticks, seed 3 | 30.0 d (720) | 9.8 s | 5 / 5 | none | 2,416 | 1,184 | 1,051 / 1,049 | resource gone 1 |
-| 50 inhabitants, 10-min ticks | 7.0 d (1008 ticks) | 76.7 s (13 ticks/s) | 50 / 50 | none | 8,023 | 29,292 | 5,085 / 4,784 | resource gone 272 |
+| 5 inhabitants, 10-min ticks | 30.0 d (4320 ticks) | 72.4 s (60 ticks/s) | 5 / 5 | none | 4,269 | 17,331 | 2,884 / 2,878 | illness 3 |
+| 5 inh., 1-h ticks, seed 314159 | 30.0 d (720) | 9.3 s | 5 / 5 | none | 2,309 | 1,291 | 1,088 / 1,085 | illness 2 |
+| 5 inh., 1-h ticks, seed 2 | 30.0 d (720) | 9.7 s | 5 / 5 | none | 2,324 | 1,276 | 1,009 / 1,006 | none |
+| 5 inh., 1-h ticks, seed 3 | 30.0 d (720) | 9.9 s | 5 / 5 | none | 2,416 | 1,184 | 1,051 / 1,049 | resource gone 1 |
+| 50 inhabitants, 10-min ticks | 7.0 d (1008 ticks) | 77.3 s (13 ticks/s) | 50 / 50 | none | 8,023 | 29,292 | 5,085 / 4,784 | resource gone 272 |
 
 "Decisions" are mock-policy decisions (`mock_decisions`); `lfm_decisions` is 0 in every row. Zero model failures, zero
 rejected actions and zero mechanical rejections in every run.
@@ -53,13 +55,13 @@ asserted in the tests.
 
 | Run | CPU | Peak RAM | Journal | Checkpoints (sum, 60-tick cadence) |
 |---|---|---|---|---|
-| 5 inh., 30 d | 71 s | 263 MB | 36.6 MB | 1,347 MB |
-| 5 inh., 30 d, 1-h ticks | 9 s | ~100 MB | ~13 MB | ~84 MB |
-| 50 inh., 7 d | 74 s | 436 MB | 63.4 MB (about 63 KB/tick) | 572 MB |
+| 5 inh., 30 d | 68 s | 242 MB | 38.9 MB | 1,433 MB |
+| 5 inh., 30 d, 1-h ticks | 9 s | ~115 MB | ~14 MB | ~92 MB |
+| 50 inh., 7 d | 75 s | 454 MB | 67.8 MB (about 67 KB/tick) | 611 MB |
 
 GPU memory: not measured (no GPU). **Risks seen here:** at 50 inhabitants the 100 MB journal limit would pause the
-worker after roughly 1,580 ticks (about 11 simulated days at baseline), and each checkpoint embeds the whole event
-history, so total checkpoint size grows quadratically (1.3 GB for a 5-inhabitant, 30-day run). These are persistence
+worker after roughly 1,490 ticks (about 10 simulated days at baseline), and each checkpoint embeds the whole event
+history, so total checkpoint size grows quadratically (1.4 GB for a 5-inhabitant, 30-day run). These are persistence
 design properties that already existed; the new systems make events more frequent. Mitigations and the follow-up are
 in MERGE_CHECKLIST.
 
@@ -92,7 +94,7 @@ long a plan the real model chooses, which is unmeasured.
 2. **Illness had no counterplay** (1.2 hp/h for 2-5 days exceeds 100 hp). Damage is now reduced while fed, hydrated and
    rested; neglect is still lethal (test).
 3. **Journal bloat:** routine path steps rewrote each inhabitant's whole short-term memory list; 81 of 107 MB for the
-   50-inhabitant run. Mechanical steps no longer write short-term memory (107 -> 63 MB).
+   50-inhabitant run. Mechanical steps no longer write short-term memory (107 -> 63 MB when measured; 68 MB after the merge with `main` added `confirmed_state` to decision events).
 4. **Uneven scheduling rotation** from an id tie-break; now least-recently-served first (spread 1).
 5. **Objects cooled in air while the inhabitant held them in a fire;** components are now pinned for the activity.
 6. **Water from a stream node was ledgered as lost mass** (conservation error found by the fuzz test).

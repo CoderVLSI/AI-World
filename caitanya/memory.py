@@ -483,6 +483,7 @@ def _write_findings(world, a, p, payload):
                             title=title.strip(), text=text, history=[], claims=claims,
                             provenance_event_id=f"evt-{len(world.events):09}")
     a.skills["writing"] = a.skills.get("writing", 0) + 1
+    payload["parameters"] = {"title": title.strip()}      # the ids of private memory entries are not published
     payload.update(result="findings_written", work_id=wid, claims=len(claims))
 
 

@@ -151,6 +151,6 @@ observe plans, attribution, objects, fires, experiments and findings counts, and
 
 ## 7. Persistence cost (measured)
 
-Per tick at 50 inhabitants the journal averages about 63 KB (physiology values change every tick for every body);
+Per tick at 50 inhabitants the journal averages about 67 KB (physiology values change every tick for every body);
 each checkpoint embeds the full event history, so total checkpoint size grows quadratically with run length. See
 [MERGE_CHECKLIST.md](MERGE_CHECKLIST.md) for the consequences and mitigations (`--checkpoint-every`).

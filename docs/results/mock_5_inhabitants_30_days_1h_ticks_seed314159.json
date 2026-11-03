@@ -3,8 +3,8 @@
   "requested_sim_days": 30.0,
   "completed_ticks": 720,
   "completed_sim_days": 30.0,
-  "real_seconds": 9.52,
-  "ticks_per_real_second": 75.66,
+  "real_seconds": 9.29,
+  "ticks_per_real_second": 77.46,
   "seed": 314159,
   "population_start": 5,
   "days_per_tick": 0.0416666667,
@@ -155,11 +155,11 @@
     "atmosphere_g": 0.0
   },
   "resources": {
-    "cpu_seconds": 8.84,
-    "max_rss_mb": 96.6,
+    "cpu_seconds": 8.71,
+    "max_rss_mb": 115.2,
     "gpu_max_allocated_mb": null,
-    "journal_bytes": 12890855,
-    "checkpoint_bytes_total": 83564927
+    "journal_bytes": 14130061,
+    "checkpoint_bytes_total": 91426391
   },
   "environment": {
     "python": "3.13.18",

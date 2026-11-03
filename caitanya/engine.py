@@ -162,7 +162,7 @@ def redact_private(state):
 
 class World:
     def __init__(self, seed=314159, population=5, width=64, depth=64, backend=None, biology=None, spawn_radius=8,
-                 autonomy=None):
+                 root_mode="crisis", autonomy=None):
         if not (1 <= population and width >= 8 and depth >= 8):
             raise ValueError("invalid world dimensions or population")
         if type(spawn_radius) is not int or spawn_radius<1:raise ValueError("invalid starting radius")
@@ -224,7 +224,7 @@ class World:
             starting_radius=spawn_radius,
             configuration_hash=digest(dict(seed=seed, population=population, width=width, depth=depth,biology=asdict(self.biology),spawn_radius=spawn_radius)))
         self.manifest.update(getattr(self.backend,"metadata",{}))
-        self.root = BrahmanAgent()
+        self.root = BrahmanAgent(mode=root_mode)
         self.root.register(self)
         self.manifest["engine_version"] = ENGINE_VERSION
         self.manifest["autonomy_hash"] = digest(self.autonomy.to_dict())
@@ -350,6 +350,10 @@ class World:
         if intent.observed_tick != self.tick: return self.reject(intent, "stale observation")
         if a.busy_until_tick > self.tick: return self.reject(intent, "busy with an ongoing activity")
         p, action = intent.parameters, intent.action
+        # Evidence exports report the confirmed state change of each action. Routine mechanical path steps
+        # are exempt: snapshotting the inventory for tens of thousands of steps would swamp the journal.
+        before = None if origin == "mechanical_execution" else dict(
+            x=a.x,z=a.z,energy=a.energy,hunger=a.hunger,thirst=a.thirst,health=a.health,inventory=copy.deepcopy(a.inventory))
         expected = {"MOVE":{"dx","dz"}, "GATHER":{"resource_id"}, "REST":set(), "EAT":set(), "DRINK":set(), "WAIT":set(),
                     "SPEAK":{"text"}, "WRITE":{"title","text"}, "READ":{"work_id"}, "PLACE":{"material","shape"},
                     "REPRODUCE":{"target_id"},"WITHDRAW_CONSENT":{"target_id"},"CARE":{"target_id"},
@@ -366,7 +370,7 @@ class World:
             error = spec.run(self, a, p, payload)
             if error: return self.reject(intent, error)
             if spec.skill: a.skills[spec.skill] = a.skills.get(spec.skill, 0) + 1
-            return self._finish(a, action, payload, origin)
+            return self._finish(a, action, payload, origin, before=before)
         if years<6 and action=="GATHER":return self.reject(intent,"not old enough to gather independently")
         if years<12 and action=="PLACE":return self.reject(intent,"not old enough for construction")
         social_error=validate_social(self,a,action,p)
@@ -434,14 +438,18 @@ class World:
         if action in {"MOVE","GATHER","PLACE","WRITE","REVISE","TEACH","CARE"}:
             skill={"MOVE":"travel","GATHER":"foraging","PLACE":"construction","WRITE":"writing","REVISE":"writing","TEACH":"teaching","CARE":"caregiving"}[action]
             a.skills[skill]=a.skills.get(skill,0)+1
-        return self._finish(a, action, payload, origin, p)
+        return self._finish(a, action, payload, origin, p, before=before)
 
-    def _finish(self, a, action, payload, origin, params=None):
+    def _finish(self, a, action, payload, origin, params=None, before=None):
         """Common bookkeeping for every accepted action."""
         if origin != "mechanical_execution":   # routine path steps must not crowd out meaningful short-term memory
             a.memories.append(dict(tick=self.tick, action=action, confirmed=True))
             a.memories[:] = a.memories[-40:]
         self.emit(action.lower(),a.id,payload,"validated_action")
+        if before is not None:
+            self.events[-1]["payload"]["confirmed_state"] = {"before":before,"after":dict(
+                x=a.x,z=a.z,energy=a.energy,hunger=a.hunger,thirst=a.thirst,health=a.health,
+                inventory=copy.deepcopy(a.inventory))}
         self.root.register(self)
         self.root.record(a.id, action, payload)
         if origin in ("lfm_decision", "mock_policy") and a.task and action not in TASK_ACTIONS:

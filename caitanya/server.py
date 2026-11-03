@@ -15,7 +15,7 @@ from .lifecycle import BiologyConfig, stage
 
 ROOT = Path(__file__).resolve().parent.parent
 
-def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_journal_bytes=100_000_000, checkpoint_every=60):
+def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_journal_bytes=100_000_000, max_ticks=None, max_seconds=None, report_dir=None, checkpoint_every=60):
     if type(checkpoint_every) is not int or checkpoint_every < 1:raise ValueError("checkpoint_every must be a positive integer")
     world = world or World()
     directory = Path(run_dir)
@@ -28,12 +28,16 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     committed_count=len(world.events)
     stop=asyncio.Event()
     async def worker():
+        import time
         nonlocal published,committed_count
+        started=time.monotonic();starting_tick=world.tick
         cursor = len(world.events)
         try:
             while not stop.is_set():
                 await asyncio.sleep(interval)
                 if stop.is_set():break
+                if (max_ticks is not None and world.tick-starting_tick>=max_ticks) or (max_seconds is not None and time.monotonic()-started>=max_seconds):
+                    return
                 if (directory/"events.jsonl").exists() and (directory/"events.jsonl").stat().st_size > max_journal_bytes:
                     world.status="PAUSED_RESOURCE_LIMIT"
                     published=world.public()
@@ -48,9 +52,20 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
                 cursor=len(world.events)
                 published=world.public()
                 committed_count=cursor
+                with (directory/"metrics.jsonl").open("a",encoding="utf-8") as f:
+                    f.write(json.dumps(world.metrics(),separators=(",",":"))+"\n")
                 if world.tick % checkpoint_every == 0: world.checkpoint(directory)
         finally:
             world.checkpoint(directory)
+            if report_dir:
+                from .experiment import summarize, source_revision
+                from .engine import digest
+                recovered=World.recover(directory,backend=world.backend)
+                summarize(world,report_dir,{'date_utc':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),
+                    'commit_sha':source_revision(),'root_mode':world.root.data['mode'],
+                    'acceptance':{'checkpoint_journal_recovery':digest(recovered.state())==digest(world.state()),
+                                  'live_worker_stopped':True},
+                    'journal_bytes':(directory/'events.jsonl').stat().st_size if (directory/'events.jsonl').exists() else 0})
 
     @asynccontextmanager
     async def lifespan(app):
@@ -121,6 +136,9 @@ def build_parser():
     p.add_argument("--seed",type=int,default=314159); p.add_argument("--port",type=int,default=8000)
     p.add_argument("--width",type=int,default=256);p.add_argument("--depth",type=int,default=256)
     p.add_argument("--backend",choices=["mock","lfm3"],default="mock");p.add_argument("--revision")
+    p.add_argument("--root-mode",choices=["off","observe","crisis"],default="crisis")
+    p.add_argument("--max-ticks",type=int);p.add_argument("--max-seconds",type=float)
+    p.add_argument("--report-dir")
     p.add_argument("--days-per-tick",type=float,default=1/144,help="World calendar rate; baseline ten minutes per tick. Accelerated experiments must be labeled.")
     p.add_argument("--resume"); p.add_argument("--run-dir",default="runs/local")
     p.add_argument("--config",help="Experiment JSON (see config/default.json). Only a file named here is ever loaded.")
@@ -142,7 +160,7 @@ def build_world(args,p,backend=None):
         autonomy=replace(autonomy,scheduler=replace(autonomy.scheduler,max_decisions_per_tick=args.decisions_per_tick))
     given=dict(seed=args.seed,population=args.population,width=args.width,depth=args.depth)
     explicit={k:v for k,v in given.items() if p.get_default(k)!=v}   # command line beats the file
-    return World(**{**given,**params,**explicit},backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),autonomy=autonomy)
+    return World(**{**given,**params,**explicit},backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),autonomy=autonomy,root_mode=args.root_mode)
 
 def main():
     import uvicorn
@@ -152,5 +170,6 @@ def main():
         backend=TransformersLFM3Backend(revision=args.revision)
     else:backend=None
     world=build_world(args,p,backend)
-    uvicorn.run(create_app(world,args.run_dir,checkpoint_every=args.checkpoint_every),host="127.0.0.1",port=args.port)
+    uvicorn.run(create_app(world,args.run_dir,max_ticks=args.max_ticks,max_seconds=args.max_seconds,report_dir=args.report_dir,
+                           checkpoint_every=args.checkpoint_every),host="127.0.0.1",port=args.port)
 if __name__=="__main__": main()

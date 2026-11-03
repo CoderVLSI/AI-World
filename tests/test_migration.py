@@ -17,6 +17,7 @@ def as_v1(state):
     state["schema_version"] = 1
     for key in NEW_TOP:
         state.pop(key)
+    state["root"].pop("mode")          # added upstream with root modes; the default "crisis" is the v0.4.0 behaviour
     for agent in state["agents"].values():
         for key in NEW_AGENT:
             agent.pop(key)
