@@ -148,3 +148,27 @@ only) while inside and outside, who left, and lowest health. On the CPU, scripte
 and loses health (62.5 lowest in the saved run, never killed); a fleeing stand-in leaves in a few ticks (about 86-90 lowest). **No real-model
 result exists yet.** To run one episode on a GPU (about 5-15 minutes on a T4, never a long run):
 `python scripts/hazard_response_diagnostic.py --backend lfm3 --revision ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7 --ticks 40 --max-real-seconds 900 --out hazard_lfm3.json`
+
+
+### Result of the first real run, and an experiment on the geometric way out
+The first real-model episode (draft PR #15, T4, 40 ticks, 5 inhabitants, wildfire over 3 of them): the hazard was visible in 138 of 170
+observations, yet **0 of 3 left the zone**. They chose MOVE 15 times, SPEAK 29, WAIT 12, REFLECT 9 and DRINK/EAT 10 while inside, and the three
+exposed lost the same health as an idle stand-in (62.5 lowest); nobody died (health floors at 1). So they could see the danger and did
+move, but not out. The directions of those moves were not recorded, so it is unknown whether they were random.
+
+The diagnostic now also records, as numbers only: every MOVE chosen inside the zone (classified outward or inward by its effect on the
+distance from the zone's centre, with the (dx, dz) steps) and each exposed inhabitant's distance to the zone edge for every tick.
+
+**Experiment, OFF by default (`--hazard-exit-hint`, `World(..., hazard_exit_hint=True)`, needs `--nature-forces`):** an inhabitant *inside* a
+zone also sees `leave_dx`, `leave_dz` (the single step that leads straight away from the zone's centre) and `steps_to_leave` (how many such steps
+leave it). It is a geometric fact, not terrain-aware (the `blocked` list still shows adjacent obstacles), it is not shown to anyone outside
+the zone, and it is not an instruction or a goal. It does come close to helping, which is why it is an explicit, labelled variant:
+a test proves the stated way out really leaves the zone from every cell of it, and the setting is recorded in the manifest.
+
+How to run the comparison (one change at a time, same fixture and revision, one bounded episode each, never tuned):
+`python scripts/hazard_response_diagnostic.py --backend lfm3 --revision ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7 --ticks 40 --max-real-seconds 900 --out baseline.json`
+`python scripts/hazard_response_diagnostic.py --backend lfm3 --revision ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7 --exit-hint --ticks 40 --max-real-seconds 900 --out hint.json`
+Read it as: did anyone leave (and after how many ticks), how many inside MOVEs were outward vs inward, and the lowest health. A baseline with
+mostly random MOVE directions and a hint run where the same model follows the stated way out would say the missing piece is the geometry,
+not the willingness to move; if the hint run still stays, the problem is elsewhere. Scripted CPU stand-ins show what is measured (saved in
+`docs/results/hazard-response-cpu-standins-v2-20261103.json`): they say nothing about any model.

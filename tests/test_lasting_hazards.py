@@ -214,3 +214,77 @@ def test_survival_budget_a_month_of_hazards_does_not_wipe_out_a_mock_world(seed)
     assert sum(a.alive for a in w.agents.values()) == 5 and not w.death_causes()
     started = sum(1 for e in w.events if e["type"] == "nature_hazard_started")
     assert started >= 1 and len(ended(w)) <= started
+
+
+# ------------------------------------------------------------------ experiment: the geometric way out (off by default)
+def hint_world(**kw):
+    return World(population=2, root_mode="off", nature_forces=True, seed=5, backend=IdleBackend(), hazard_exit_hint=kw.pop("hint", True), **kw)
+
+
+def test_the_exit_hint_is_off_by_default_and_changes_nothing_when_off():
+    w = world()
+    a, x, z = spot(w)
+    w.nature_forces.apply(w, "agni", x, z, 2)
+    w.step()
+    entry = w.observe("agent-0000")["environment_hazards"][0]
+    assert not any(k.startswith("leave") or k == "steps_to_leave" for k in entry) and not w.nature_forces.exit_hint
+    assert "nature_hazard_exit_hint" not in w.manifest
+    assert set(entry) == {"phenomenon", "x", "z", "radius", "strength", "distance_to_edge", "inside", "since_tick"}
+
+
+def test_with_the_hint_only_those_inside_see_a_straight_way_out_and_it_always_works():
+    w = hint_world()
+    a, x, z = 0, 32, 32
+    w.agents["agent-0000"].x, w.agents["agent-0000"].z = x, z
+    w.nature_forces.apply(w, "agni", x, z, 2)                      # radius 6
+    hz = w.nature_forces.data["hazards"][0]
+    w.step()
+    assert w.manifest["nature_hazard_exit_hint"] is True
+    agent = w.agents["agent-0001"]
+    checked = 0
+    for ox in range(-hz["radius"] - 2, hz["radius"] + 3):
+        for oz in range(-hz["radius"] - 2, hz["radius"] + 3):
+            agent.x, agent.z = x + ox, z + oz
+            seen = w.nature_forces.observe_hazards(w, agent)
+            d = abs(ox) + abs(oz)
+            if not seen:
+                assert d - hz["radius"] > forces.VIEW_RANGE                       # too far to perceive at all
+                continue
+            entry = seen[0]
+            if d > hz["radius"]:
+                assert not entry["inside"] and "leave_dx" not in entry          # outside: no hint, nothing to leave
+                continue
+            assert entry["inside"] and abs(entry["leave_dx"]) + abs(entry["leave_dz"]) == 1
+            assert entry["steps_to_leave"] == hz["radius"] - d + 1
+            px, pz = agent.x, agent.z
+            for step in range(entry["steps_to_leave"]):
+                inside_before = abs(px - x) + abs(pz - z) <= hz["radius"]
+                assert inside_before                                            # still inside until the last step is taken
+                px, pz = px + entry["leave_dx"], pz + entry["leave_dz"]
+            assert abs(px - x) + abs(pz - z) == hz["radius"] + 1                # exactly one step outside
+            checked += 1
+    assert checked == 2 * hz["radius"] ** 2 + 2 * hz["radius"] + 1                  # every cell of the zone was tried
+
+
+def test_the_hint_adds_only_those_keys_and_no_names_and_persists(tmp_path):
+    w = hint_world()
+    a, x, z = spot(w)
+    w.nature_forces.apply(w, "surya", x, z, 1)
+    w.step()
+    entry = w.observe("agent-0000")["environment_hazards"][0]
+    assert set(entry) == {"phenomenon", "x", "z", "radius", "strength", "distance_to_edge", "inside", "since_tick", "leave_dx", "leave_dz", "steps_to_leave"}
+    assert all(n not in json.dumps(entry).lower() for n in NAMES)
+    r = World.restore(w.checkpoint(tmp_path), backend=w.backend)
+    assert r.nature_forces.exit_hint and r.observe("agent-0000")["environment_hazards"] == w.observe("agent-0000")["environment_hazards"]
+    old = NatureForces({"version": forces.VERSION, "last_tick": 0, "recent": [], "counts": {}, "hazard_version": forces.HAZARD_VERSION, "hazards": [], "next_hazard": 1})
+    assert not old.exit_hint                                                           # saves from before the hint keep it off
+
+
+def test_the_hint_is_validated_and_has_a_cli_flag():
+    with pytest.raises(ValueError):
+        World(population=2, hazard_exit_hint=True)                                      # needs nature_forces
+    with pytest.raises(ValueError):
+        World(population=2, nature_forces=True, hazard_exit_hint="yes")
+    from caitanya.server import build_parser
+    assert build_parser().parse_args(["--nature-forces", "--hazard-exit-hint"]).hazard_exit_hint is True
+    assert build_parser().parse_args([]).hazard_exit_hint is False

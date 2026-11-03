@@ -176,7 +176,7 @@ def redact_private(state):
 
 class World:
     def __init__(self, seed=314159, population=5, width=64, depth=64, backend=None, biology=None, spawn_radius=8,
-                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None, nature_forces=False):
+                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None, nature_forces=False, hazard_exit_hint=False):
         if not (1 <= population and width >= 8 and depth >= 8):
             raise ValueError("invalid world dimensions or population")
         if type(spawn_radius) is not int or spawn_radius<1:raise ValueError("invalid starting radius")
@@ -210,10 +210,14 @@ class World:
         self.fauna=None
         if type(nature_forces) is not bool:raise ValueError("nature_forces must be boolean")
         from .forces import NatureForces
-        self.nature_forces = NatureForces() if nature_forces else None
+        if type(hazard_exit_hint) is not bool or (hazard_exit_hint and not nature_forces):
+            raise ValueError("hazard_exit_hint is a boolean and needs nature_forces")
+        self.nature_forces = NatureForces(exit_hint=hazard_exit_hint) if nature_forces else None
         if nature_forces:
             self.manifest["nature_forces"] = self.nature_forces.data["version"]
             self.manifest["nature_hazards"] = self.nature_forces.data["hazard_version"]
+            if self.nature_forces.exit_hint:
+                self.manifest["nature_hazard_exit_hint"] = True
             self.manifest["configuration_hash"] = digest({
                 "base_configuration_hash": self.manifest["configuration_hash"],
                 "nature_forces": self.nature_forces.data["version"], "nature_hazards": self.nature_forces.data["hazard_version"],

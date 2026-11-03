@@ -20,6 +20,15 @@ def test_cpu_mode_measures_staying_versus_leaving_and_writes_no_text(tmp_path):
     assert flee["left_count"] >= 1 and flee["move_choices_while_inside"] >= 1 and flee["hazard_visible_in_observations"] > 0
     assert min(flee["lowest_health"].values()) >= min(idle["lowest_health"].values())              # leaving cannot be worse than staying
     assert idle["hazard_summary_recorded"] and idle["decision_failures"] == 0
+    # v2: move directions and trajectories are recorded as numbers; the hint variant is a separate, labelled run
+    assert idle["variant"] == "baseline" and idle["exit_hint_visible_in_observations"] == 0 and idle["moves_while_inside"]["total"] == 0
+    hint = r["hint_following_stand_in"]
+    assert hint["variant"] == "exit_hint" and hint["exit_hint_visible_in_observations"] > 0 and hint["left_count"] == hint["inside_count_at_start"]
+    assert hint["moves_while_inside"]["inward"] == 0 and hint["moves_while_inside"]["outward"] == hint["moves_while_inside"]["total"] > 0
+    assert flee["moves_while_inside"]["total"] == flee["moves_while_inside"]["outward"] + flee["moves_while_inside"]["inward"]
+    assert flee["exit_hint_visible_in_observations"] == 0                                # the baseline never shows the hint
+    trace = hint["distance_to_zone_edge_by_tick"]
+    assert set(trace) == set(hint["fixture"]["inhabitants_inside_at_start"]) and all(len(v) == 40 and v[0] == 0 for v in trace.values())
     assert "SPEAK" not in json.dumps(r["fleeing_stand_in"]["choices_while_inside"]) and '"text"' not in out.read_text()      # choices are tool names only
 
 

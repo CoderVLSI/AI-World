@@ -59,15 +59,22 @@ VIEW_RANGE = 8      # an inhabitant perceives a hazard whose edge is within this
 class NatureForces:
     """Saved operator configuration and recent physically observable effects."""
 
-    def __init__(self, state=None):
+    def __init__(self, state=None, exit_hint=False):
         self.data = copy.deepcopy(state) if state is not None else {
             "version": VERSION, "last_tick": 0, "recent": [], "counts": {},
             "hazard_version": HAZARD_VERSION, "hazards": [], "next_hazard": 1,
         }
+        if state is None and exit_hint:
+            self.data["exit_hint"] = True
         if self.data["version"] != VERSION:
             raise ValueError("unsupported nature forces version")
         if "hazard_version" in self.data and self.data["hazard_version"] != HAZARD_VERSION:
             raise ValueError("unsupported lasting hazards version")
+
+    @property
+    def exit_hint(self):
+        """Experimental, OFF by default: also tell an inhabitant inside a zone the geometric way out (see observe_hazards)."""
+        return bool(self.data.get("exit_hint", False))
 
     @property
     def hazards_enabled(self):
@@ -207,8 +214,18 @@ class NatureForces:
         for h in self.data.get("hazards", []):
             edge = max(0, abs(agent.x-h["x"])+abs(agent.z-h["z"]) - h["radius"])
             if edge <= VIEW_RANGE:
-                out.append({"phenomenon": h["phenomenon"], "x": h["x"], "z": h["z"], "radius": h["radius"], "strength": h["strength"],
-                            "distance_to_edge": edge, "inside": edge == 0, "since_tick": h["start_tick"]})
+                item = {"phenomenon": h["phenomenon"], "x": h["x"], "z": h["z"], "radius": h["radius"], "strength": h["strength"],
+                        "distance_to_edge": edge, "inside": edge == 0, "since_tick": h["start_tick"]}
+                if self.exit_hint and edge == 0:
+                    # A geometric fact, not terrain-aware (the `blocked` list still shows adjacent obstacles): the step (dx, dz) that
+                    # leads straight away from the zone's centre, and how many such steps leave the zone.
+                    ox, oz = agent.x-h["x"], agent.z-h["z"]
+                    if abs(ox) >= abs(oz):
+                        dx, dz = (1 if ox >= 0 else -1), 0
+                    else:
+                        dx, dz = 0, (1 if oz > 0 else -1)
+                    item.update(leave_dx=dx, leave_dz=dz, steps_to_leave=h["radius"]-(abs(ox)+abs(oz))+1)
+                out.append(item)
         return out
 
     def observe(self, world, agent):
