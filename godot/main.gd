@@ -36,6 +36,7 @@ func _ready() -> void:
 		elif arg.begins_with("--select="): selected = arg.substr(9)
 		elif arg.begins_with("--distance="): start_distance = float(arg.substr(11))
 		elif arg.begins_with("--focus="): focus_id = arg.substr(8)
+		elif arg.begins_with("--humans="): actors.human_mode = arg.substr(9)
 	var we := WorldEnvironment.new()
 	env.background_mode = Environment.BG_COLOR; env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.fog_enabled = true; env.fog_density = 0.0016

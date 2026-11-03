@@ -124,3 +124,43 @@ def test_every_species_has_its_own_silhouette():
     builder = (GODOT_DIR / "animal_builder.gd").read_text()
     specs = set(re.findall(r'^\t"([a-z]+)":\s+\{"kind"', builder, re.M))
     assert set(SPECIES) <= specs, sorted(set(SPECIES) - specs)
+
+
+def _gd_constants(name):
+    import re
+    text = (GODOT_DIR / name).read_text()
+    return {k: float(v) for k, v in re.findall(r"^const ([A-Z_]+) := ([0-9.]+)$", text, re.M)}
+
+
+def test_viewer_life_stage_ages_match_the_simulations_own_stages():
+    """human_proportions.gd draws infants/children/adolescents/adults/elders from the same ages as lifecycle.stage()."""
+    from caitanya.engine import World
+    from caitanya.lifecycle import stage
+    c = _gd_constants("human_proportions.gd")
+    w = World(seed=1, population=1)
+    a = w.agents["agent-0000"]
+    assert w.biology.adulthood_years == c["ADULT_FROM"]
+    expected = lambda age: ("infant" if age < c["INFANT_MAX"] else "child" if age < c["CHILD_MAX"] else "adolescent"
+                            if age < c["ADULT_FROM"] else "adult" if age < c["ELDER_FROM"] else "elder")
+    for age in (0, 2.99, 3, 12.99, 13, 17.99, 18, 64.99, 65, 90):
+        a.age_years_at_start = age
+        assert stage(w, a) == expected(age), age
+
+
+def test_every_recorded_pose_state_has_a_human_pose_and_no_invented_ones():
+    import re
+    from_map = set(re.findall(r'"([a-z]+)"', " ".join(re.findall(r"ACTION_STATES := \{(.*?)\n\}", (GODOT_DIR / "animation_map.gd").read_text(), re.S)[0:1])))
+    states = {"idle", "walk", "rest", "talk", "work", "eat"}
+    text = (GODOT_DIR / "human.gd").read_text()
+    body = text[text.index("static func targets"):text.index("func _process")]
+    handled = set(re.findall(r'^\t\t"([a-z]+)":\s*(?:#.*)?$', body, re.M))
+    assert handled == {"walk", "rest", "talk", "work", "eat"}              # everything else (and anything unknown) is idle
+    assert {st for st in states} == handled | {"idle"}
+    assert not {"run", "fight", "hunt", "attack"} & handled                    # the simulation records none of these for people
+
+
+@pytest.mark.skipif(godot_binary() is None, reason="no Godot binary (set GODOT_BIN or run scripts/setup_godot_tools.sh)")
+def test_godot_builds_a_growing_human_at_the_simulated_height():
+    done = subprocess.run([godot_binary(), "--headless", "--path", str(GODOT_DIR), "--script", "res://tests/human_test.gd"],
+                          capture_output=True, text=True, timeout=180)
+    assert "human tests: ok" in done.stdout and "FAIL" not in done.stdout, done.stdout[-800:] + done.stderr[-400:]

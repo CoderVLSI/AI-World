@@ -3,6 +3,7 @@ extends Node3D
 
 const AnimationMap := preload("res://animation_map.gd")
 const CharacterLibrary := preload("res://character_library.gd")
+const Human := preload("res://human.gd")
 const AnimalBuilder := preload("res://animal_builder.gd")
 const AnimalMotion := preload("res://animal_motion.gd")
 
@@ -27,6 +28,7 @@ var library := CharacterLibrary.new()
 var animal_builder := AnimalBuilder.new()
 var clock := 0.0
 var current_tick := 0
+var human_mode := "procedural"    # "procedural": every person is built from their recorded age (grows); "models": rigged adults when fetched
 
 func _ready() -> void:
 	var tm := TorusMesh.new(); tm.inner_radius = 0.7; tm.outer_radius = 0.9
@@ -61,18 +63,15 @@ func _ground(x: float, z: float) -> Vector3:
 	return Vector3(x, maxf(terrain.height_at(x, z), -0.25 * terrain.HEIGHT_SCALE), z)
 
 func _person_node(a: Dictionary) -> Node3D:
-	if library.available:
+	# Rigged models cannot show a child's proportions (a scaled adult looks like a small adult), so they are opt-in
+	# (--humans=models) and used for adults only; everyone else, and everyone by default, grows from their recorded age.
+	if human_mode == "models" and library.available and float(a.get("age_years", 25.0)) >= 18.0:
 		var body := library.make(a, MODEL_VISUAL_SCALE)
 		if body != null:
 			return body
-	var root := Node3D.new()
-	var body := MeshInstance3D.new(); var cm := CapsuleMesh.new(); cm.radius = 0.2; cm.height = 1.05
-	body.mesh = cm; body.position.y = 0.62; body.material_override = _mat(str(a.get("clothing_color", "#678b91")))
-	var head := MeshInstance3D.new(); var sm := SphereMesh.new(); sm.radius = 0.16; sm.height = 0.32
-	head.mesh = sm; head.position.y = 1.32; head.material_override = _mat(str(a.get("skin_tone", "#bd8c68")))
-	root.add_child(body); root.add_child(head)
-	root.scale = Vector3.ONE * clampf(float(a.get("height_cm", 170)) / 170.0, 0.3, 1.3) * PERSON_SCALE
-	return root
+	var h := Human.new()
+	h.setup(a)
+	return h
 
 func _animal_node(b: Dictionary, species: Dictionary) -> Node3D:
 	var sp: Dictionary = species.get(str(b.get("species")), {})
@@ -121,6 +120,8 @@ func update_live(live: Dictionary, terrain_view) -> void:
 	_sync(people, alive, _person_node, func(n: Node3D, a: Dictionary):
 		var recorded = a.get("last_action")     # note: set_meta(null) would delete the key, so store {} for "none"
 		n.set_meta("last_action", recorded if recorded != null else {})
+		if n.has_method("set_growth"):
+			n.set_growth(float(a.get("age_years", 25.0)), float(a.get("height_cm", 170.0)))
 		_place_mover(n, float(a.x), float(a.z)))
 	var wl: Dictionary = live.get("wildlife", {})
 	var species: Dictionary = wl.get("species", {})
@@ -173,7 +174,8 @@ func _process(delta: float) -> void:
 func pick(camera: Camera3D, screen_pos: Vector2) -> String:
 	var best := ""; var best_d := 30.0
 	for id in people:
-		var p: Vector3 = people[id].position + Vector3(0, 1.2, 0)
+		var top: float = people[id].top_y() * 0.6 if people[id].has_method("top_y") else 1.2
+		var p: Vector3 = people[id].position + Vector3(0, top, 0)
 		if camera.is_position_behind(p): continue
 		var d := camera.unproject_position(p).distance_to(screen_pos)
 		if d < best_d: best_d = d; best = id
