@@ -176,7 +176,11 @@ def redact_private(state):
 
 class World:
     def __init__(self, seed=314159, population=5, width=64, depth=64, backend=None, biology=None, spawn_radius=8,
-                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None):
+                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None, nature_forces=False, families=0, children_per_family=2):
+        if type(families) is not int or families < 0 or type(children_per_family) is not int or not 0 <= children_per_family <= 12:
+            raise ValueError("invalid founding families")
+        if families:
+            population = families * (2 + children_per_family)      # households of a woman, a man and children replace `population`
         if not (1 <= population and width >= 8 and depth >= 8):
             raise ValueError("invalid world dimensions or population")
         if type(spawn_radius) is not int or spawn_radius<1:raise ValueError("invalid starting radius")
@@ -208,6 +212,15 @@ class World:
             configuration_hash=digest(dict(seed=seed, population=population, width=width, depth=depth,biology=asdict(self.biology),spawn_radius=spawn_radius)))
         self.manifest.update(getattr(self.backend,"metadata",{}))
         self.fauna=None
+        if type(nature_forces) is not bool:raise ValueError("nature_forces must be boolean")
+        from .forces import NatureForces
+        self.nature_forces = NatureForces() if nature_forces else None
+        if nature_forces:
+            self.manifest["nature_forces"] = self.nature_forces.data["version"]
+            self.manifest["configuration_hash"] = digest({
+                "base_configuration_hash": self.manifest["configuration_hash"],
+                "nature_forces": self.nature_forces.data["version"],
+            })
         if wildlife_per_species and self.biology.days_per_tick>1:
             raise ValueError('Wildlife requires days_per_tick <= 1; use --wildlife-per-species 0 for coarse legacy clocks')
         # Brahman exists before the world does. Genesis is a validated, immutable plan executed exactly once;
@@ -215,7 +228,7 @@ class World:
         self.root = BrahmanAgent(mode=root_mode)
         plan, issued_by = isvara.issue_plan(self.root, seed=seed, population=population, width=width, depth=depth,
             spawn_radius=spawn_radius, wildlife_per_species=wildlife_per_species, days_per_tick=self.biology.days_per_tick,
-            reasoning=not self.autonomy.legacy, config=isvara_config)
+            reasoning=not self.autonomy.legacy, config=isvara_config, families=families, children_per_family=children_per_family)
         genesis.execute(self, plan, issued_by)
         self.manifest["genesis"] = dict(version=plan.version, plan_digest=plan.digest(), generators=dict(plan.generators))
         self.root.register(self)
@@ -261,10 +274,14 @@ class World:
             parts=copy.deepcopy(self.parts), manifest=copy.deepcopy(self.manifest), rng_state=[rng[0],list(rng[1]),rng[2]],decision_cursor=self.decision_cursor,
             biology=asdict(self.biology),pregnancies=copy.deepcopy(self.pregnancies),next_agent_id=self.next_agent_id,next_pregnancy_id=self.next_pregnancy_id)
         if self.fauna is not None:state['fauna']=self.fauna.state()
+        if self.nature_forces is not None:state['nature_forces']=self.nature_forces.state()
         return state
 
     def public(self):
         state = redact_private(self.state())
+        state.pop("nature_forces", None)
+        if self.nature_forces is not None:
+            state["environment_effects"] = copy.deepcopy(self.nature_forces.data["recent"])
         state["last_actions"] = {aid: dict(v) for aid, v in self._last_action.items()}   # type/tick/origin only
         if self.fauna is not None:
             state.pop('fauna',None)
@@ -289,6 +306,8 @@ class World:
         own.pop("ltm",None);own.pop("task",None);ill=own.pop("illness",None);busy=own.pop("busy_until_tick",0)
         nearby_agents=[b for b in self.agents.values() if b.id!=aid and b.alive and nearby(asdict(b))]
         extra={}
+        if self.nature_forces is not None:
+            extra["environment_effects"] = self.nature_forces.observe(self, a)
         if self.fauna is not None:
             extra['wildlife']=[dict(id=b.id,species=b.species,x=b.x,z=b.z,behavior=b.action)
                 for b in sorted(self.fauna.animals.values(),key=lambda b:(abs(b.x-a.x)+abs(b.z-a.z),b.id))
@@ -490,6 +509,7 @@ class World:
     def step(self):
         if self.status != "RUNNING": return
         self.tick += 1
+        if self.nature_forces is not None:self.nature_forces.advance(self)
         if self.autonomy.legacy:
             self._step_legacy()
         else:
@@ -621,6 +641,8 @@ class World:
         self.objects=copy.deepcopy(s.get("objects",{}));self.next_object_id=s.get("next_object_id",0)
         self.ledger=dict(s.get("ledger",{"dispersed_g":0.0,"atmosphere_g":0.0}))
         self.fauna=None
+        from .forces import NatureForces
+        self.nature_forces = NatureForces(s["nature_forces"]) if "nature_forces" in s else None
         if 'fauna' in s:
             from fauna.ecology import Ecosystem
             self.fauna=Ecosystem.restore(s['fauna'])

@@ -94,10 +94,61 @@ wildlife, spawn radius, root mode `off`, legacy). The tests check the initial wo
 * 50 inhabitants, 150 ticks, every 30: 5 reflections (0.4% of calls); physical state identical.
 * Journal: a reflection adds about the record's size (1-2 KB of `tick_committed` patch) once per interval.
 
-## Verified with the real LFM3 model: **nothing yet**
-No GPU was available. `scripts/isvara_check.py --backend lfm3` wrote `docs/results/isvara-lfm3-UNVERIFIED_no_gpu.json`.
-The real path (prompt, tool, parser, budget, counters, one shared model, isolated contexts) is tested only with stand-ins for
-torch, the tokenizer and the model. Unverified with the real model: whether LFM3 produces valid `RECORD_REFLECTION` calls,
-how often it cites real ids, the latency and GPU memory of a reflection (expect one extra call per interval, with a prompt well
-under the 3,072-token cap, but this is not measured), and the quality of anything it writes. Run the bounded check on a T4
-(defaults: 5 inhabitants, 60 ticks, a reflection every 20 ticks) to fill that in.
+## Real LFM3 results so far
+**First bounded T4 check (draft PR #7, main ce8e1dd, 5 inhabitants, 60 ticks, a reflection every 20): 0 of 3 reflections were valid.**
+All three attempts used the full 320-token output limit and failed with `expected exactly one complete RECORD_REFLECTION call`
+(read from the run's private events; no model text). What that check did establish with the real model: one shared model, no extra
+GPU memory (peak 4,693 MB with and without reflections), about 13 s per attempt, about 8% more wall time, failures contained
+(285 inhabitant calls in both worlds), restore made no model calls. It did *not* establish that the model can write a reflection.
+The recorded physical-state difference between the two worlds is unexplained (see `--control` below).
+
+**Format revision (this change; CPU-tested only, NOT yet run on a GPU):**
+* Failures are now diagnosable without keeping any model text: category (`no_tool_call`, `incomplete_call`, `extra_calls`,
+  `wrong_tool`, `bad_parameters`, `text_too_long`, `missing_parameters`, `output_too_long`, `invalid_content`, `prompt_budget`,
+  `backend_error`), output tokens, whether the token limit was hit, tool calls found. Optional `keep_raw_head_chars` (default 0, max 500)
+  keeps the first N characters of a failed output in the *private* root state only (last 3), never in events, endpoints or result files.
+* Generation for reflections stops at the first complete call (`stop_strings=["</tool_call>"]`) and uses no repetition penalty (citing an
+  id means copying tokens from the prompt). Inhabitant generation is untouched (tested).
+* Shorter ask: one sentence per field; field limits 400/300/300/200/150 characters (was 1200/1200/1200/400/300); context 2,805 -> 1,541
+  characters in the comparable case (5 inhabitants, wildlife, 60 ticks): flat compact facts, one earlier note instead of two.
+* `scripts/isvara_check.py --control` adds a second reflections-off world so run-to-run variation can be told apart from any effect of
+  reflection; the result file now lists failure categories and per-failure counts.
+
+Still unverified with the real model: whether this revision yields valid reflections, how often they cite real ids, and their quality.
+Run `python scripts/isvara_check.py --backend lfm3 --revision <sha> --control --keep-failure-samples 300 --run-dir <NEW dir> --out <file>`
+(5 inhabitants, 60 ticks, three worlds, roughly 25 minutes on a T4); keep the private run folder out of git.
+
+## Founding families (generator `founders-v2`, opt-in)
+
+`python -m caitanya.server --families 50 --children-per-family 2 --width 256 --depth 256` (or `World(families=50, children_per_family=2)`)
+founds the world with **households**: each is one woman, one man and children, living together at one spot. `--population` is ignored
+when `--families` is given (the total is `families x (2 + children_per_family)`). The default (`families=0`) builds exactly the same
+world as before: the seed-equivalence fixture still matches and a default plan's serialized form and digest are unchanged
+(the family fields are only written when families > 0). Saves from before families load as before.
+* Adults are 20-40, a woman (`biological_sex` female) and a man (male). Children are 1-16 with `parent_ids` and `guardian_ids` set to
+  their two parents, generation 1, `adulthood_recorded` false, an adult height drawn from their parents' average, and a starting height
+  from the simulation's own growth rule. They use the existing rules: infants (under 3) cannot act or carry anything and depend on their
+  guardians (CARE and the guardian wake-up), children grow every tick toward their adult height, adulthood is recorded at 18, and the
+  family tree and the viewers show them. Children 3 and over start with the standard carried water.
+* `lifecycle.py` change (one line): height growth now applies to everyone younger than adulthood, not only to people born in the world.
+  People who start as adults, and newborns, are unaffected.
+
+### How big can it get? (measured, mock policy, CPU)
+| People | World | Create | Ticks per second | One tick's journal patch | Memory |
+|---|---|---|---|---|---|
+| 40 (10 households) | 128x128 | 0.3 s | 22.8 | 53 KB | 35 MB |
+| 200 (50) | 256x256 | 1.4 s | 7.1 | 68 KB | 49 MB |
+| 500 (125) | 256x256 | 1.5 s | 3.2 | 124 KB | 71 MB |
+
+The simulation itself scales to hundreds of people on a laptop. The limit is **the real model**: the scheduler gives at most 8
+decisions per tick, so with N people each person is asked at best every ceil(N/8) ticks, and one call took about 1.7 s on a T4 in our
+Stage A run (285 calls in about 480 s). By that arithmetic (not a measurement of a large run) 200 people would mean a decision every
+25 ticks per person and roughly 14 s of waiting per tick; a month of simulated time would take days of GPU time. Larger populations
+need cheaper decisions (batching several people per model call, shorter prompts, bounded multi-step plans, a bigger GPU) before they
+can be run with the real model.
+
+### Countries
+Nothing in the simulation gives anyone territory, borders, law or government, and none is planned in. They could only arise from what
+inhabitants do. With the small model in our runs, people mostly speak or wait, and have not shown the multi-step behaviour that
+institutions would need. A bigger, mixed-age population, with time for children to grow up and have their own children, is the
+precondition, not a guarantee.

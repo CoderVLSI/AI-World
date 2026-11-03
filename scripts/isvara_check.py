@@ -4,7 +4,7 @@ Mock (CPU; measures only the bookkeeping, says nothing about LFM3):
     python scripts/isvara_check.py --backend mock --population 5 --ticks 200 --reflect-every 20 --out isvara_mock.json
 
 Real LFM3 on a CUDA GPU (e.g. a Colab T4; one shared model instance serves inhabitants and the Isvara role).
-Keep it small: the defaults are 5 inhabitants, 60 ticks, a reflection every 20 ticks.
+Keep it small: the defaults are 5 inhabitants, 60 ticks, a reflection every 20 ticks. Add --control to measure run-to-run variation.
     python scripts/isvara_check.py --backend lfm3 --revision <sha> --run-dir /content/drive/MyDrive/CAITANYA/isvara-check-1 --out isvara_lfm3.json
 
 Without a GPU the lfm3 mode writes an explicit "unverified_no_gpu" record and exits 2.  Nothing is estimated or
@@ -59,7 +59,8 @@ def physical(w):
 
 def run_world(args, backend, reflect):
     reset_gpu_peak()
-    config = {"reflect_every_ticks": args.reflect_every, "max_new_tokens": args.max_new_tokens} if reflect else {"enabled": False}
+    config = ({"reflect_every_ticks": args.reflect_every, "max_new_tokens": args.max_new_tokens, "keep_raw_head_chars": args.keep_failure_samples}
+              if reflect else {"enabled": False})
     w = World(seed=args.seed, population=args.population, backend=backend, isvara_config=config, wildlife_per_species=args.wildlife_per_species)
     started, stopped = time.monotonic(), "completed"
     for _ in range(args.ticks):
@@ -81,6 +82,10 @@ def main():
     p.add_argument("--reflect-every", type=int, default=20)
     p.add_argument("--max-new-tokens", type=int, default=320)
     p.add_argument("--max-real-seconds", type=float, default=600.0, help="hard cap per world")
+    p.add_argument("--control", action="store_true", help="also run a second reflections-OFF world, to measure how much two identical "
+                   "runs differ on their own (real models are not perfectly repeatable); adds one more world of wall time")
+    p.add_argument("--keep-failure-samples", type=int, default=0, metavar="N",
+                   help="keep the first N characters (max 500) of a failed output in the PRIVATE checkpoint only, never in the result file")
     p.add_argument("--run-dir", help="NEW directory for the checkpoint of the reflecting world (refused if it exists and is not empty)")
     p.add_argument("--out", required=True)
     args = p.parse_args()
@@ -102,11 +107,21 @@ def main():
         backend = MockInferenceBackend(use_tasks=True)
     base, base_m = run_world(args, backend, reflect=False)                      # same backend object, reflections off
     base_calls = backend.calls
+    base2 = None
+    if args.control:
+        base2, base2_m = run_world(args, backend, reflect=False)                # control: identical settings, reflections off again
+    on_calls_before = backend.calls
     on, on_m = run_world(args, backend, reflect=True)                           # one shared model, reflections on
     st = isvara.role_state(on)
     refl = list(st["reflections"].values())
     root = backend.root_metrics() if hasattr(backend, "root_metrics") else {"calls": getattr(backend, "root_calls", 0)}
-    human_calls_on = backend.calls - base_calls
+    human_calls_on = backend.calls - on_calls_before
+    failures, failure_detail = {}, []
+    for e in on.events:
+        if e["type"] == "root_reflection_failed":                       # labels and counts only; never model text
+            failures[e["payload"]["category"]] = failures.get(e["payload"]["category"], 0) + 1
+            failure_detail.append({"tick": e["world_tick"], **{k: e["payload"][k] for k in ("category", "output_tokens", "hit_token_limit",
+                                                                                           "tool_calls_found", "prompt_tokens") if k in e["payload"]}})
     record = {
         "status": "completed" if on_m["stop"] == "completed" and base_m["stop"] == "completed" else "partial",
         "label": ("REAL LFM3 on GPU" if args.backend == "lfm3" else "MOCK template (CPU); measures bookkeeping only, not model behaviour"),
@@ -122,8 +137,16 @@ def main():
                                       "uncited": sum(1 for r in refl if r["uncited"]), "uncertainty_stated": sum(1 for r in refl if r["uncertainty_stated"]),
                                       "dropped_citations": sum(r["dropped_cites"] for r in refl), "proposals_stored_unapplied": st["totals"]["proposals"]},
         "physical_state_identical_with_and_without_reflection": physical(base) == physical(on),
-        "note_on_that_last_field": "Expected true for the mock. With a real model it can legitimately be false only through wall-clock-budget effects, not through reflection; report it as measured.",
+        "failure_categories": dict(sorted(failures.items())),
+        "failures_detail": failure_detail,
+        "note_on_physical_state": "A real model need not be perfectly repeatable. Without --control this field alone cannot say whether a difference "
+                                  "comes from reflection or from run-to-run variation; with --control compare the two fields below.",
     }
+    if base2 is not None:
+        record["control"] = {"second_world_without_reflection": base2_m,
+                             "physical_state_identical_between_the_two_reflection_off_worlds": physical(base) == physical(base2),
+                             "reading": "If this is false, the real model differs from run to run by itself, so a difference with reflection on "
+                                        "is not evidence that reflection changed the world."}
     if args.run_dir:
         path = on.checkpoint(args.run_dir)
         calls_before = root.get("calls", 0)

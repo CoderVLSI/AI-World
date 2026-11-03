@@ -8,6 +8,10 @@ from importlib.metadata import version
 from .engine import FOUNDATION, Intent
 
 class InferenceFailure(RuntimeError): pass
+class ReflectionFailure(InferenceFailure):
+    """Isvara reflection failure with a category and counts (never model text, except an optional private head)."""
+    def __init__(self,message,category="backend_error",**detail):
+        super().__init__(message);self.category,self.detail=category,detail
 
 PARAMETERS={
     "REFLECT":{"text":{"type":"string","maxLength":2000}},
@@ -197,16 +201,27 @@ class TransformersLFM3Backend:
                     r["budget_failures"]+=1
                     raise InferenceFailure("root prompt budget exceeded")
                 with torch.inference_mode():
+                    # Stop at the first complete call (a small model otherwise tends to run on); no repetition penalty, because
+                    # citing an evidence id means copying tokens from the prompt. Inhabitant decisions are not affected.
                     result=self.model.generate(**inputs,max_new_tokens=budget["max_new_tokens"],do_sample=False,
-                        repetition_penalty=1.1,max_time=budget["max_seconds"],pad_token_id=self.tokenizer.eos_token_id)
+                        stop_strings=["</tool_call>"],tokenizer=self.tokenizer,
+                        repetition_penalty=1.0,max_time=budget["max_seconds"],pad_token_id=self.tokenizer.eos_token_id)
                 tokens=result[0][inputs.input_ids.shape[1]:];r["output_tokens"]+=len(tokens)
                 raw="<tool_call>\n"+self.tokenizer.decode(tokens,skip_special_tokens=False)
+                detail={"output_tokens":len(tokens),"hit_token_limit":len(tokens)>=budget["max_new_tokens"],"prompt_tokens":prompt_tokens}
                 try:content=isvara.parse_reflection(raw)
-                except ValueError as exc:raise InferenceFailure(str(exc)) from exc
+                except isvara.ReflectionError as exc:
+                    detail.update(exc.detail)
+                    if budget.get("keep_raw_head_chars"):detail["raw_head"]=raw[:budget["keep_raw_head_chars"]]
+                    raise ReflectionFailure(str(exc),exc.category,**detail) from exc
                 return {"content":content,"meta":{"source":"lfm","request_id":request_id,"prompt_tokens":prompt_tokens,"output_tokens":len(tokens)}}
+            except ReflectionFailure:
+                r["failures"]+=1
+                raise
             except Exception as exc:
                 r["failures"]+=1
-                raise InferenceFailure(str(exc)) from exc
+                category="prompt_budget" if "budget" in str(exc) else "backend_error"
+                raise ReflectionFailure(str(exc),category) from exc
             finally:r["elapsed_seconds"]+=time.monotonic()-start
     def _root(self):
         if not hasattr(self,"root_counters"):
