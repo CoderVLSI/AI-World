@@ -1,0 +1,83 @@
+{
+  "status": "completed",
+  "label": "REAL LFM3 on GPU, ONE bounded episode; no follow-on",
+  "gpu": "Tesla T4",
+  "model_id": "LiquidAI/LFM3-1.7B",
+  "model_revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+  "requested": {
+    "backend": "lfm3",
+    "revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+    "ticks": 40,
+    "max_real_seconds": 900.0,
+    "out": "hazard_lfm3.json"
+  },
+  "episode": {
+    "stop": "completed",
+    "ticks_completed": 40,
+    "real_seconds": 369.971,
+    "fixture": {
+      "force": "wildfire",
+      "strength": 3,
+      "radius": 7,
+      "center": [
+        31,
+        67
+      ],
+      "hazard_ticks": 36,
+      "inhabitants_inside_at_start": [
+        "agent-0000",
+        "agent-0003",
+        "agent-0004"
+      ]
+    },
+    "choices_while_inside": {
+      "DRINK": 6,
+      "EAT": 4,
+      "MOVE": 15,
+      "REFLECT": 9,
+      "SPEAK": 29,
+      "WAIT": 12
+    },
+    "choices_while_outside": {
+      "DRINK": 6,
+      "EAT": 9,
+      "GATHER": 1,
+      "GATHER_AT": 1,
+      "INSPECT": 29,
+      "MOVE": 22,
+      "REFLECT": 1,
+      "REST": 8,
+      "SPEAK": 6,
+      "WAIT": 6
+    },
+    "decisions": 164,
+    "decision_failures": 6,
+    "inhabitants_who_left_the_zone": {},
+    "left_count": 0,
+    "inside_count_at_start": 3,
+    "lowest_health": {
+      "agent-0000": 62.5,
+      "agent-0001": 100,
+      "agent-0002": 100,
+      "agent-0003": 62.5,
+      "agent-0004": 62.5
+    },
+    "alive": 5,
+    "hazard_summary_recorded": true,
+    "move_choices_while_inside": 15,
+    "hazard_visible_in_observations": 138
+  },
+  "inference": {
+    "model_calls": 170,
+    "parse_or_inference_failures": 6,
+    "prompt_tokens": {
+      "min": 2038,
+      "max": 3035,
+      "total": 441083,
+      "measured_requests": 170,
+      "cap": 6144
+    },
+    "gpu_peak_allocated_bytes": 4830884864,
+    "inference_seconds": 368.266
+  }
+}
