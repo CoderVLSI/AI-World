@@ -98,3 +98,29 @@ def test_godot_runs_its_own_animation_rule_tests():
                           capture_output=True, text=True, timeout=180)
     assert "ANIMATION MAP TESTS: PASS" in done.stdout, done.stdout[-800:] + done.stderr[-400:]
     assert done.returncode == 0
+
+
+@pytest.mark.skipif(godot_binary() is None, reason="no Godot binary (set GODOT_BIN or run scripts/setup_godot_tools.sh)")
+def test_godot_builds_every_animal_and_applies_every_pose_rule():
+    done = subprocess.run([godot_binary(), "--headless", "--path", str(GODOT_DIR), "--script", "res://tests/animal_test.gd"],
+                          capture_output=True, text=True, timeout=180)
+    assert "animal tests: ok" in done.stdout and "FAIL" not in done.stdout, done.stdout[-800:] + done.stderr[-400:]
+
+
+def test_every_animal_action_the_engine_records_has_a_pose_rule():
+    """animal_motion.gd must list exactly the action strings fauna/ecology.py can record (no invented ones)."""
+    import re
+    engine = set(re.findall(r"""\.action\s*=\s*'([a-z ]+)'""", (ROOT / "fauna" / "ecology.py").read_text()))
+    # 'swimming' / 'flying' / 'roaming' come from one conditional expression
+    engine |= set(re.findall(r"""'(swimming|flying|roaming)'""", (ROOT / "fauna" / "ecology.py").read_text()))
+    motion = re.search(r"const ACTIONS := \[(.*?)\]", (GODOT_DIR / "animal_motion.gd").read_text()).group(1)
+    listed = set(re.findall(r'"([a-z ]+)"', motion))
+    assert engine == listed, (sorted(engine ^ listed))
+
+
+def test_every_species_has_its_own_silhouette():
+    import re
+    from fauna.ecology import SPECIES
+    builder = (GODOT_DIR / "animal_builder.gd").read_text()
+    specs = set(re.findall(r'^\t"([a-z]+)":\s+\{"kind"', builder, re.M))
+    assert set(SPECIES) <= specs, sorted(set(SPECIES) - specs)

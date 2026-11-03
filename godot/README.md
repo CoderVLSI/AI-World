@@ -15,10 +15,10 @@ Keep the server on `localhost` (or reach it through SSH port-forwarding / a priv
 
 ## Controls
 right-drag orbit, wheel zoom, WASD or shift+left-drag pan, click a person to inspect (needs, plan and who chose it),
-`F` focus on the people.
+`F` focus on the people, `G` focus on the animals.
 
 ## Options (after `--`)
-`--server=URL` `--poll=SECONDS` `--select=agent-0003` and, for automated checks, `--screenshot=out.png --wait=SECONDS`
+`--server=URL` `--poll=SECONDS` `--select=agent-0003` `--focus=agent-0003|<animal id>|animals` and, for automated checks, `--screenshot=out.png --wait=SECONDS`
 (saves a frame after that many seconds of live data and quits).
 
 ## Animated characters (optional)
@@ -44,3 +44,14 @@ age), resources, objects, fires (with light) and each inhabitant's current plan.
 `/api/v1/live` carries a `wildlife` block (not yet verified visually: wildlife is not merged into `main`).
 
 Contract: [docs/WITNESS_API.md](../docs/WITNESS_API.md). Tooling for development: `scripts/setup_godot_tools.sh`.
+
+## Animals
+Wildlife from `/api/v1/live` is drawn as low-poly animals, one silhouette per species (`animal_builder.gd`; deer
+show antlers only when the recorded sex is male). Colour and sex come from the simulation. Size and shape are display
+choices; insects are drawn larger than life so they can be seen. Poses come from `animal_motion.gd` and only from what
+the simulation **recorded** (`resting`, `foraging`, `hunting`, `avoiding predator`, `grazing aquatic food`,
+`swimming`, `flying`, `roaming`) plus real movement: legs swing only while the animal actually moves, a bird is
+airborne only when recorded as flying, and an unknown action is an idle animal. A test cross-checks that list
+against `fauna/ecology.py`. Press `G` to focus the animals, or start with `--focus=<animal id>`.
+
+![all species](../docs/images/animals_gallery.png)

@@ -3,6 +3,8 @@ extends Node3D
 
 const AnimationMap := preload("res://animation_map.gd")
 const CharacterLibrary := preload("res://character_library.gd")
+const AnimalBuilder := preload("res://animal_builder.gd")
+const AnimalMotion := preload("res://animal_motion.gd")
 
 const PERSON_SCALE := 2.3
 const MODEL_VISUAL_SCALE := 1.6   # animated models are drawn a little larger than life so they read at world scale
@@ -22,6 +24,8 @@ var trees := MultiMeshInstance3D.new()
 var small := MultiMeshInstance3D.new()
 var _materials := {}
 var library := CharacterLibrary.new()
+var animal_builder := AnimalBuilder.new()
+var clock := 0.0
 var current_tick := 0
 
 func _ready() -> void:
@@ -72,20 +76,10 @@ func _person_node(a: Dictionary) -> Node3D:
 
 func _animal_node(b: Dictionary, species: Dictionary) -> Node3D:
 	var sp: Dictionary = species.get(str(b.get("species")), {})
-	var color := str(sp.get("color", "#cccccc")); var group := str(sp.get("group", "mammal"))
-	var root := Node3D.new(); var mi := MeshInstance3D.new()
-	match group:
-		"bird":
-			mi.mesh = _sphere(0.18); mi.position.y = 1.4
-		"insect":
-			mi.mesh = _sphere(0.07); mi.position.y = 0.7
-		"fish":
-			mi.mesh = _sphere(0.2); mi.scale = Vector3(1.6, 0.5, 0.7); mi.position.y = -0.1
-		_:
-			var cm := CapsuleMesh.new(); cm.radius = 0.28; cm.height = 1.0
-			mi.mesh = cm; mi.rotation_degrees = Vector3(0, 0, 90); mi.position.y = 0.5
-	mi.material_override = _mat(color); root.add_child(mi)
-	return root
+	var n := animal_builder.build(str(b.get("species")), str(sp.get("group", "mammal")), str(sp.get("color", "#cccccc")), str(b.get("sex", "")))
+	n.set_meta("group", str(sp.get("group", "mammal")))
+	n.set_meta("phase", float(hash(str(b.get("id"))) % 628) / 100.0)   # de-synchronise the animals, display only
+	return n
 
 func _thing_node(o: Dictionary) -> Node3D:
 	var root := Node3D.new(); var mi := MeshInstance3D.new()
@@ -131,7 +125,9 @@ func update_live(live: Dictionary, terrain_view) -> void:
 	var wl: Dictionary = live.get("wildlife", {})
 	var species: Dictionary = wl.get("species", {})
 	_sync(animals, wl.get("animals", []), func(b): return _animal_node(b, species),
-		func(n: Node3D, b: Dictionary): _place_mover(n, float(b.x), float(b.z)))
+		func(n: Node3D, b: Dictionary):
+			n.set_meta("action", str(b.get("action", "")))     # recorded by the simulation
+			_place_mover(n, float(b.x), float(b.z)))
 	_sync(things, live.get("objects", []), _thing_node, func(n: Node3D, o: Dictionary):
 		n.position = _ground(float(o.x) + 0.5, float(o.z) + 0.5)
 		n.visible = o.get("kind") != "fire" or o.get("burning", false))
@@ -160,6 +156,11 @@ func _process(delta: float) -> void:
 					n.position = n.position.lerp(t, clampf(delta * 3.0, 0.0, 1.0))
 					if Vector2(dir.x, dir.z).length() > 0.05:
 						n.rotation.y = lerp_angle(n.rotation.y, atan2(dir.x, dir.z), clampf(delta * 8.0, 0.0, 1.0))
+	clock += delta
+	for n: Node3D in animals.values():   # poses follow the recorded action and real movement (animal_motion.gd)
+		var moving_a: bool = n.has_meta("target") and n.position.distance_to(n.get_meta("target")) > 0.06
+		animal_builder.apply_pose(n, AnimalMotion.pose(str(n.get_meta("group", "mammal")), str(n.get_meta("action", "")),
+			moving_a, clock + float(n.get_meta("phase", 0.0))))
 	for n in people.values():       # animation follows what the simulation recorded (see animation_map.gd)
 		if n.has_method("play_state"):
 			var moving: bool = n.has_meta("target") and n.position.distance_to(n.get_meta("target")) > 0.06
@@ -183,3 +184,9 @@ func centroid() -> Vector3:
 	var s := Vector3.ZERO
 	for n in people.values(): s += n.position
 	return s / people.size()
+
+func animal_centroid() -> Vector3:
+	if animals.is_empty(): return Vector3.ZERO
+	var s := Vector3.ZERO
+	for n in animals.values(): s += n.position
+	return s / animals.size()
