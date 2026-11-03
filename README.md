@@ -1,6 +1,6 @@
 # CAITANYA — AI World
 
-Experimental civilization simulation, version 0.4.0, with a persistent Brahman root agent, individual sub-agent identities and memories, an optional shared LFM3 model, and a read-only 3D witness. Consciousness is not established.
+Experimental civilization simulation, version 0.5.0, with a persistent Brahman root agent, individual sub-agent identities and memories, an optional shared LFM3 model, a fair decision scheduler with bounded multi-step intentions, time-based physiology, open-ended physical experimentation, structured long-term memory, and a read-only 3D witness. Consciousness is not established.
 
 ## Run locally
 
@@ -12,7 +12,7 @@ python -m pytest -q
 python -m caitanya.server --population 5 --width 256 --depth 256 --run-dir runs/local
 ```
 
-Open http://127.0.0.1:8000/viewer. The default is an explicitly labeled deterministic mock policy. For CUDA GPU inference, install `.[gpu]` and add `--backend lfm3`, using a separate run directory. Model weights download separately; pin the recorded revision with `--revision <sha>`. One model instance serializes bounded decisions using individual observations. Invalid calls execute no action; there is no silent mock fallback. This is separate from the Vedic Scholar chat.
+Open http://127.0.0.1:8000/viewer. New worlds use the `foundations` mode described below; `--legacy` reproduces the exact v0.4.0 dynamics, and schema-1 checkpoints load in that mode automatically. The default policy is an explicitly labeled deterministic mock. For CUDA GPU inference, install `.[gpu]` and add `--backend lfm3`, using a separate run directory. Model weights download separately; pin the recorded revision with `--revision <sha>`. One model instance serializes bounded decisions using individual observations. Invalid calls execute no action; there is no silent mock fallback. This is separate from the Vedic Scholar chat.
 
 ## World and generations
 
@@ -20,7 +20,21 @@ Six biomes and fifteen representative resources support movement, gathering, eat
 
 Agents have independent gender and biological sex, simplified anatomy, needs, age and lineage. Reproduction requires reciprocal adult parenting proposals, compatible reproductive roles, proximity, resources and health. Underage and close-family pairings are rejected. Gestation, birth, caregiving, growth and aging are simplified. Children have separate memories. No sexual scenes are simulated.
 
-The baseline calendar advances ten minutes per tick. `--days-per-tick 1` enables a labeled accelerated experiment. Physiology is not scientifically calibrated. Pretrained language is not evidence of language evolving from scratch.
+The baseline calendar advances ten minutes per tick. A smaller `--days-per-tick` than 1/4 (six hours) enables a labeled accelerated experiment in `foundations` mode (coarser ticks are refused; `--legacy` accepts any). Needs follow simulated hours, so acceleration reduces the actions available per simulated hour and never changes consumption per hour. Physiology is not scientifically calibrated. Pretrained language is not evidence of language evolving from scratch.
+
+## Autonomy foundations (0.5.0)
+
+Details: [architecture](docs/AUTONOMY_ARCHITECTURE.md), [protocol](docs/EXPERIMENT_PROTOCOL.md), [measured results](docs/EXPERIMENT_RESULTS.md), [merge checklist](docs/MERGE_CHECKLIST.md).
+
+**Decisions and mechanics are separate.** The shared model chooses what to attempt, why and when to be asked again; a fair FIFO scheduler spends a per-tick call budget (`--decisions-per-tick`, default 8) and measures every inhabitant's waiting. An accepted intention (`TRAVEL_TO`, `GATHER_AT`, `REST_FOR`) is carried out step by step by deterministic code through the normal validation path, journaled as `mechanical_execution` and never counted as a model decision. Intentions are bounded, cancelable and end when resources vanish, routes block, health drops, a need becomes critical or illness begins. Failed model calls execute nothing and there is no mock fallback. An optional survival reflex exists, is off by default, and is journaled separately.
+
+**Physiology follows elapsed time** (hunger, thirst, energy, health, illness, regrowth), with attributed deaths. Scarcity, illness and death remain possible.
+
+**Inhabitants can experiment.** They can inspect, pick up, strike, attach, take apart, heat, cool, rub, load-test and use objects. Outcomes come from material properties and hidden per-piece quality, mass is conserved, failure has consequences, and nothing names or rewards an invention. Fire exists only if an inhabitant makes the conditions.
+
+**Inhabitants remember and teach.** Private, bounded memory (episodic, practical findings with provenance, hypotheses, relationships, procedures, cultural claims, places) is retrieved by situation. Hypotheses stay unverified until checked against evidence; findings shared by others stay claims until the receiver's own experience corroborates or contradicts them, and written findings outlive their author. A newborn starts with an empty memory.
+
+**Not in this release:** wildlife and ecology (deferred). **Not verified:** any run with LFM3; see the results document. The `neutral-v4-inquiry` prompt is unchanged and the root, continuity and manifestation mechanics are untouched.
 
 ## Root agent, continuity and inquiry
 
@@ -44,7 +58,7 @@ python -m caitanya.server --recover runs/local --run-dir runs/local
 
 Model-backed recovery also requires `--backend lfm3` and the original revision. Recovery replays contiguous committed journal entries after a valid checkpoint. An uncommitted tick can be lost. Disk loss requires an external backup. At the 100 MB journal limit the worker checkpoints and pauses. Indefinite operation and automatic cloud backups are not implemented.
 
-Public GET endpoints omit private memories and parenting proposals. Run histories are excluded from this repository. Use separate directories for distinct experiments. CLI arguments configure the server; config/default.json is descriptive and not automatically loaded.
+Public GET endpoints omit private memories and parenting proposals. Run histories are excluded from this repository. Use separate directories for distinct experiments. CLI arguments configure the server. `config/default.json` documents every parameter and is **never loaded automatically**: pass `--config <file>` to read an experiment file (strict; unknown keys are errors; command-line values override it). Every configuration value is recorded in the run manifest. `--checkpoint-every` sets the periodic checkpoint interval (each checkpoint embeds the event history, so long runs need a larger interval and off-machine backups).
 
 ## Colab
 
@@ -52,7 +66,7 @@ The notebook fetches and prints the latest main SHA, installs GPU dependencies, 
 
 Use `--root-mode off` for a neutral baseline (no root records or intervention), `observe` for private records without intervention, or `crisis` for existing bounded intervention. Crisis remains the backwards-compatible default. Modes are private checkpoint configuration and are not supplied to inhabitants. On recovery the stored mode wins; use a new run for a different mode.
 
-`--max-ticks 30 --max-seconds 180 --report-dir <summary-directory>` bounds a worker and produces an event-backed REPORT.md and evidence.json after it stops. A request already started may exceed the cooperative time budget. The server remains available as a read-only witness after the worker stops. Metrics are written per committed tick to metrics.jsonl. Inference counts are scoped to a model process; a recovered process starts new counters, while event IDs and validated action history continue. Reports distinguish successfully parsed calls from validated actions. Only identities with validated actions linked to model request IDs count as verified real agents.
+`--max-ticks 30 --max-seconds 180 --report-dir <summary-directory>` bounds a worker and produces an event-backed REPORT.md and evidence.json after it stops. A request already started may exceed the cooperative time budget. The server remains available as a read-only witness after the worker stops. Metrics are written per committed tick to metrics.jsonl. Inference counts are scoped to a model process; a recovered process starts new counters, while event IDs and validated action history continue. Reports distinguish successfully parsed calls from validated actions. Only identities with validated actions linked to model request IDs count as verified real agents. In `foundations` mode the scheduler may ask up to `--decisions-per-tick` (default 8) inhabitants on every tick, where v0.4.0 asked five every third tick, so a worker bounded by `--max-seconds` completes fewer ticks per second with a real model; lower `--decisions-per-tick` or raise `--max-seconds` accordingly. Action events carry a confirmed before/after state except routine mechanical path steps (journaled separately with their `task_id`).
 
 Review sanitized reports before publishing them. They include public speech/writings and confirmed action state changes, but exclude private memories, reflection text, model reasoning and root continuity records. No automatic cultural-discovery detector is used. The model's official tool format is documented in the [Liquid AI model card](https://huggingface.co/LiquidAI/LFM3-1.7B).
 

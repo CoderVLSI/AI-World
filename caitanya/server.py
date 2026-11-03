@@ -8,13 +8,15 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from .engine import World
+from .engine import World, redact_private
 from .nature import climate
+from .autonomy import AutonomyConfig, load_experiment_file
 from .lifecycle import BiologyConfig, stage
 
 ROOT = Path(__file__).resolve().parent.parent
 
-def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_journal_bytes=100_000_000, max_ticks=None, max_seconds=None, report_dir=None):
+def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_journal_bytes=100_000_000, max_ticks=None, max_seconds=None, report_dir=None, checkpoint_every=60):
+    if type(checkpoint_every) is not int or checkpoint_every < 1:raise ValueError("checkpoint_every must be a positive integer")
     world = world or World()
     directory = Path(run_dir)
     directory.mkdir(parents=True,exist_ok=True)
@@ -52,7 +54,7 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
                 committed_count=cursor
                 with (directory/"metrics.jsonl").open("a",encoding="utf-8") as f:
                     f.write(json.dumps(world.metrics(),separators=(",",":"))+"\n")
-                if world.tick % 60 == 0: world.checkpoint(directory)
+                if world.tick % checkpoint_every == 0: world.checkpoint(directory)
         finally:
             world.checkpoint(directory)
             if report_dir:
@@ -102,15 +104,23 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
             state["terrain"]=world.terrain
             biology=BiologyConfig(**state.get("biology",{}))
             state["climate"]=climate(from_tick,biology.days_per_tick)
-            state.pop("rng_state")
-            state.pop("root",None)
+            redact_private(state)
             for a in state["agents"].values():
-                a.pop("memories");a.pop("parenting_proposals",None)
                 a["age_years"]=round(a["age_years_at_start"]+(from_tick-a["born_tick"])*biology.days_per_tick/365,3)
             return state
         except ValueError as e: raise HTTPException(400,str(e))
     @app.get("/api/v1/metrics")
     def metrics(): return published["metrics"]
+    @app.get("/api/v1/scheduler")
+    def scheduler_report():
+        """Decision budget, fairness and LFM-versus-mechanical attribution (measured counters)."""
+        return published["metrics"].get("scheduler") or {}
+    @app.get("/api/v1/knowledge")
+    def knowledge():
+        """Aggregate counts only; private memory contents are never published."""
+        return published["metrics"].get("knowledge") or {}
+    @app.get("/api/v1/objects")
+    def objects(): return published.get("objects", {})
     @app.get("/api/v1/families")
     def families():
         return {"lineage":[{"id":a["id"],"parent_ids":a["parent_ids"],"guardian_ids":a["guardian_ids"],"generation":a["generation"],"alive":a["alive"]}
@@ -121,8 +131,7 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     app.mount("/static",StaticFiles(directory=ROOT/"web"),name="static")
     return app
 
-def main():
-    import uvicorn
+def build_parser():
     p=argparse.ArgumentParser(); p.add_argument("--population",type=int,default=5)
     p.add_argument("--seed",type=int,default=314159); p.add_argument("--port",type=int,default=8000)
     p.add_argument("--width",type=int,default=256);p.add_argument("--depth",type=int,default=256)
@@ -132,13 +141,35 @@ def main():
     p.add_argument("--report-dir")
     p.add_argument("--days-per-tick",type=float,default=1/144,help="World calendar rate; baseline ten minutes per tick. Accelerated experiments must be labeled.")
     p.add_argument("--resume"); p.add_argument("--run-dir",default="runs/local")
+    p.add_argument("--config",help="Experiment JSON (see config/default.json). Only a file named here is ever loaded.")
+    p.add_argument("--legacy",action="store_true",help="Run the v0.4.0 per-tick physiology and fixed decision cadence")
+    p.add_argument("--decisions-per-tick",type=int,help="Model calls allowed per tick (foundations mode)")
+    p.add_argument("--checkpoint-every",type=int,default=60,help="Ticks between periodic checkpoints (each embeds the event history)")
     p.add_argument("--recover",help="Restore newest valid image and replay its committed journal tail")
-    args=p.parse_args()
+    return p
+
+def build_world(args,p,backend=None):
+    """Construct or restore the world. An experiment file is read only when --config names it."""
+    if args.resume and args.recover:p.error("Choose either --resume or --recover")
+    if args.recover or args.resume:
+        return World.recover(args.recover,backend=backend) if args.recover else World.restore(args.resume,backend=backend)
+    params,autonomy=load_experiment_file(args.config) if args.config else ({},AutonomyConfig())
+    if args.legacy:autonomy=AutonomyConfig.legacy_mode()
+    if args.decisions_per_tick:
+        from dataclasses import replace
+        autonomy=replace(autonomy,scheduler=replace(autonomy.scheduler,max_decisions_per_tick=args.decisions_per_tick))
+    given=dict(seed=args.seed,population=args.population,width=args.width,depth=args.depth)
+    explicit={k:v for k,v in given.items() if p.get_default(k)!=v}   # command line beats the file
+    return World(**{**given,**params,**explicit},backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),autonomy=autonomy,root_mode=args.root_mode)
+
+def main():
+    import uvicorn
+    p=build_parser();args=p.parse_args()
     if args.backend=="lfm3":
         from .inference import TransformersLFM3Backend
         backend=TransformersLFM3Backend(revision=args.revision)
     else:backend=None
-    if args.resume and args.recover:p.error("Choose either --resume or --recover")
-    world=World.recover(args.recover,backend=backend) if args.recover else World.restore(args.resume,backend=backend) if args.resume else World(seed=args.seed,population=args.population,width=args.width,depth=args.depth,backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),root_mode=args.root_mode)
-    uvicorn.run(create_app(world,args.run_dir,max_ticks=args.max_ticks,max_seconds=args.max_seconds,report_dir=args.report_dir),host="127.0.0.1",port=args.port)
+    world=build_world(args,p,backend)
+    uvicorn.run(create_app(world,args.run_dir,max_ticks=args.max_ticks,max_seconds=args.max_seconds,report_dir=args.report_dir,
+                           checkpoint_every=args.checkpoint_every),host="127.0.0.1",port=args.port)
 if __name__=="__main__": main()

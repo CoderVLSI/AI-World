@@ -61,7 +61,7 @@ def test_read_only_api_and_replay(tmp_path):
     assert client.get('/api/v1/world/events?after=-1').status_code==400
 
 def test_fifty_identities_share_one_backend():
-    w=World(population=50)
+    w=World(population=50,autonomy='legacy')  # v0.4.0 cadence: 50 decisions on each third tick
     backend=w.backend
     for _ in range(6):w.step()
     assert len(w.agents)==50 and w.backend is backend and backend.calls==100

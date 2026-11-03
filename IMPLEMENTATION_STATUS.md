@@ -1,13 +1,23 @@
-# Implementation status — 0.4.0
+# Implementation status — 0.5.0
 
-New: persistent Brahman root-agent ownership and delegation, private cross-life identity threads, a factual action/outcome ledger, bounded crisis manifestation, and optional private reflection. The supervisor is a deterministic policy using the existing inference backend for embodied delegates. It is not a separate omniscient LLM. No discovery or autonomous spiritual realization is claimed. See README for precise policy and information boundaries. The previously observed Colab process has not been upgraded by publishing this source.
+Branch `feature/caitanya-autonomy-foundations`. This is what is genuinely implemented, what is measured, and what is not. See [docs/MERGE_CHECKLIST.md](docs/MERGE_CHECKLIST.md) for breaking changes and risks and [docs/EXPERIMENT_RESULTS.md](docs/EXPERIMENT_RESULTS.md) for measurements.
 
-Implemented: seeded terrain, validated actions, individual bounded memories, a read-only 3D witness, shared LFM3 native tool calls, simplified lifecycle and mutual adult parenting proposals, gestation, lineage, care, growth, teaching, aging, compact journals and committed-tail recovery.
+## Implemented (CPU-tested; 177 tests, including those on `main`)
 
-Tests cover determinism, replay/resume, privacy, resource invariants, XML parsing, rejection without fallback, reciprocal reproduction, age and kinship restrictions, scripted generations, corruption and recovery. Scripted births do not establish autonomous reproduction.
+* **Scheduler (P0):** fair FIFO decision scheduler with a per-tick budget, priority for overdue and interrupted inhabitants, measured waiting and intervals, failure back-off without mock fallback, durable state. Bounded, validated, cancelable intentions (`TRAVEL_TO`, `GATHER_AT`, `REST_FOR`, `CANCEL_TASK`) executed mechanically and attributed separately from model decisions. Optional, default-off, journaled survival reflex.
+* **Physiology (P0):** needs, energy, health, illness, regrowth and effort driven by elapsed simulated hours; two-speed and three-seed tests; attributed deaths; guardians prompted to reconsider when dependants are needy; explicit validated configuration recorded in the manifest.
+* **Experimentation (P1):** material physics and fifteen object actions (inspect, handle, strike, attach, separate, heat, cool, rub, feed fire, load-test, use as a tool, hand over); mass conserved; meaningful failure; no recipes or named inventions; randomized conservation/rejection fuzz.
+* **Memory (P2):** bounded private structured memory with deterministic retrieval, evidence status, revision, persistence and isolation; newborns start empty.
+* **Transmission and witness (P3):** witnessing, sharing, teaching and written findings with provenance chains and unverified-claim handling; read-only plan/attribution/object/knowledge views in the Three.js witness and three GET-only endpoints.
+* **Compatibility:** schema 2 with explicit migration of schema-1 checkpoints to `legacy` mode (verified bit-for-bit against a real v0.4.0 run); `--legacy`; explicit `--config` (never auto-loaded); the `neutral-v4-inquiry` prompt and the Brahman root, continuity, ledger and manifestation code are unchanged by this branch; `main`'s root modes, bounded workers and evidence export are merged and integration-tested.
 
-A shared LFM3-1.7B instance was integrated into a Tesla T4 Colab runtime. At the last verified observation the accelerated five-founder run had five living agents and no births or pregnancies. Earlier survival failures were preserved separately. No autonomous civilization or reproduction milestone is claimed.
+## Measured (mock policy only)
 
-A 120-tick five-agent mock benchmark used 480,218 journal bytes versus 23,891,967 bytes of equivalent full tick images: about 49.75 times smaller. This is not a GPU benchmark.
+5 inhabitants for 30 simulated days (and at one-hour ticks for three seeds) and 50 inhabitants for 7 days all completed with every inhabitant alive; the mock does not experiment or reproduce, so these runs validate mechanics and cost, not autonomy. With 50 inhabitants nobody waited more than 6 ticks for a decision. Under v0.4.0 rules, 50 mock inhabitants died within 3 simulated days.
 
-Limitations: simplified physiology, primitive construction, no calibrated genetics or evolution, no advanced institutions, no guaranteed survival or cultural emergence, no 50-agent real-model acceptance benchmark, no permanent Colab hosting, no automatic off-machine backups, and a bounded journal. Public deployment authentication is not supplied. Consciousness and divine agency are not established.
+## Not implemented / not verified
+
+* **Animals and ecology (P4): deferred.**
+* **No real-model run.** Stage A (5 inhabitants, 30 days), Stage B (50 inhabitants) and Stage C (generational) were not run for lack of a GPU; the harness records them as `unverified`. No autonomous civilization, reproduction, invention or discovery is claimed, and no consciousness or divine agency is established.
+* Persistence growth: about 67 KB of journal per tick at 50 inhabitants and quadratic checkpoint growth; the 100 MB journal limit is reached after roughly 10 simulated days at that population. No automatic off-machine backups, no authentication for public deployment, no permanent Colab hosting.
+* Simplified physiology and materials (no metallurgy, containers, spoilage or movement-blocking structures); no calibrated genetics or evolution; no advanced institutions.

@@ -1,8 +1,59 @@
 {
   "schema_version": 1,
-  "world": {"width": 256, "depth": 256, "seed": 314159},
-  "agents": {"initial_count": 50, "development_count": 5, "decision_interval_ticks": 3},
-  "model": {"model_id": "LiquidAI/LFM3-1.7B", "backend": "mock", "revision": null},
-  "runtime": {"checkpoint_every_ticks": 60, "max_journal_bytes": 100000000},
-  "viewer": {"witness_read_only": true, "poll_interval_ms": 1500}
+  "world": {
+    "width": 256,
+    "depth": 256,
+    "seed": 314159
+  },
+  "agents": {
+    "initial_count": 50,
+    "development_count": 5,
+    "decision_interval_ticks": 3
+  },
+  "model": {
+    "model_id": "LiquidAI/LFM3-1.7B",
+    "backend": "mock",
+    "revision": null
+  },
+  "runtime": {
+    "checkpoint_every_ticks": 60,
+    "max_journal_bytes": 100000000
+  },
+  "viewer": {
+    "witness_read_only": true,
+    "poll_interval_ms": 1500
+  },
+  "autonomy": {
+    "mode": "foundations",
+    "physiology": {
+      "hunger_per_hour": 0.8333333333333334,
+      "thirst_per_hour": 2.0833333333333335,
+      "energy_decay_per_hour": 1.0,
+      "rest_recovery_per_hour": 12.0,
+      "effort_scale": 0.25,
+      "illness_per_day": 0.01,
+      "regrowth_hours": 6.0,
+      "max_tick_hours": 6.0
+    },
+    "scheduler": {
+      "max_decisions_per_tick": 8,
+      "max_seconds_per_tick": 20.0,
+      "max_wait_ticks": 36,
+      "default_reconsider_ticks": 18,
+      "max_task_ticks": 72
+    },
+    "reflex": {
+      "enabled": false
+    },
+    "memory": {
+      "enabled": true,
+      "recall_items": 8,
+      "recall_chars": 1500
+    },
+    "experiments": {
+      "enabled": true,
+      "carry_limit_g": 25000,
+      "min_age_years": 6.0
+    }
+  }
 }

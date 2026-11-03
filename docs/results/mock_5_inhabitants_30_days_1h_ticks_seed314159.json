@@ -1,0 +1,171 @@
+{
+  "status": "completed",
+  "requested_sim_days": 30.0,
+  "completed_ticks": 720,
+  "completed_sim_days": 30.0,
+  "real_seconds": 9.29,
+  "ticks_per_real_second": 77.46,
+  "seed": 314159,
+  "population_start": 5,
+  "days_per_tick": 0.0416666667,
+  "autonomy": {
+    "mode": "foundations",
+    "physiology": {
+      "mode": "time_based",
+      "hunger_per_hour": 0.8333333333333334,
+      "thirst_per_hour": 2.0833333333333335,
+      "energy_decay_per_hour": 1.0,
+      "rest_recovery_per_hour": 12.0,
+      "effort_scale": 0.25,
+      "starvation_damage_per_hour": 3.0,
+      "dehydration_damage_per_hour": 5.0,
+      "regen_per_hour": 0.75,
+      "regen_need_ceiling": 50.0,
+      "infant_need_scale": 0.7,
+      "child_need_scale": 0.85,
+      "illness_per_day": 0.01,
+      "illness_stress_multiplier": 3.0,
+      "illness_min_days": 2.0,
+      "illness_max_days": 5.0,
+      "illness_damage_per_hour": 1.2,
+      "illness_supported_scale": 0.4,
+      "regrowth_hours": 6.0,
+      "max_tick_hours": 6.0
+    },
+    "scheduler": {
+      "mode": "budgeted",
+      "max_decisions_per_tick": 8,
+      "max_seconds_per_tick": 20.0,
+      "max_wait_ticks": 36,
+      "min_decision_gap_ticks": 1,
+      "default_reconsider_ticks": 18,
+      "max_task_ticks": 72,
+      "max_path_length": 150,
+      "max_path_expansions": 8000,
+      "failure_backoff_ticks": 6,
+      "critical_need": 85.0,
+      "health_drop_interrupt": 15.0,
+      "dependent_alert_need": 60.0,
+      "wake_cooldown_ticks": 6
+    },
+    "reflex": {
+      "enabled": false,
+      "drink_at": 90.0,
+      "eat_at": 90.0
+    },
+    "memory": {
+      "enabled": true,
+      "recall_items": 8,
+      "recall_chars": 1500,
+      "episodic_limit": 100,
+      "practical_limit": 100,
+      "hypothesis_limit": 30,
+      "cultural_limit": 100,
+      "procedural_limit": 20,
+      "relationship_limit": 50,
+      "witness_distance": 2
+    },
+    "experiments": {
+      "enabled": true,
+      "carry_limit_g": 25000,
+      "min_age_years": 6.0,
+      "max_components": 6
+    }
+  },
+  "backend": "mock/deterministic-forager",
+  "model_revision": "1",
+  "living": 5,
+  "pregnancies_active": 0,
+  "births": 0,
+  "highest_generation": 0,
+  "deaths_by_cause": {},
+  "scheduler": {
+    "totals": {
+      "lfm_decisions": 0,
+      "mock_decisions": 2309,
+      "rejected_decisions": 0,
+      "failed_decisions": 0,
+      "mechanical_steps": 1291,
+      "mechanical_rejections": 0,
+      "reflex_interventions": 0,
+      "tasks_started": 1088,
+      "tasks_completed": 1085,
+      "tasks_superseded": 0,
+      "tasks_cancelled": 0,
+      "tasks_interrupted": {
+        "illness_started": 2
+      },
+      "ticks_with_decisions": 709,
+      "budget_exhausted_ticks": 0,
+      "max_queue": 5,
+      "next_task": 1088,
+      "decision_seq": 2309,
+      "memory_recalls": 2309,
+      "memory_items": 18
+    },
+    "eligible_agents": 5,
+    "decisions_per_agent": {
+      "min": 443,
+      "max": 476,
+      "mean": 461.8
+    },
+    "mean_decision_interval_ticks": {
+      "min": 1.514,
+      "max": 1.609,
+      "mean": 1.557
+    },
+    "max_wait_ticks": 0,
+    "max_interval_ticks": 11,
+    "failures_per_agent_max": 0
+  },
+  "inference": {
+    "model_instances": 0
+  },
+  "validated_actions_by_origin": {
+    "mock_policy": 2309,
+    "mechanical_execution": 1291
+  },
+  "rejected_actions": {
+    "total": 0,
+    "by_reason": {}
+  },
+  "experiments": {},
+  "objects": 0,
+  "root_manifestations": 0,
+  "fires_ever_lit": 0,
+  "knowledge": {
+    "practical": 0,
+    "hypotheses": 0,
+    "cultural": 0,
+    "procedural": 0,
+    "episodic": 0,
+    "contradictions": 0,
+    "revisions": 0,
+    "transfers": {
+      "hearsay": 0,
+      "witnessed": 0,
+      "written": 0
+    },
+    "independently_reproduced_findings": 0,
+    "recalls": 2309,
+    "recalled_items": 18
+  },
+  "material_ledger_g": {
+    "dispersed_g": 0.0,
+    "atmosphere_g": 0.0
+  },
+  "resources": {
+    "cpu_seconds": 8.71,
+    "max_rss_mb": 115.2,
+    "gpu_max_allocated_mb": null,
+    "journal_bytes": 14130061,
+    "checkpoint_bytes_total": 91426391
+  },
+  "environment": {
+    "python": "3.13.18",
+    "platform": "Linux-6.18.44-fc-v230-x86_64-with-glibc2.39",
+    "cpus": 4,
+    "gpu": null,
+    "backend": "mock"
+  }
+}
