@@ -589,10 +589,16 @@ class World:
     def death_causes(self):
         return dict(self._counts["deaths"])
 
-    def checkpoint(self, directory):
+    def checkpoint(self, directory, slim=False):
+        """Atomic image. `slim=True` stores a reference to the journal files in the run directory instead of
+        embedding every event (size stays constant as the run grows); the caller must have ensured the journal
+        covers all events (see storage.ensure_covered). Default stays the full, self-contained image."""
         directory=Path(directory); directory.mkdir(parents=True,exist_ok=True)
         body = dict(state=self.state(), initial_state=self.initial_state, events=self.events, rejections=self.rejections,
             last_committed_state=self._last_committed_state)
+        if slim:
+            del body["events"]
+            body["events_ref"]=dict(count=len(self.events),last_event_id=self.events[-1]["event_id"] if self.events else None)
         envelope = dict(checksum=digest(body),body=body)
         target=directory/f"checkpoint-{self.tick:09}.json"
         temporary=target.with_suffix(".tmp")
@@ -611,7 +617,12 @@ class World:
         obj.load_state(body["state"])
         if obj.backend.model_id != obj.manifest["model_id"] or obj.backend.model_revision != obj.manifest["model_revision"]:
             raise ValueError("restore backend does not match manifest")
-        obj.events=body["events"]; obj.rejections=body["rejections"]; obj.initial_state=body["initial_state"]
+        if "events" in body:obj.events=body["events"]
+        else:
+            from .storage import read_events
+            ref=body["events_ref"];obj.events=read_events(Path(path).parent,ref["count"])
+            if (obj.events[-1]["event_id"] if obj.events else None)!=ref["last_event_id"]:raise ValueError("journal does not match checkpoint")
+        obj.rejections=body["rejections"]; obj.initial_state=body["initial_state"]
         obj._rebuild_counts()
         obj._last_committed_state=body.get("last_committed_state",copy.deepcopy(body["state"]))
         return obj
@@ -667,27 +678,24 @@ class World:
                 world=cls.restore(candidate,backend=backend);break
             except (ValueError,KeyError,TypeError) as exc:failures.append(str(exc))
         if world is None:raise ValueError("No valid compatible checkpoint: "+"; ".join(failures[-3:]))
-        journal=directory/"events.jsonl"
-        if not journal.exists():return world
+        from .storage import iter_lines
         expected=len(world.events);pending=[];state=copy.deepcopy(world._last_committed_state)
-        with journal.open(encoding="utf-8") as handle:
-            for line in handle:
-                if not line.endswith("\n"):break  # abrupt partial write is uncommitted
-                try:
-                    event=json.loads(line);index=int(event["event_id"].removeprefix("evt-"))
-                except (ValueError,KeyError,TypeError) as exc:raise ValueError("Corrupt journal record") from exc
-                if index<expected:continue
-                if index!=expected+len(pending):raise ValueError("Journal event gap or duplicate")
-                pending.append(event)
-                if event["type"]!="tick_committed":continue
-                candidate=copy.deepcopy(state)
-                if "state" in event["payload"]:candidate=copy.deepcopy(event["payload"]["state"])
-                else:apply_changes(candidate,event["payload"]["patch"])
-                if candidate["tick"]!=state["tick"]+1:raise ValueError("Journal tick gap")
-                checksum=event["payload"].get("state_checksum")
-                if checksum and digest(candidate)!=checksum:raise ValueError("Journal state checksum mismatch")
-                world.load_state(candidate);world._last_committed_state=copy.deepcopy(candidate)
-                for record in pending:
-                    if record["type"]=="intent_rejected":world.rejections.append({"tick":record["world_tick"],"actor_id":record["actor_id"],"reason":record["payload"]["reason"]})
-                world.events.extend(pending);[world._count(ev) for ev in pending];expected+=len(pending);pending=[];state=candidate
+        for line in iter_lines(directory):  # closed segments then the active journal; stops at a partial write
+            try:
+                event=json.loads(line);index=int(event["event_id"].removeprefix("evt-"))
+            except (ValueError,KeyError,TypeError) as exc:raise ValueError("Corrupt journal record") from exc
+            if index<expected:continue
+            if index!=expected+len(pending):raise ValueError("Journal event gap or duplicate")
+            pending.append(event)
+            if event["type"]!="tick_committed":continue
+            candidate=copy.deepcopy(state)
+            if "state" in event["payload"]:candidate=copy.deepcopy(event["payload"]["state"])
+            else:apply_changes(candidate,event["payload"]["patch"])
+            if candidate["tick"]!=state["tick"]+1:raise ValueError("Journal tick gap")
+            checksum=event["payload"].get("state_checksum")
+            if checksum and digest(candidate)!=checksum:raise ValueError("Journal state checksum mismatch")
+            world.load_state(candidate);world._last_committed_state=copy.deepcopy(candidate)
+            for record in pending:
+                if record["type"]=="intent_rejected":world.rejections.append({"tick":record["world_tick"],"actor_id":record["actor_id"],"reason":record["payload"]["reason"]})
+            world.events.extend(pending);[world._count(ev) for ev in pending];expected+=len(pending);pending=[];state=candidate
         return world

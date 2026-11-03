@@ -8,6 +8,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from . import storage
 from .engine import World, redact_private, SCHEMA_VERSION
 from .nature import climate
 from .autonomy import AutonomyConfig, load_experiment_file
@@ -16,15 +17,18 @@ from .witness import terrain_grid, live_view
 
 ROOT = Path(__file__).resolve().parent.parent
 
-def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_journal_bytes=100_000_000, max_ticks=None, max_seconds=None, report_dir=None, checkpoint_every=60):
+def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_journal_bytes=100_000_000, max_ticks=None, max_seconds=None, report_dir=None, checkpoint_every=60,
+               segment_bytes=25_000_000, max_run_bytes=5_000_000_000):
     if type(checkpoint_every) is not int or checkpoint_every < 1:raise ValueError("checkpoint_every must be a positive integer")
     world = world or World()
     directory = Path(run_dir)
     directory.mkdir(parents=True,exist_ok=True)
-    if (directory/"events.jsonl").exists() and (directory/"events.jsonl").stat().st_size and not world.events:
+    if storage.has_history(directory) and not world.events:
         raise ValueError("Existing run history: use --recover or choose a new --run-dir")
     # A tick-zero image makes even a pre-first-periodic-checkpoint crash recoverable.
     if not any(directory.glob("checkpoint-*.json")):world.checkpoint(directory)
+    # Slim checkpoints (constant size) are used when the journal files cover every event; otherwise full images.
+    slim=storage.ensure_covered(world,directory)
     published=world.public()
     committed_count=len(world.events)
     stop=asyncio.Event()
@@ -46,7 +50,7 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
                     world.status="PAUSED_RESOURCE_LIMIT"
                     execution['reason']='journal_limit'
                     published=world.public()
-                    world.checkpoint(directory)
+                    world.checkpoint(directory,slim=slim)
                     return
                 # Inference runs off the event loop; witness polling stays responsive.
                 await asyncio.to_thread(world.step)
@@ -59,13 +63,20 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
                 committed_count=cursor
                 with (directory/"metrics.jsonl").open("a",encoding="utf-8") as f:
                     f.write(json.dumps(world.metrics(),separators=(",",":"))+"\n")
-                if world.tick % checkpoint_every == 0: world.checkpoint(directory)
+                if world.tick % checkpoint_every == 0:
+                    world.checkpoint(directory,slim=slim)
+                    if storage.run_bytes(directory)>max_run_bytes:
+                        world.status="PAUSED_RESOURCE_LIMIT";execution['reason']='run_size_limit';return
+                if slim and (directory/"events.jsonl").exists() and (directory/"events.jsonl").stat().st_size>=segment_bytes:
+                    # Image first (covers every journaled event), then close the segment by renaming it.
+                    world.checkpoint(directory,slim=True)
+                    storage.rotate_journal(directory)
         except BaseException:
             execution['reason']='worker_error'
             raise
         finally:
             execution.update(running=False,reason=execution['reason'] or 'stopped')
-            world.checkpoint(directory)
+            world.checkpoint(directory,slim=slim)
             if report_dir:
                 from .experiment import summarize, source_revision
                 from .engine import digest
@@ -74,7 +85,7 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
                     'commit_sha':source_revision(),'root_mode':world.root.data['mode'],
                     'acceptance':{'checkpoint_journal_recovery':digest(recovered.state())==digest(world.state()),
                                   'live_worker_stopped':True},
-                    'journal_bytes':(directory/'events.jsonl').stat().st_size if (directory/'events.jsonl').exists() else 0})
+                    'journal_bytes':sum(p.stat().st_size for p in storage.journal_files(directory))})
 
     @asynccontextmanager
     async def lifespan(app):
@@ -175,7 +186,9 @@ def build_parser():
     p.add_argument("--config",help="Experiment JSON (see config/default.json). Only a file named here is ever loaded.")
     p.add_argument("--legacy",action="store_true",help="Run the v0.4.0 per-tick physiology and fixed decision cadence")
     p.add_argument("--decisions-per-tick",type=int,help="Model calls allowed per tick (foundations mode)")
-    p.add_argument("--checkpoint-every",type=int,default=60,help="Ticks between periodic checkpoints (each embeds the event history)")
+    p.add_argument("--checkpoint-every",type=int,default=60,help="Ticks between periodic checkpoints (slim images reference the journal; images are full only if the journal cannot cover the history)")
+    p.add_argument("--segment-bytes",type=int,default=25_000_000,help="Close the active journal as a numbered segment after this many bytes")
+    p.add_argument("--max-run-bytes",type=int,default=5_000_000_000,help="Pause (PAUSED_RESOURCE_LIMIT) when the run directory exceeds this size")
     p.add_argument("--recover",help="Restore newest valid image and replay its committed journal tail")
     return p
 
@@ -202,5 +215,5 @@ def main():
     else:backend=None
     world=build_world(args,p,backend)
     uvicorn.run(create_app(world,args.run_dir,max_ticks=args.max_ticks,max_seconds=args.max_seconds,report_dir=args.report_dir,
-                           checkpoint_every=args.checkpoint_every),host="127.0.0.1",port=args.port)
+                           checkpoint_every=args.checkpoint_every,segment_bytes=args.segment_bytes,max_run_bytes=args.max_run_bytes),host="127.0.0.1",port=args.port)
 if __name__=="__main__": main()
