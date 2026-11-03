@@ -1,0 +1,78 @@
+{
+  "record_type": "selected_benchmark_summary_at_owner_handoff",
+  "status": "stopped_by_operator",
+  "reason": "Owner requested immediate handoff; no further GPU stages",
+  "commit_sha": "ce517b5c5f6ca90e24c64302ed7e2a9db90806b8",
+  "run_group": "integration-fixed-20261103T072124Z",
+  "completed_ticks": 199,
+  "completed_sim_days": 1.382,
+  "real_seconds": 1677.83,
+  "living": 5,
+  "births": 0,
+  "deaths_by_cause": {},
+  "inference": {
+    "model_calls": 995,
+    "successful_inference_calls": 995,
+    "parse_or_inference_failures": 0,
+    "output_tokens": 21847,
+    "prompt_tokens": {
+      "min": 1938,
+      "max": 2914,
+      "total": 2584433,
+      "measured_requests": 995,
+      "cap": 6144
+    },
+    "prompt_budget_failures": 0,
+    "inference_seconds": 1660.972,
+    "tokens_per_second": 13.15,
+    "model_id": "LiquidAI/LFM3-1.7B",
+    "hardware": "Tesla T4",
+    "model_instances": 1,
+    "model_revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7"
+  },
+  "checkpoint_recovery": {
+    "equal": true,
+    "tick": 199,
+    "exact_replay_equal": true,
+    "scope": "same-process restore; separate fresh-process prefix verification also exists"
+  },
+  "evidence_audit": {
+    "passed": true,
+    "verified_agents": 5,
+    "validated_actions": 729,
+    "unique_model_requests": 729,
+    "mechanical_steps": 0,
+    "minimum_actions_per_agent": 17,
+    "maximum_actions_per_agent": 197
+  },
+  "validated_decisions_per_agent": {
+    "agent-0000": 197,
+    "agent-0001": 17,
+    "agent-0002": 121,
+    "agent-0003": 197,
+    "agent-0004": 197
+  },
+  "action_counts": {
+    "eat": 26,
+    "inspect": 125,
+    "speak": 507,
+    "drink": 21,
+    "wait": 24,
+    "move": 6,
+    "rest": 3,
+    "gather": 17
+  },
+  "experiments": {
+    "inspect:inspected": 125
+  },
+  "resources": {
+    "cpu_seconds": 1651.93,
+    "max_rss_mb": 4404.9,
+    "gpu_max_allocated_mb": 4511.4,
+    "journal_bytes": 13398662,
+    "checkpoint_bytes_total": 38132470
+  },
+  "benchmark_still_running": false,
+  "stage_b_started": false,
+  "scope": "Selected actual final JSON fields read from Colab UI. Full stage_a.json and sanitized evidence remain on Drive. This is not the standalone evidence.json schema. No 30-day or fifty-agent success claim."
+}
