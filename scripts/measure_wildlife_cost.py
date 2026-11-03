@@ -34,7 +34,8 @@ def main():
                              'measured_real_seconds': time.monotonic() - start,
                              'projected_days_to_100MB': 100_000_000 / per_tick * world.biology.days_per_tick})
     record = {'classification': 'CPU/mock cost measurement', 'commit_sha': subprocess.check_output(
-        ['git', 'rev-parse', 'HEAD'], text=True).strip(), 'working_tree_changes': True,
+        ['git', 'rev-parse', 'HEAD'], text=True).strip(),
+        'working_tree_changes': bool(subprocess.check_output(['git', 'status', '--porcelain'], text=True).strip()),
         'seed': 314159, 'width': 128, 'depth': 128, 'measurements': measurements,
         'overhead_percent': (measurements[1]['journal_bytes'] / measurements[0]['journal_bytes'] - 1) * 100,
         'projection_note': 'Linear projection from measured ticks, not an observed storage lifetime. Disk format unchanged.'}
