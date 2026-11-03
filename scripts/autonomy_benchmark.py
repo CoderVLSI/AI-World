@@ -193,6 +193,7 @@ def main():
         record['status'] = stop_reason
     recovered = World.recover(run_dir, backend=world.backend)
     record['checkpoint_recovery'] = {'equal': digest(world.state()) == digest(recovered.state()), 'tick': recovered.tick,
+                                     'exact_replay_equal': recovered.state() == recovered.replay(recovered.tick),
                                      'scope': 'same-process restore; runtime restart is a separate check'}
     from caitanya.experiment import summarize as export_evidence
     from scripts.audit_evidence import audit
