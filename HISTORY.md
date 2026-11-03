@@ -33,3 +33,5 @@ Colab Restart session drill passed: notebook variables were cleared, the model w
 ## 2026-11-03 — autonomy/wildlife integration (review branch)
 
 Integrated animal-models history onto main a38b935 on codex/wildlife-on-autonomy. Wildlife advances in both modes; bounded observations, privacy, task provenance audit, real prompt-token metrics and storage-bounded benchmarks added. Core root/autonomy modules and migration tests unchanged. Matched 60-tick/50-human mock journal: 2,131,438 bytes without wildlife versus 3,182,236 with it (+49.3%). Detailed decisions and limits: docs/INTEGRATION_REVIEW.md. New real-model verification is separate from earlier legacy reports.
+
+Integration source commit: `64e33f3fee58ab2f6bead344dd794fb19953d606`. Full corrected CPU run: 214 tests passed; additional public-endpoint privacy coverage passed separately. Five Node tests and both historical evidence audits passed. Initial fixture initialization failure was corrected and rerun. Draft PR #2 is open and unmerged. New real-model stages are pending.

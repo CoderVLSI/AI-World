@@ -1,6 +1,6 @@
 # Optional wildlife extension
 
-Integration update: this checkout now also supports humans and animals in the same World. See [SHARED_WORLD.md](SHARED_WORLD.md). The standalone preview instructions below remain available, but the earlier statement that ecology is not wired into World applies only to the original codex/fauna branch, not this integration.
+Integration update: this checkout now also supports humans and animals in the same World. See [SHARED_WORLD.md](SHARED_WORLD.md). The standalone preview remains available alongside integrated foundations and legacy worlds.
 
 This isolated branch adds twelve representative species: deer, rabbit, wild boar, wolf, fox, sparrow, crow, duck, owl, carp, butterfly and bee. These common-name groups are illustrative, not a complete taxonomic inventory. All behavior is lightweight deterministic simulation. No animal has an LLM instance, and no human receives new instructions, hunting knowledge or domestication knowledge.
 

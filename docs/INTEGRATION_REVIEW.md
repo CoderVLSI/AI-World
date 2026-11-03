@@ -20,3 +20,9 @@ No changes to `root.py`, `scheduler.py`, `physiology.py`, `experiments.py`, `mat
 ## Evidence limits
 
 Earlier five/fifty T4 reports in experiments/ predate foundations plus wildlife. They are preserved as historical legacy evidence: ten and two validated actions per identity respectively, with 80 of 100 fifty-agent actions being eat. They do not verify this integration. New runs must use new Drive directories and the pinned revision `ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7`. Real-run results and remaining blockers are recorded separately from CPU/mock tests. No cultural discovery, human reproduction or long-term civilization claim follows from these short checks.
+
+## Validation recorded on 2026-11-03
+
+`python -m pip install -e ".[test]"` succeeded. Full rerun: `python -m pytest -q` — 214 passed in 629.43 seconds. An additional endpoint-privacy test added after collection passed in the separate four-test integration-evidence run. Targeted migration/root/physics suite: 52 passed, with migration/root files unchanged. Evidence/shared-world suite: 29 passed. Real inference-path stub tests: 3 passed (these use a fake model and are not real inference). Node animal/chronicle tests: 5 passed; viewer syntax check passed. Both historical legacy evidence audits passed. Initial full run: 209 passed, one failed due to token-counter initialization in a fixture that bypasses construction; fixed without modifying that test. Pinned prompt hashes match main.
+
+The three-tick CPU/mock benchmark smoke completed with five living humans, zero births/deaths, equal checkpoint recovery and a passing evidence audit. It is not real AI evidence. New T4 stages use code commit `64e33f3fee58ab2f6bead344dd794fb19953d606`; results are pending.

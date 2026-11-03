@@ -2,7 +2,7 @@
 
 Integration branch `codex/wildlife-on-autonomy`, based on main a38b935. This is what is genuinely implemented, what is measured, and what is not. See [docs/MERGE_CHECKLIST.md](docs/MERGE_CHECKLIST.md) for breaking changes and risks and [docs/EXPERIMENT_RESULTS.md](docs/EXPERIMENT_RESULTS.md) for measurements.
 
-## Implemented (CPU-tested; 177 tests, including those on `main`)
+## Implemented (CPU-tested; integration validation recorded in docs/INTEGRATION_REVIEW.md)
 
 * **Scheduler (P0):** fair FIFO decision scheduler with a per-tick budget, priority for overdue and interrupted inhabitants, measured waiting and intervals, failure back-off without mock fallback, durable state. Bounded, validated, cancelable intentions (`TRAVEL_TO`, `GATHER_AT`, `REST_FOR`, `CANCEL_TASK`) executed mechanically and attributed separately from model decisions. Optional, default-off, journaled survival reflex.
 * **Physiology (P0):** needs, energy, health, illness, regrowth and effort driven by elapsed simulated hours; two-speed and three-seed tests; attributed deaths; guardians prompted to reconsider when dependants are needy; explicit validated configuration recorded in the manifest.

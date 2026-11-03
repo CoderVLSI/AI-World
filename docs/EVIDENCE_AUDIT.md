@@ -1,6 +1,6 @@
 # Independent evidence audit
 
-This standalone standard-library CLI reads a sanitized evidence.json file. It does not import the simulation, start a model, access Google Drive, modify histories, or require Claude's autonomy-foundations changes.
+This standalone standard-library CLI reads a sanitized evidence.json file. It does not import the simulation, start a model, access Google Drive, modify histories.
 
 ```sh
 python scripts/audit_evidence.py /path/to/evidence.json --output /path/to/audit.json
