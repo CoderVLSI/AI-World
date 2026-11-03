@@ -1,0 +1,52 @@
+{
+  "status": "live_partial_not_final",
+  "classification": "real-model",
+  "date": "2026-11-03",
+  "commit_sha": "64e33f3fee58ab2f6bead344dd794fb19953d606",
+  "run_group": "integration-20261103T065039Z",
+  "backend": "TransformersLFM3Backend",
+  "model_id": "LiquidAI/LFM3-1.7B",
+  "model_revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+  "hardware": "Tesla T4",
+  "model_instances": 1,
+  "seed": 314159,
+  "width": 128,
+  "depth": 128,
+  "population_start": 5,
+  "completed_ticks": 41,
+  "completed_sim_days": 0.2847222222222222,
+  "real_seconds": 364.3,
+  "living": 5,
+  "inference": {
+    "model_calls": 205,
+    "successful_inference_calls": 205,
+    "parse_or_inference_failures": 0,
+    "prompt_budget_failures": 0,
+    "prompt_tokens": {
+      "min": 1938,
+      "max": 2877,
+      "total": 528924,
+      "measured_requests": 205,
+      "cap": 6144
+    }
+  },
+  "scheduler": {
+    "rejected_decisions": 29,
+    "mechanical_steps": 0,
+    "decisions_per_agent": {
+      "min": 41,
+      "max": 41,
+      "mean": 41.0
+    },
+    "max_wait_ticks": 0
+  },
+  "journal_bytes": 1906391,
+  "verified_real_agent_ids": [
+    "agent-0000",
+    "agent-0001",
+    "agent-0002",
+    "agent-0003",
+    "agent-0004"
+  ],
+  "scope": "Observed prefix only. Full Stage A and Stage B results, final recovery and runtime-replacement recovery pending; do not use as long-duration survival evidence."
+}

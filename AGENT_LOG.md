@@ -29,3 +29,11 @@ Inference produced 720 tokens over 87.472 seconds (8.23 tokens/second), excludin
 [Full benchmark report](experiments/fifty-20261102T163129Z/REPORT.md) · [All 100 sanitized actions and request IDs](experiments/fifty-20261102T163129Z/evidence.json).
 
 Persistence follow-up: after stopping the completed benchmark, Colab's Restart session cleared notebook variables. A fresh model-backed server recovered the same tick-60 world from Drive with an identical public-state hash. See [runtime recovery evidence](experiments/fifty-20261102T163129Z/runtime-recovery-check.json). This is a kernel/session restart drill; complete VM replacement remains untested. The recovered worker has a zero-tick budget and is not making further model calls. Browser preview rendering remains a separate unresolved issue; no unauthenticated public viewer was exposed.
+
+## 2026-11-03 — integrated real-model prefix (still running)
+
+Source 64e33f3, pinned LFM3 revision ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7, Tesla T4, one shared instance; new Drive group integration-20261103T065039Z. All five human identities have validated request-linked actions. At tick 41: 205 successful calls, zero inference/prompt-budget failures, five living humans and 29 rejected decisions. These are partial counters, not a completed survival benchmark.
+
+Actual actions include inspect, speak, eat, drink, wait, move and rest. Inspection events evt-000000007 and evt-000000008 returned result `inspected`; neither is an invention. In evt-000000010 (tick 1), agent-0004 said: “I see other adults nearby. Should I move toward them or gather more resources?” Similar questions recur in evt-000000014 and evt-000000022. These are original model utterances, not evidence that the agents planned successfully or received an operator answer. No reply or discovery was injected. Later journal inspection found rejected attempts with reasons `resource unavailable`, `unknown object` and `resource out of reach`; rejected attempts caused no validated action. Wildlife continues under deterministic ecology and is not counted as real-model inhabitants.
+
+Partial evidence and exact event/request references: [integration report](experiments/integration-20261103T065039Z/REPORT.md). Long-duration Stage A, Stage B, final recovery and final summaries remain pending.
