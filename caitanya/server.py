@@ -196,6 +196,8 @@ def build_parser():
     p.add_argument("--checkpoint-every",type=int,default=60,help="Ticks between periodic checkpoints (slim images reference the journal; images are full only if the journal cannot cover the history)")
     p.add_argument("--segment-bytes",type=int,default=25_000_000,help="Close the active journal as a numbered segment after this many bytes")
     p.add_argument("--max-run-bytes",type=int,default=5_000_000_000,help="Pause (PAUSED_RESOURCE_LIMIT) when the run directory exceeds this size")
+    p.add_argument("--families",type=int,default=0,help="Found the NEW world with this many households (a woman, a man and children); overrides --population")
+    p.add_argument("--children-per-family",type=int,default=2)
     p.add_argument("--recover",help="Restore newest valid image and replay its committed journal tail")
     return p
 
@@ -211,7 +213,7 @@ def build_world(args,p,backend=None):
         autonomy=replace(autonomy,scheduler=replace(autonomy.scheduler,max_decisions_per_tick=args.decisions_per_tick))
     given=dict(seed=args.seed,population=args.population,width=args.width,depth=args.depth)
     explicit={k:v for k,v in given.items() if p.get_default(k)!=v}   # command line beats the file
-    return World(**{**given,**params,**explicit},backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),autonomy=autonomy,root_mode=args.root_mode,wildlife_per_species=args.wildlife_per_species,nature_forces=args.nature_forces)
+    return World(**{**given,**params,**explicit},backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),autonomy=autonomy,root_mode=args.root_mode,wildlife_per_species=args.wildlife_per_species,nature_forces=args.nature_forces,families=args.families,children_per_family=args.children_per_family)
 
 def main():
     import uvicorn
