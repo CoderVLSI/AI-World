@@ -1,0 +1,11 @@
+{
+  "status": "unverified_no_gpu",
+  "detail": "No CUDA device: the real-model episode was NOT run.",
+  "requested": {
+    "backend": "lfm3",
+    "revision": null,
+    "ticks": 40,
+    "max_real_seconds": 900.0,
+    "out": "docs/results/hazard-response-lfm3-UNVERIFIED_no_gpu.json"
+  }
+}

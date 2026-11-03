@@ -213,9 +213,10 @@ class World:
         self.nature_forces = NatureForces() if nature_forces else None
         if nature_forces:
             self.manifest["nature_forces"] = self.nature_forces.data["version"]
+            self.manifest["nature_hazards"] = self.nature_forces.data["hazard_version"]
             self.manifest["configuration_hash"] = digest({
                 "base_configuration_hash": self.manifest["configuration_hash"],
-                "nature_forces": self.nature_forces.data["version"],
+                "nature_forces": self.nature_forces.data["version"], "nature_hazards": self.nature_forces.data["hazard_version"],
             })
         if wildlife_per_species and self.biology.days_per_tick>1:
             raise ValueError('Wildlife requires days_per_tick <= 1; use --wildlife-per-species 0 for coarse legacy clocks')
@@ -278,6 +279,9 @@ class World:
         state.pop("nature_forces", None)
         if self.nature_forces is not None:
             state["environment_effects"] = copy.deepcopy(self.nature_forces.data["recent"])
+            if self.nature_forces.hazards_enabled:        # active zones only: no exposure records, no end ticks
+                state["environment_hazards"] = [{k: h[k] for k in ("id", "phenomenon", "x", "z", "radius", "strength", "start_tick")}
+                                                for h in self.nature_forces.data["hazards"]]
         state["last_actions"] = {aid: dict(v) for aid, v in self._last_action.items()}   # type/tick/origin only
         if self.fauna is not None:
             state.pop('fauna',None)
@@ -304,6 +308,8 @@ class World:
         extra={}
         if self.nature_forces is not None:
             extra["environment_effects"] = self.nature_forces.observe(self, a)
+            if self.nature_forces.hazards_enabled:
+                extra["environment_hazards"] = self.nature_forces.observe_hazards(self, a)
         if self.fauna is not None:
             extra['wildlife']=[dict(id=b.id,species=b.species,x=b.x,z=b.z,behavior=b.action)
                 for b in sorted(self.fauna.animals.values(),key=lambda b:(abs(b.x-a.x)+abs(b.z-a.z),b.id))

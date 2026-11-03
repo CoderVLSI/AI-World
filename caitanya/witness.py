@@ -69,6 +69,9 @@ def live_view(snapshot):
             {k: e[k] for k in ("tick", "phenomenon", "x", "z", "radius", "strength")}
             for e in snapshot["environment_effects"]
         ]
+    if "environment_hazards" in snapshot:
+        view["environment_hazards"] = [{k: h[k] for k in ("phenomenon", "x", "z", "radius", "strength", "start_tick")}
+                                       for h in snapshot["environment_hazards"]]
     if wildlife:  # optional layer (present only when the world has animals)
         view["wildlife"] = {"species": {k: {"name": v.get("name"), "group": v.get("group"), "color": v.get("color")}
                                         for k, v in wildlife.get("species", {}).items()},
