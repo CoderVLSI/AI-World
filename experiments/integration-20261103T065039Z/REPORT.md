@@ -1,4 +1,4 @@
-# Integrated foundations plus wildlife — in progress
+# Integrated foundations plus wildlife — original prefix, restart requested
 
 Date: 2026-11-03. This is a live partial observation, **not a completed 30-day or fifty-agent result**.
 
@@ -29,3 +29,7 @@ These references establish five real-model identities in the observed prefix. Ea
 ## Pending
 
 Final Stage A duration, recovery equality, evidence audit, deaths/births and causes, experiment outcomes, knowledge metrics, final resources; Stage B operation and results; runtime-replacement recovery for this new integrated run. The draft PR remains unmerged. Detailed journals/checkpoints/private memories stay on Drive, not GitHub.
+
+## Recovery failure and restart decision
+
+A separate recovery process at tick 120 returned schema 2 and fauna tick 120, with state checksum matching the committed event, but direct replay equality **false**. A diagnostic isolated the differing path to `fauna.rng_state`; no private RNG values were exported. Live tuples and JSON lists had equal canonical serialization but unequal Python types. The integration fix normalizes live fauna RNG state to JSON lists without changing the disk representation. The old prefix is retained; it is not a passed replay acceptance test. The original benchmark is being stopped to run the corrected source in a fresh group. No Stage B success is claimed for this group.

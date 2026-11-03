@@ -115,8 +115,11 @@ class Ecosystem:
                     self.emit('birth',child,parent_ids=child.parent_ids)
 
     def state(self):
+        # JSON-native RNG shape keeps direct replay equality after a process restart.
+        # The on-disk representation is unchanged: JSON already encoded tuples as arrays.
+        rng=self.rng.getstate()
         return copy.deepcopy(dict(version=1,tick=self.tick,next_id=self.next_id,animals={k:asdict(a) for k,a in self.animals.items()},
-             events=self.events,aquatic_food=self.aquatic_food,rng_state=self.rng.getstate(),birth_budget=self.birth_budget,days_per_tick=self.days_per_tick))
+             events=self.events,aquatic_food=self.aquatic_food,rng_state=[rng[0],list(rng[1]),rng[2]],birth_budget=self.birth_budget,days_per_tick=self.days_per_tick))
 
     @classmethod
     def restore(cls,state):

@@ -17,6 +17,9 @@ def test_humans_and_animals_share_state_time_and_recovery(tmp_path, autonomy, ro
     recovered=World.recover(tmp_path)
     restored=World.restore(world.checkpoint(tmp_path))
     assert world.state()==world.replay(6)==recovered.state()==restored.state()
+    # A fresh process reads JSON arrays; replay must equal its normalized state too.
+    assert recovered.state()==recovered.replay(6)
+    assert restored.state()==restored.replay(6)
     for w in (world,recovered,restored):w.step()
     assert world.state()==recovered.state()==restored.state()
     public=world.public()

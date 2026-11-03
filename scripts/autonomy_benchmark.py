@@ -19,6 +19,7 @@ import math
 import os
 import platform
 import subprocess
+import signal
 try:
     import resource
 except ImportError:  # Windows has no POSIX resource module.
@@ -84,7 +85,7 @@ def summarize(world, started, real_seconds, run_dir, args, cpu_start):
         "seed": world.seed, "population_start": args.population, "days_per_tick": world.biology.days_per_tick,
         "autonomy": world.autonomy.to_dict(), "backend": world.manifest["model_id"],
         "model_revision": world.manifest["model_revision"],
-        "commit_sha": subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+        "commit_sha": args.source_sha,
         "wildlife_per_species": args.wildlife_per_species,
         "action_counts": dict(collections.Counter(e['type'] for e in events if e['source']=='validated_action')),
         "validated_decisions_per_agent": dict(collections.Counter(e['actor_id'] for e in events
@@ -128,6 +129,7 @@ def main():
     p.add_argument("--out", required=True)
     p.add_argument("--max-journal-bytes", type=int, default=100_000_000)
     args = p.parse_args()
+    args.source_sha = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
     if Path(args.out).exists():
         p.error('Output already exists; choose a new --out path')
 
@@ -157,6 +159,12 @@ def main():
     started, cpu_start = time.monotonic(), time.process_time()
     target_ticks = math.ceil(args.sim_days / world.biology.days_per_tick - 1e-6)
     stop_reason = None
+    operator_stop = False
+    def request_stop(signum, frame):
+        nonlocal operator_stop
+        operator_stop = True  # Finish the current committed tick before stopping.
+    signal.signal(signal.SIGTERM, request_stop)
+    signal.signal(signal.SIGINT, request_stop)
     with (run_dir / "events.jsonl").open("a", encoding="utf-8") as journal:
         while world.tick < target_ticks:
             world.step()
@@ -171,6 +179,9 @@ def main():
                 'real_seconds': time.monotonic() - started, 'metrics': world.metrics()}, indent=2), encoding='utf-8')
             if world.tick % 60 == 0:
                 world.checkpoint(run_dir)
+            if operator_stop:
+                stop_reason = 'stopped_by_operator'
+                break
             if args.max_real_seconds and time.monotonic() - started >= args.max_real_seconds:
                 break
             if journal.tell() >= args.max_journal_bytes:
