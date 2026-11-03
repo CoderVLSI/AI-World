@@ -16,7 +16,7 @@ Open http://127.0.0.1:8000/viewer. New worlds use the `foundations` mode describ
 
 ## World and generations
 
-Shared-world integration: new CLI worlds now include humans and twelve wildlife species together. Both populations share the clock, terrain and finite resources; nearby animals are visible in human observations. The main witness renders both, with links to the same world's animal census and family timeline. Set `--wildlife-per-species 0` to disable ecology in a new run. Existing checkpoints remain unchanged. See [shared-world setup and limits](docs/SHARED_WORLD.md). The combined feature is tested with mock humans; the older real-model benchmark reports predate this integration.
+Shared-world integration: new CLI worlds now include humans and twelve wildlife species together. Both populations share the clock, terrain and finite resources; nearby animals are visible in human observations. The main witness renders both, with links to the same world's animal census and family timeline. Set `--wildlife-per-species 0` to disable ecology in a new run. Existing checkpoints remain unchanged. See [shared-world setup and limits](docs/SHARED_WORLD.md). The combined feature has CPU tests and a real five-human T4 prefix; extended Stage A and fifty-human verification remain pending. See [the integration experiment report](experiments/integration-20261103T065039Z/REPORT.md). Older legacy benchmark reports remain separate.
 
 Six biomes and fifteen representative resources support movement, gathering, eating, drinking, rest, local speech, writing, reading, revisions, primitive placement, gifts and teaching with provenance. Minerals are finite; renewable resources regenerate.
 

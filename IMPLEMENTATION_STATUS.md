@@ -11,13 +11,14 @@ Integration branch `codex/wildlife-on-autonomy`, based on main a38b935. This is 
 * **Transmission and witness (P3):** witnessing, sharing, teaching and written findings with provenance chains and unverified-claim handling; read-only plan/attribution/object/knowledge views in the Three.js witness and three GET-only endpoints.
 * **Compatibility:** schema 2 with explicit migration of schema-1 checkpoints to `legacy` mode (verified bit-for-bit against a real v0.4.0 run); `--legacy`; explicit `--config` (never auto-loaded); the `neutral-v4-inquiry` prompt and the Brahman root, continuity, ledger and manifestation code are unchanged by this branch; `main`'s root modes, bounded workers and evidence export are merged and integration-tested.
 
+* **Animals and ecology:** optional deterministic layer integrated in foundations and legacy; twelve species, shared finite resources, bounded local observations, persistence and read-only witness. Animal behavior is not LLM inference.
+
 ## Measured (mock policy only)
 
 5 inhabitants for 30 simulated days (and at one-hour ticks for three seeds) and 50 inhabitants for 7 days all completed with every inhabitant alive; the mock does not experiment or reproduce, so these runs validate mechanics and cost, not autonomy. With 50 inhabitants nobody waited more than 6 ticks for a decision. Under v0.4.0 rules, 50 mock inhabitants died within 3 simulated days.
 
 ## Not implemented / not verified
 
-* **Animals and ecology:** optional deterministic layer integrated in foundations and legacy; twelve species, shared finite resources, bounded local observations, persistence and read-only witness. Animal behavior is not LLM inference.
-* **Integrated real-model runs are pending verification.** Earlier legacy runs are historical evidence only. Stage A (5 inhabitants, 30 days), Stage B (50 inhabitants) and Stage C (generational) were not run for lack of a GPU; the harness records them as `unverified`. No autonomous civilization, reproduction, invention or discovery is claimed, and no consciousness or divine agency is established.
-* Persistence growth: about 67 KB of journal per tick at 50 inhabitants and quadratic checkpoint growth; the 100 MB journal limit is reached after roughly 10 simulated days at that population. No automatic off-machine backups, no authentication for public deployment, no permanent Colab hosting.
+* **Real LFM3 integrated prefix verified:** five identities on T4, source 64e33f3, 155 committed ticks (1.076 simulated days), 775 successful calls and no inference/prompt-budget failures. Restart replay exposed a wildlife RNG tuple/list mismatch; corrected reader ce517b5 recovers the preserved data with exact replay equality. A corrected-source long Stage A and fifty-human Stage B remain pending; generational operation is unverified. See the integration report. No civilization, reproduction, invention or discovery is established.
+* **Persistence:** matched short 50-human mock measurements are 35.5 KB/tick without wildlife and 53.0 KB/tick with it. Growth is workload-dependent and checkpoints embed history; linear storage projections are not long-run guarantees. See docs/SHARED_WORLD.md. No automatic off-machine backups, public authentication or permanent Colab hosting.
 * Simplified physiology and materials (no metallurgy, containers, spoilage or movement-blocking structures); no calibrated genetics or evolution; no advanced institutions.
