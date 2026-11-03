@@ -26,7 +26,7 @@ The baseline calendar advances ten minutes per tick. A smaller `--days-per-tick`
 
 ## Autonomy foundations (0.5.0)
 
-Details: [architecture](docs/AUTONOMY_ARCHITECTURE.md), [protocol](docs/EXPERIMENT_PROTOCOL.md), [measured results](docs/EXPERIMENT_RESULTS.md), [merge checklist](docs/MERGE_CHECKLIST.md). Genesis and the Isvara role: [design and compatibility](docs/GENESIS.md), [Phase B extension points](docs/GENESIS_EXTENSIONS.md).
+Details: [architecture](docs/AUTONOMY_ARCHITECTURE.md), [protocol](docs/EXPERIMENT_PROTOCOL.md), [measured results](docs/EXPERIMENT_RESULTS.md), [merge checklist](docs/MERGE_CHECKLIST.md). Watch a finished run on any computer: [playback](docs/PLAYBACK.md). Genesis and the Isvara role: [design and compatibility](docs/GENESIS.md), [Phase B extension points](docs/GENESIS_EXTENSIONS.md).
 
 **Decisions and mechanics are separate.** The shared model chooses what to attempt, why and when to be asked again; a fair FIFO scheduler spends a per-tick call budget (`--decisions-per-tick`, default 8) and measures every inhabitant's waiting. An accepted intention (`TRAVEL_TO`, `GATHER_AT`, `REST_FOR`) is carried out step by step by deterministic code through the normal validation path, journaled as `mechanical_execution` and never counted as a model decision. Intentions are bounded, cancelable and end when resources vanish, routes block, health drops, a need becomes critical or illness begins. Failed model calls execute nothing and there is no mock fallback. An optional survival reflex exists, is off by default, and is journaled separately.
 
