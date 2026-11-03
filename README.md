@@ -16,6 +16,8 @@ Open http://127.0.0.1:8000/viewer. New worlds use the `foundations` mode describ
 
 ## World and generations
 
+Shared-world integration: new CLI worlds now include humans and twelve wildlife species together. Both populations share the clock, terrain and finite resources; nearby animals are visible in human observations. The main witness renders both, with links to the same world's animal census and family timeline. Set `--wildlife-per-species 0` to disable ecology in a new run. Existing checkpoints remain unchanged. See [shared-world setup and limits](docs/SHARED_WORLD.md). The combined feature has CPU tests and a real five-human T4 prefix; extended Stage A and fifty-human verification remain pending. See [the integration experiment report](experiments/integration-20261103T065039Z/REPORT.md). Older legacy benchmark reports remain separate.
+
 Six biomes and fifteen representative resources support movement, gathering, eating, drinking, rest, local speech, writing, reading, revisions, primitive placement, gifts and teaching with provenance. Minerals are finite; renewable resources regenerate.
 
 Agents have independent gender and biological sex, simplified anatomy, needs, age and lineage. Reproduction requires reciprocal adult parenting proposals, compatible reproductive roles, proximity, resources and health. Underage and close-family pairings are rejected. Gestation, birth, caregiving, growth and aging are simplified. Children have separate memories. No sexual scenes are simulated.
@@ -34,7 +36,7 @@ Details: [architecture](docs/AUTONOMY_ARCHITECTURE.md), [protocol](docs/EXPERIME
 
 **Inhabitants remember and teach.** Private, bounded memory (episodic, practical findings with provenance, hypotheses, relationships, procedures, cultural claims, places) is retrieved by situation. Hypotheses stay unverified until checked against evidence; findings shared by others stay claims until the receiver's own experience corroborates or contradicts them, and written findings outlive their author. A newborn starts with an empty memory.
 
-**Not in this release:** wildlife and ecology (deferred). **Not verified:** any run with LFM3; see the results document. The `neutral-v4-inquiry` prompt is unchanged and the root, continuity and manifestation mechanics are untouched.
+**Optional wildlife:** twelve deterministic species sharing the human world, available in both autonomy modes. **Not verified:** real-model autonomy-foundations-plus-wildlife benchmarks; earlier legacy LFM3 runs are documented separately. The `neutral-v4-inquiry` prompt is unchanged and the root, continuity and manifestation mechanics are untouched.
 
 ## Root agent, continuity and inquiry
 

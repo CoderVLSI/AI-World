@@ -1,0 +1,10 @@
+{
+  "reader_commit": "ce517b5c5f6ca90e24c64302ed7e2a9db90806b8",
+  "scope": "fresh-process checkpoint+journal+exact replay of real records; no inference performed; not runtime replacement",
+  "tick": 71,
+  "schema_version": 2,
+  "fauna_tick": 71,
+  "state_checksum_matches_committed_event": true,
+  "exact_replay_equal": true,
+  "inference_calls_by_verifier": 0
+}
