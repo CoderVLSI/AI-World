@@ -54,6 +54,9 @@ def test_locality_capacity_dead_agents_and_no_revival():
     a.health = 0
     w.nature_forces.apply(w, "indra", 0, 0, 3)
     assert a.health == 0 and vars(b) == b_before
+    a.health = .5
+    w.nature_forces.apply(w, "indra", 0, 0, 3)
+    assert a.health == .5  # a nonfatal injury cap must never heal fractional health
     a.alive = False; a.thirst = 50
     w.nature_forces.apply(w, "surya", 0, 0, 3)
     assert a.thirst == 50

@@ -108,7 +108,7 @@ class NatureForces:
             agent.thirst = max(0, min(100, agent.thirst + force.thirst*strength))
             agent.energy = max(0, min(100, agent.energy + force.energy*strength))
             if force.injury and agent.health > 0:
-                agent.health = max(1, agent.health-force.injury*strength)
+                agent.health = min(agent.health, max(1, agent.health-force.injury*strength))
             after = {field: getattr(agent, field) for field in before}
             if before != after:
                 outcomes.append({"agent_id": aid, "before": before, "after": after})
