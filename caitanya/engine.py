@@ -176,7 +176,7 @@ def redact_private(state):
 
 class World:
     def __init__(self, seed=314159, population=5, width=64, depth=64, backend=None, biology=None, spawn_radius=8,
-                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None, nature_forces=False, families=0, children_per_family=2):
+                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None, nature_forces=False, families=0, children_per_family=2, hazard_exit_hint=False):
         if type(families) is not int or families < 0 or type(children_per_family) is not int or not 0 <= children_per_family <= 12:
             raise ValueError("invalid founding families")
         if families:
@@ -214,12 +214,17 @@ class World:
         self.fauna=None
         if type(nature_forces) is not bool:raise ValueError("nature_forces must be boolean")
         from .forces import NatureForces
-        self.nature_forces = NatureForces() if nature_forces else None
+        if type(hazard_exit_hint) is not bool or (hazard_exit_hint and not nature_forces):
+            raise ValueError("hazard_exit_hint is a boolean and needs nature_forces")
+        self.nature_forces = NatureForces(exit_hint=hazard_exit_hint) if nature_forces else None
         if nature_forces:
             self.manifest["nature_forces"] = self.nature_forces.data["version"]
+            self.manifest["nature_hazards"] = self.nature_forces.data["hazard_version"]
+            if self.nature_forces.exit_hint:
+                self.manifest["nature_hazard_exit_hint"] = True
             self.manifest["configuration_hash"] = digest({
                 "base_configuration_hash": self.manifest["configuration_hash"],
-                "nature_forces": self.nature_forces.data["version"],
+                "nature_forces": self.nature_forces.data["version"], "nature_hazards": self.nature_forces.data["hazard_version"],
             })
         if wildlife_per_species and self.biology.days_per_tick>1:
             raise ValueError('Wildlife requires days_per_tick <= 1; use --wildlife-per-species 0 for coarse legacy clocks')
@@ -282,6 +287,9 @@ class World:
         state.pop("nature_forces", None)
         if self.nature_forces is not None:
             state["environment_effects"] = copy.deepcopy(self.nature_forces.data["recent"])
+            if self.nature_forces.hazards_enabled:        # active zones only: no exposure records, no end ticks
+                state["environment_hazards"] = [{k: h[k] for k in ("id", "phenomenon", "x", "z", "radius", "strength", "start_tick")}
+                                                for h in self.nature_forces.data["hazards"]]
         state["last_actions"] = {aid: dict(v) for aid, v in self._last_action.items()}   # type/tick/origin only
         if self.fauna is not None:
             state.pop('fauna',None)
@@ -308,6 +316,8 @@ class World:
         extra={}
         if self.nature_forces is not None:
             extra["environment_effects"] = self.nature_forces.observe(self, a)
+            if self.nature_forces.hazards_enabled:
+                extra["environment_hazards"] = self.nature_forces.observe_hazards(self, a)
         if self.fauna is not None:
             extra['wildlife']=[dict(id=b.id,species=b.species,x=b.x,z=b.z,behavior=b.action)
                 for b in sorted(self.fauna.animals.values(),key=lambda b:(abs(b.x-a.x)+abs(b.z-a.z),b.id))
