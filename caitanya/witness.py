@@ -48,6 +48,41 @@ def _agent(a, last_action=None):
     return out
 
 
+SPEECH_WINDOW_TICKS = 12      # how recent a spoken line must be to be offered to viewers
+SPEECH_MAX_CHARS = 160
+SPEECH_LIMIT = 40
+
+
+def _clean(text):
+    text = " ".join(str(text).split())                        # one line, no control characters or runs of whitespace
+    return text if len(text) <= SPEECH_MAX_CHARS else text[:SPEECH_MAX_CHARS - 1] + "\u2026"
+
+
+def recent_speech(events, tick, window=SPEECH_WINDOW_TICKS, limit=SPEECH_LIMIT):
+    """What inhabitants recently SAID (public: speech is already in the public event feed), for speech bubbles in viewers.
+
+    * `speak` and `teach` carry their spoken text (truncated, whitespace collapsed).
+    * A recorded `reflect` is offered only as a *thought* with NO text: reflections are private by design (their text is never in
+      any event), so a viewer can show that someone is thinking but never what.
+    Nothing else (writings, hypotheses, memories, reasons) is ever included.
+    """
+    out = []
+    for e in reversed(events):
+        if e["world_tick"] < tick - window:
+            break
+        if e.get("source") != "validated_action":
+            continue
+        if e["type"] in ("speak", "teach"):
+            text = (e.get("payload", {}).get("parameters") or {}).get("text")
+            if isinstance(text, str) and text.strip():
+                out.append({"agent_id": e["actor_id"], "tick": e["world_tick"], "kind": "speech", "text": _clean(text)})
+        elif e["type"] == "reflect":
+            out.append({"agent_id": e["actor_id"], "tick": e["world_tick"], "kind": "thought", "text": None})
+        if len(out) >= limit:
+            break
+    return list(reversed(out))
+
+
 def live_view(snapshot):
     """A small, polling-friendly view of the public snapshot (positions, plans, resources, objects)."""
     objects = [{"id": o["id"], "kind": o["kind"], "x": o["x"], "z": o["z"],

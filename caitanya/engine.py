@@ -176,7 +176,11 @@ def redact_private(state):
 
 class World:
     def __init__(self, seed=314159, population=5, width=64, depth=64, backend=None, biology=None, spawn_radius=8,
-                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None, nature_forces=False, hazard_exit_hint=False):
+                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None, nature_forces=False, families=0, children_per_family=2, hazard_exit_hint=False):
+        if type(families) is not int or families < 0 or type(children_per_family) is not int or not 0 <= children_per_family <= 12:
+            raise ValueError("invalid founding families")
+        if families:
+            population = families * (2 + children_per_family)      # households of a woman, a man and children replace `population`
         if not (1 <= population and width >= 8 and depth >= 8):
             raise ValueError("invalid world dimensions or population")
         if type(spawn_radius) is not int or spawn_radius<1:raise ValueError("invalid starting radius")
@@ -229,7 +233,7 @@ class World:
         self.root = BrahmanAgent(mode=root_mode)
         plan, issued_by = isvara.issue_plan(self.root, seed=seed, population=population, width=width, depth=depth,
             spawn_radius=spawn_radius, wildlife_per_species=wildlife_per_species, days_per_tick=self.biology.days_per_tick,
-            reasoning=not self.autonomy.legacy, config=isvara_config)
+            reasoning=not self.autonomy.legacy, config=isvara_config, families=families, children_per_family=children_per_family)
         genesis.execute(self, plan, issued_by)
         self.manifest["genesis"] = dict(version=plan.version, plan_digest=plan.digest(), generators=dict(plan.generators))
         self.root.register(self)
