@@ -139,7 +139,7 @@ def advance_lifecycle(world):
         if years>=a.lifespan_years:
             a.alive=False;world.emit("death",a.id,{"cause":"aging","age_years":years},"world_rule")
             continue
-        if a.age_years_at_start==0:
+        if a.age_years_at_start<world.biology.adulthood_years:     # newborns and founding children grow toward adult height
             a.height_cm=round(50+(a.adult_height_cm-50)*min(1,years/world.biology.adulthood_years)**.5)
         if years>=world.biology.adulthood_years and not a.adulthood_recorded:
             a.adulthood_recorded=True

@@ -159,6 +159,7 @@ def build_context(world):
     start, end = st["schedule"]["evidence_cursor"], len(world.events)
     seen = set(st["seen_actions"])
     items, window_actions, failures = [], {}, 0
+    env = {"pulses": {}, "hazards_started": {}, "hazards_ended": {}, "inhabitants_hit_by_pulses": 0, "inhabitants_exposed": 0}
     for event in world.events[start:end]:
         kind = event["type"]
         if event["source"] == "genesis" and kind == "genesis_completed":
@@ -171,6 +172,30 @@ def build_context(world):
                       "birth": f"{event['actor_id']} was born (generation {event['payload'].get('generation')})",
                       "arrival": f"{event['actor_id']} arrived through a world rule"}[kind]
             items.append({"id": event["event_id"], "tick": event["world_tick"], "kind": _EVENT_KINDS[kind], "detail": detail})
+        elif event["source"] == "environment_rule" and kind in ("nature_force", "nature_hazard_started", "nature_hazard_ended"):
+            # Environmental events are recorded world rules. Isvara sees WHAT happened and how inhabitants were recorded to respond
+            # (inside / left the zone), by phenomenon: never a force's internal name, a planned duration or a future schedule.
+            pl = event["payload"]
+            ph = pl.get("phenomenon")
+            if kind == "nature_force":
+                env["pulses"][ph] = env["pulses"].get(ph, 0) + 1
+                hit = sum(1 for o in pl.get("outcomes", []) if "agent_id" in o)
+                env["inhabitants_hit_by_pulses"] += hit
+                if hit:
+                    items.append({"id": event["event_id"], "tick": event["world_tick"], "kind": "environment",
+                                  "detail": f"a {ph} pulse (strength {pl['strength']}) at ({pl['x']},{pl['z']}), radius {pl['radius']}, affected {hit} inhabitants"})
+            elif kind == "nature_hazard_started":
+                env["hazards_started"][ph] = env["hazards_started"].get(ph, 0) + 1
+                items.append({"id": event["event_id"], "tick": event["world_tick"], "kind": "environment",
+                              "detail": f"a lasting {ph} began at ({pl['x']},{pl['z']}), radius {pl['radius']}, strength {pl['strength']}"})
+            else:
+                exposed = pl.get("exposed", [])
+                env["hazards_ended"][ph] = env["hazards_ended"].get(ph, 0) + 1
+                env["inhabitants_exposed"] += len(exposed)
+                left, inside = sum(1 for e in exposed if e["left_zone"]), sum(1 for e in exposed if e["inside_at_end"])
+                items.append({"id": event["event_id"], "tick": event["world_tick"], "kind": "environment",
+                              "detail": f"the lasting {ph} ended after {pl['ticks_active']} ticks: {len(exposed)} inhabitants were exposed "
+                                        f"({sum(e['ticks_inside'] for e in exposed)} inhabitant-ticks inside), {left} left the zone, {inside} were still inside at the end"})
         elif event["source"] == "validated_action":
             window_actions[kind] = window_actions.get(kind, 0) + 1
             if kind not in seen:
@@ -187,6 +212,10 @@ def build_context(world):
         r = st["reflections"][rid]
         notes.append({"id": rid, "tick": r["tick"], "conclusions": r["conclusions"][:2], "uncertainties": r["uncertainties"][:2]})
     context = {"window": {"from_event": start, "to_event": end}, "facts": _facts(world), "evidence": items}
+    nf = getattr(world, "nature_forces", None)
+    if nf is not None:       # only worlds that have environmental forces; zones are listed as plain current facts
+        env["active_zones"] = [{k: h[k] for k in ("phenomenon", "x", "z", "radius", "strength")} for h in nf.data.get("hazards", [])]
+        context["environment"] = {k: v for k, v in env.items() if v or k == "active_zones"}
     if window_actions:
         context["actions_in_window"] = dict(sorted(window_actions.items()))
     if failures:

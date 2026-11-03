@@ -1,0 +1,75 @@
+{
+  "status": "completed",
+  "label": "REAL LFM3 on GPU",
+  "environment": {
+    "python": "3.13.16",
+    "platform": "Linux-6.6.159+-x86_64-with-glibc2.39",
+    "backend": "lfm3",
+    "gpu": "Tesla T4"
+  },
+  "model_id": "LiquidAI/LFM3-1.7B",
+  "model_revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+  "requested": {
+    "backend": "lfm3",
+    "revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+    "seed": 314159,
+    "population": 5,
+    "wildlife_per_species": 0,
+    "ticks": 60,
+    "reflect_every": 20,
+    "max_new_tokens": 320,
+    "max_real_seconds": 600,
+    "run_dir": "/content/drive/MyDrive/CAITANYA/isvara-check-20261103-1"
+  },
+  "without_reflection": {
+    "stop": "completed",
+    "ticks_completed": 60,
+    "real_seconds": 480.608,
+    "gpu_peak_mb": 4693,
+    "inhabitant_calls": 285
+  },
+  "with_reflection": {
+    "stop": "completed",
+    "ticks_completed": 60,
+    "real_seconds": 521.244,
+    "gpu_peak_mb": 4693,
+    "inhabitant_calls": 285
+  },
+  "extra_inference": {
+    "root_calls": 3,
+    "recorded": 0,
+    "failures": 3,
+    "root_calls_as_fraction_of_inhabitant_calls": 0.0105,
+    "added_wall_seconds_total": 40.636,
+    "backend_root_metrics": {
+      "calls": 3,
+      "failures": 3,
+      "successful_calls": 0,
+      "output_tokens": 960,
+      "prompt_tokens": {
+        "min": 1284,
+        "max": 1326,
+        "total": 3936
+      },
+      "prompt_budget_failures": 0,
+      "inference_seconds": 39.151,
+      "model_instances": 1,
+      "note": "Isvara reasoning calls are counted here and never in model_calls (inhabitant decisions)."
+    }
+  },
+  "reflection_quality_counts": {
+    "reflections": 0,
+    "with_valid_citations": 0,
+    "uncited": 0,
+    "uncertainty_stated": 0,
+    "dropped_citations": 0,
+    "proposals_stored_unapplied": 0
+  },
+  "physical_state_identical_with_and_without_reflection": false,
+  "note_on_that_last_field": "Expected true for the mock. With a real model it can legitimately be false only through wall-clock-budget effects, not through reflection; report it as measured.",
+  "restore_check": {
+    "restored_reflections_equal": true,
+    "restore_made_no_model_calls": true,
+    "checkpoint": "/content/drive/MyDrive/CAITANYA/isvara-check-20261103-1/checkpoint-000000060.json"
+  }
+}

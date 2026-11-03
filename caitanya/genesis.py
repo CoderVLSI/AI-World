@@ -22,6 +22,8 @@ from dataclasses import dataclass, fields
 GENESIS_VERSION = "genesis-v1"
 GENERATOR_VERSIONS = {"terrain": "geography-v1", "resources": "scatter-v1", "founders": "founders-v1", "wildlife": "ecology-v1"}
 SUPPORTED_GENERATORS = {stage: (version,) for stage, version in GENERATOR_VERSIONS.items()}
+SUPPORTED_GENERATORS["founders"] = ("founders-v1", "founders-v2")     # v2: founding families (women, men and children); opt-in
+FAMILY_FIELDS = ("families", "children_per_family", "parent_age_range", "child_age_range")
 
 _BIOME_RESOURCES = (("forest", ("wood", "fruit", "herbs", "plant_fiber")), ("highland", ("stone", "iron_ore", "copper_ore", "coal")),
                     ("wetland", ("water", "clay", "fish", "plant_fiber")), ("dryland", ("sand", "salt", "stone")),
@@ -62,6 +64,12 @@ class GenesisPlan:
     spawn_water_units: int = 40
     wildlife_per_species: int = 0
     days_per_tick: float = 1 / 144
+    # Founding families (generator founders-v2, opt-in): `families` households of one woman, one man and `children_per_family` children.
+    # With families == 0 these fields are ignored and are NOT serialized, so a default plan is byte-identical to before.
+    families: int = 0
+    children_per_family: int = 2
+    parent_age_range: tuple = (20, 41)
+    child_age_range: tuple = (1, 17)
 
     # -- validation -------------------------------------------------------------------------------------
     def validate(self):
@@ -88,7 +96,19 @@ class GenesisPlan:
             raise GenesisError("invalid days_per_tick")
         if self.wildlife_per_species and self.days_per_tick > 1:
             raise GenesisError("wildlife requires days_per_tick <= 1")
+        integer("families", 0, 100_000)
+        integer("children_per_family", 0, 12)
+        for name in ("parent_age_range", "child_age_range"):
+            low, high = getattr(self, name)
+            if type(low) is not int or type(high) is not int or not 0 <= low < high <= 120:
+                raise GenesisError(f"invalid {name}")
+        if self.families and self.population != self.families * (2 + self.children_per_family):
+            raise GenesisError("population must equal families x (2 + children_per_family)")
         generators = dict(self.generators)
+        if self.families and generators.get("founders") != "founders-v2":
+            raise GenesisError("founding families need generator founders-v2")
+        if not self.families and generators.get("founders") == "founders-v2":
+            raise GenesisError("founders-v2 is for founding families")
         if set(generators) != set(SUPPORTED_GENERATORS):
             raise GenesisError("plan must name a generator version for every stage")
         for stage, version in generators.items():
@@ -119,7 +139,7 @@ class GenesisPlan:
     def to_dict(self):
         def plain(v):
             return [plain(x) for x in v] if isinstance(v, (tuple, list)) else v
-        return {f.name: plain(getattr(self, f.name)) for f in fields(self)}
+        return {f.name: plain(getattr(self, f.name)) for f in fields(self) if self.families or f.name not in FAMILY_FIELDS}
 
     @classmethod
     def from_dict(cls, data):
@@ -134,10 +154,15 @@ class GenesisPlan:
         return hashlib.sha256(_canonical(self.to_dict()).encode()).hexdigest()
 
 
-def default_plan(seed, population, width=64, depth=64, spawn_radius=8, wildlife_per_species=0, days_per_tick=1 / 144):
-    """The plan that reproduces the pre-genesis world construction exactly."""
+def default_plan(seed, population, width=64, depth=64, spawn_radius=8, wildlife_per_species=0, days_per_tick=1 / 144,
+                 families=0, children_per_family=2):
+    """The plan that reproduces the pre-genesis world construction exactly (families=0), or one with founding families."""
+    extra = {}
+    if families:
+        extra = dict(families=families, children_per_family=children_per_family,
+                     generators=tuple(sorted({**GENERATOR_VERSIONS, "founders": "founders-v2"}.items())))
     return GenesisPlan(seed=seed, population=population, width=width, depth=depth, spawn_radius=spawn_radius,
-                       wildlife_per_species=wildlife_per_species, days_per_tick=days_per_tick).validate()
+                       wildlife_per_species=wildlife_per_species, days_per_tick=days_per_tick, **extra).validate()
 
 
 def terrain_digest(world_terrain):
@@ -199,25 +224,29 @@ def execute(world, plan, issued_by="genesis_default"):
                     for z in range(max(3, cz - r), min(depth, cz + r + 1)) if geography(x, z, width, depth, seed)["walkable"]]
     if not spawn_points:
         raise ValueError("Starting area has no walkable terrain")
-    for i in range(plan.population):
-        x, z = rng.choice(spawn_points)
-        aid = f"agent-{i:04}"
-        agent = Agent(aid, x, z, gender=plan.genders[i % len(plan.genders)],
-                      biological_sex=rng.choices(["female", "male", "intersex"], list(plan.sex_weights))[0],
-                      age_years_at_start=rng.randrange(*plan.age_range), height_cm=rng.randrange(*plan.height_range_cm),
-                      skin_tone=rng.choice(list(plan.skin_tones)), clothing_color=rng.choice(list(plan.clothing_colors)))
-        world.agents[aid] = agent
-        agent.inventory.update({k: 0 for k in RESOURCE_TYPES if k not in agent.inventory})
-        agent.inventory["water"] = plan.founder_water
-        agent.adult_height_cm = agent.height_cm
-        agent.reproductive_roles = roles_for(agent.biological_sex)
-        agent.lifespan_years = rng.randint(*plan.lifespan_range)
-        rid = f"spawn-food-{i}"
-        world.resources[rid] = dict(id=rid, x=x, z=z, kind="food", amount=plan.spawn_food_units, capacity=plan.spawn_food_units)
-        rid = f"spawn-water-{i}"
-        world.resources[rid] = dict(id=rid, x=x, z=z, kind="water", amount=plan.spawn_water_units,
-                                    capacity=plan.spawn_water_units, renewable=True)
-    world.emit("genesis_founders_created", None, {"generator": dict(plan.generators)["founders"], "founders": plan.population}, "genesis")
+    if plan.families:
+        _found_families(world, plan, spawn_points)
+    else:
+        for i in range(plan.population):
+            x, z = rng.choice(spawn_points)
+            aid = f"agent-{i:04}"
+            agent = Agent(aid, x, z, gender=plan.genders[i % len(plan.genders)],
+                          biological_sex=rng.choices(["female", "male", "intersex"], list(plan.sex_weights))[0],
+                          age_years_at_start=rng.randrange(*plan.age_range), height_cm=rng.randrange(*plan.height_range_cm),
+                          skin_tone=rng.choice(list(plan.skin_tones)), clothing_color=rng.choice(list(plan.clothing_colors)))
+            world.agents[aid] = agent
+            agent.inventory.update({k: 0 for k in RESOURCE_TYPES if k not in agent.inventory})
+            agent.inventory["water"] = plan.founder_water
+            agent.adult_height_cm = agent.height_cm
+            agent.reproductive_roles = roles_for(agent.biological_sex)
+            agent.lifespan_years = rng.randint(*plan.lifespan_range)
+            rid = f"spawn-food-{i}"
+            world.resources[rid] = dict(id=rid, x=x, z=z, kind="food", amount=plan.spawn_food_units, capacity=plan.spawn_food_units)
+            rid = f"spawn-water-{i}"
+            world.resources[rid] = dict(id=rid, x=x, z=z, kind="water", amount=plan.spawn_water_units,
+                                        capacity=plan.spawn_water_units, renewable=True)
+    world.emit("genesis_founders_created", None, {"generator": dict(plan.generators)["founders"], "founders": plan.population,
+               **({"families": plan.families, "children": plan.families * plan.children_per_family} if plan.families else {})}, "genesis")
     # 4. wildlife (own RNG seeded from the world seed; independent of the world RNG)
     animals = 0
     if plan.wildlife_per_species:
@@ -233,6 +262,57 @@ def execute(world, plan, issued_by="genesis_default"):
                                   "completed_tick": 0, "summary": summary}
     world.emit("genesis_completed", None, {"plan_digest": plan.digest(), "summary": summary}, "genesis")
     return summary
+
+
+def _found_families(world, plan, spawn_points):
+    """Founders-v2: each household is one woman, one man and children, living together; deterministic from the world RNG.
+
+    Children carry real family links (parents, guardians, generation 1) so the existing caregiving, growth and family-tree rules apply;
+    infants (under 3) cannot act and depend on their guardians, exactly like children born in the world."""
+    from .engine import Agent
+    from .lifecycle import roles_for
+    from .nature import RESOURCE_TYPES
+    rng = world.rng
+    n = 0
+
+    def supplies(agent, i, x, z):
+        world.agents[agent.id] = agent
+        agent.inventory.update({k: 0 for k in RESOURCE_TYPES if k not in agent.inventory})
+        agent.inventory["water"] = plan.founder_water
+        rid = f"spawn-food-{i}"
+        world.resources[rid] = dict(id=rid, x=x, z=z, kind="food", amount=plan.spawn_food_units, capacity=plan.spawn_food_units)
+        rid = f"spawn-water-{i}"
+        world.resources[rid] = dict(id=rid, x=x, z=z, kind="water", amount=plan.spawn_water_units, capacity=plan.spawn_water_units, renewable=True)
+
+    for _ in range(plan.families):
+        x, z = rng.choice(spawn_points)
+        parents = []
+        for sex, gender in (("female", "woman"), ("male", "man")):
+            aid = f"agent-{n:04}"
+            a = Agent(aid, x, z, gender=gender, biological_sex=sex, age_years_at_start=rng.randrange(*plan.parent_age_range),
+                      height_cm=rng.randrange(*plan.height_range_cm), skin_tone=rng.choice(list(plan.skin_tones)),
+                      clothing_color=rng.choice(list(plan.clothing_colors)))
+            a.adult_height_cm = a.height_cm
+            a.reproductive_roles = roles_for(sex)
+            a.lifespan_years = rng.randint(*plan.lifespan_range)
+            supplies(a, n, x, z)
+            parents.append(a)
+            n += 1
+        for _c in range(plan.children_per_family):
+            aid = f"agent-{n:04}"
+            years = rng.randrange(*plan.child_age_range)
+            sex = rng.choices(["female", "male", "intersex"], list(plan.sex_weights))[0]
+            adult = max(140, min(205, round(sum(p.adult_height_cm for p in parents) / 2) + rng.randint(-7, 7)))
+            a = Agent(aid, x, z, gender="unspecified", biological_sex=sex, age_years_at_start=years,
+                      height_cm=round(50 + (adult - 50) * min(1, years / 18) ** .5), adult_height_cm=adult,
+                      skin_tone=rng.choice(parents).skin_tone, clothing_color=rng.choice(list(plan.clothing_colors)),
+                      parent_ids=[p.id for p in parents], guardian_ids=[p.id for p in parents], generation=1, adulthood_recorded=False)
+            a.reproductive_roles = roles_for(sex)
+            a.lifespan_years = rng.randint(*plan.lifespan_range)
+            supplies(a, n, x, z)
+            if years < 3:                       # infants cannot act or carry: they depend on their guardians
+                a.inventory.update({k: 0 for k in a.inventory})
+            n += 1
 
 
 def verify_recorded(world):

@@ -36,6 +36,7 @@ func _ready() -> void:
 		elif arg.begins_with("--select="): selected = arg.substr(9)
 		elif arg.begins_with("--distance="): start_distance = float(arg.substr(11))
 		elif arg.begins_with("--focus="): focus_id = arg.substr(8)
+		elif arg.begins_with("--humans="): actors.human_mode = arg.substr(9)
 	var we := WorldEnvironment.new()
 	env.background_mode = Environment.BG_COLOR; env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.fog_enabled = true; env.fog_density = 0.0016
@@ -70,11 +71,17 @@ func _poll() -> void:
 		var c = live.get("climate")
 		if c != null: _apply_sky(float(c.get("hour", 12.0)))
 		if not framed and not actors.people.is_empty():
-			cam.focus(actors.people[focus_id].position if actors.people.has(focus_id) else actors.centroid(), start_distance); framed = true; shot_timer = 0.0
+			cam.focus(_focus_point(), start_distance); framed = true; shot_timer = 0.0
 		actors.selected = selected
 		hud.show_selected(actors.latest_people.get(selected))
 	hud.show_live(live, connected)
 	busy = false; since_poll = 0.0
+
+func _focus_point() -> Vector3:
+	if actors.people.has(focus_id): return actors.people[focus_id].position
+	if actors.animals.has(focus_id): return actors.animals[focus_id].position
+	if focus_id == "animals" and not actors.animals.is_empty(): return actors.animal_centroid()
+	return actors.centroid()
 
 func _apply_sky(hour: float) -> void:
 	var t := (hour - 6.0) / 12.0
@@ -107,3 +114,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		hud.show_selected(actors.latest_people.get(selected))
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_F:
 		cam.focus(actors.centroid(), 45.0)
+	elif event is InputEventKey and event.pressed and event.keycode == KEY_B:
+		actors.bubbles_on = not actors.bubbles_on
+	elif event is InputEventKey and event.pressed and event.keycode == KEY_G and not actors.animals.is_empty():
+		cam.focus(actors.animal_centroid(), 30.0)

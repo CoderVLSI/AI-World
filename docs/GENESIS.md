@@ -114,6 +114,52 @@ The recorded physical-state difference between the two worlds is unexplained (se
 * `scripts/isvara_check.py --control` adds a second reflections-off world so run-to-run variation can be told apart from any effect of
   reflection; the result file now lists failure categories and per-failure counts.
 
-Still unverified with the real model: whether this revision yields valid reflections, how often they cite real ids, and their quality.
-Run `python scripts/isvara_check.py --backend lfm3 --revision <sha> --control --keep-failure-samples 300 --run-dir <NEW dir> --out <file>`
-(5 inhabitants, 60 ticks, three worlds, roughly 25 minutes on a T4); keep the private run folder out of git.
+**Second bounded T4 check (draft PR #9, source 215cd51, 5 inhabitants, 60 ticks, three worlds, 25 min 7 s): the revision worked.**
+3 of 3 reflections valid, 0 failures; 2 cited real evidence ids (the third had nothing to cite) and 2 invented ids were dropped; about 240
+output tokens each (under the 320 limit) and prompts of 683-880 tokens (were about 1,300); 10.7 s per reflection; peak GPU memory 4,693 MiB
+in every world (no extra memory); restore made no model calls. **Open question:** the two reflections-off worlds were identical to each other,
+but the reflecting world differed from them. With the mock, reflection provably does not change the world (bit-identical, tested), so the
+real-model difference is unexplained: possibilities are numerical/GPU-state effects after a long reflection prompt, or the per-tick
+wall-clock budget (about 5 calls x 3.5 s sits close to its 20 s limit). One sample cannot say which.
+
+`scripts/isvara_check.py --trace --twice` (this change) is built to find out: it records, per tick and per world, a state fingerprint, the number
+of inhabitant calls and the seconds taken (hashes, counts and seconds only), reports the first tick at which each pair of worlds differs,
+and runs a second reflecting world to see whether two reflecting runs agree. If the first difference is before the first reflection (tick 20),
+reflection is not the cause; if it is at or after it, fewer inhabitant calls on one side points to the wall-clock budget. Command (4 worlds,
+about 33 minutes on a T4; new Drive folder; pinned revision; never commit the private run folder):
+`python scripts/isvara_check.py --backend lfm3 --revision <sha> --control --twice --trace --max-real-seconds 900 --run-dir <NEW dir> --out <file>`
+
+## Founding families (generator `founders-v2`, opt-in)
+
+`python -m caitanya.server --families 50 --children-per-family 2 --width 256 --depth 256` (or `World(families=50, children_per_family=2)`)
+founds the world with **households**: each is one woman, one man and children, living together at one spot. `--population` is ignored
+when `--families` is given (the total is `families x (2 + children_per_family)`). The default (`families=0`) builds exactly the same
+world as before: the seed-equivalence fixture still matches and a default plan's serialized form and digest are unchanged
+(the family fields are only written when families > 0). Saves from before families load as before.
+* Adults are 20-40, a woman (`biological_sex` female) and a man (male). Children are 1-16 with `parent_ids` and `guardian_ids` set to
+  their two parents, generation 1, `adulthood_recorded` false, an adult height drawn from their parents' average, and a starting height
+  from the simulation's own growth rule. They use the existing rules: infants (under 3) cannot act or carry anything and depend on their
+  guardians (CARE and the guardian wake-up), children grow every tick toward their adult height, adulthood is recorded at 18, and the
+  family tree and the viewers show them. Children 3 and over start with the standard carried water.
+* `lifecycle.py` change (one line): height growth now applies to everyone younger than adulthood, not only to people born in the world.
+  People who start as adults, and newborns, are unaffected.
+
+### How big can it get? (measured, mock policy, CPU)
+| People | World | Create | Ticks per second | One tick's journal patch | Memory |
+|---|---|---|---|---|---|
+| 40 (10 households) | 128x128 | 0.3 s | 22.8 | 53 KB | 35 MB |
+| 200 (50) | 256x256 | 1.4 s | 7.1 | 68 KB | 49 MB |
+| 500 (125) | 256x256 | 1.5 s | 3.2 | 124 KB | 71 MB |
+
+The simulation itself scales to hundreds of people on a laptop. The limit is **the real model**: the scheduler gives at most 8
+decisions per tick, so with N people each person is asked at best every ceil(N/8) ticks, and one call took about 1.7 s on a T4 in our
+Stage A run (285 calls in about 480 s). By that arithmetic (not a measurement of a large run) 200 people would mean a decision every
+25 ticks per person and roughly 14 s of waiting per tick; a month of simulated time would take days of GPU time. Larger populations
+need cheaper decisions (batching several people per model call, shorter prompts, bounded multi-step plans, a bigger GPU) before they
+can be run with the real model.
+
+### Countries
+Nothing in the simulation gives anyone territory, borders, law or government, and none is planned in. They could only arise from what
+inhabitants do. With the small model in our runs, people mostly speak or wait, and have not shown the multi-step behaviour that
+institutions would need. A bigger, mixed-age population, with time for children to grow up and have their own children, is the
+precondition, not a guarantee.
