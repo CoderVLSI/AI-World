@@ -4,7 +4,7 @@ Mock (CPU; measures only the bookkeeping, says nothing about LFM3):
     python scripts/isvara_check.py --backend mock --population 5 --ticks 200 --reflect-every 20 --out isvara_mock.json
 
 Real LFM3 on a CUDA GPU (e.g. a Colab T4; one shared model instance serves inhabitants and the Isvara role).
-Keep it small: the defaults are 5 inhabitants, 60 ticks, a reflection every 20 ticks. Add --control to measure run-to-run variation.
+Keep it small: the defaults are 5 inhabitants, 60 ticks, a reflection every 20 ticks. Add --control to measure run-to-run variation, --trace to locate the first tick where worlds differ, --twice for a second reflecting world.
     python scripts/isvara_check.py --backend lfm3 --revision <sha> --run-dir /content/drive/MyDrive/CAITANYA/isvara-check-1 --out isvara_lfm3.json
 
 Without a GPU the lfm3 mode writes an explicit "unverified_no_gpu" record and exits 2.  Nothing is estimated or
@@ -57,7 +57,18 @@ def physical(w):
     return digest(dict(agents=s["agents"], resources=s["resources"], rng=s["rng_state"], objects=s["objects"], fauna=s.get("fauna"), tick=s["tick"]))
 
 
-def run_world(args, backend, reflect):
+def root_seconds(backend):
+    return backend.root_metrics()["inference_seconds"] if hasattr(backend, "root_metrics") else 0.0
+
+
+def divergence(a, b):
+    """First tick at which two traces differ: in physical-state fingerprint, and in the number of inhabitant calls."""
+    first = lambda key: next((x["tick"] for x, y in zip(a, b) if x[key] != y[key]), None)
+    return {"first_tick_state_differs": first("state"), "first_tick_inhabitant_calls_differ": first("inhabitant_calls"),
+            "ticks_compared": min(len(a), len(b))}
+
+
+def run_world(args, backend, reflect, trace=None):
     reset_gpu_peak()
     config = ({"reflect_every_ticks": args.reflect_every, "max_new_tokens": args.max_new_tokens, "keep_raw_head_chars": args.keep_failure_samples}
               if reflect else {"enabled": False})
@@ -67,7 +78,11 @@ def run_world(args, backend, reflect):
         if time.monotonic() - started > args.max_real_seconds:
             stopped = "stopped_at_wall_clock_limit"
             break
+        calls, root0, t0 = backend.calls, root_seconds(backend), time.monotonic()
         w.step()
+        if trace is not None:        # hashes, counts and seconds only; never model text
+            trace.append({"tick": w.tick, "state": physical(w)[:16], "inhabitant_calls": backend.calls - calls,
+                          "seconds": round(time.monotonic() - t0, 3), "reflection_seconds": round(root_seconds(backend) - root0, 3)})
     return w, {"stop": stopped, "ticks_completed": w.tick, "real_seconds": round(time.monotonic() - started, 3), "gpu_peak_mb": gpu_peak_mb()}
 
 
@@ -84,6 +99,9 @@ def main():
     p.add_argument("--max-real-seconds", type=float, default=600.0, help="hard cap per world")
     p.add_argument("--control", action="store_true", help="also run a second reflections-OFF world, to measure how much two identical "
                    "runs differ on their own (real models are not perfectly repeatable); adds one more world of wall time")
+    p.add_argument("--trace", action="store_true", help="record, per tick and per world, a state fingerprint, the number of inhabitant calls and "
+                   "the seconds taken, and report the first tick at which worlds differ (needs --control to compare reflections-off worlds)")
+    p.add_argument("--twice", action="store_true", help="also run a SECOND reflecting world, to see whether two reflecting runs agree with each other")
     p.add_argument("--keep-failure-samples", type=int, default=0, metavar="N",
                    help="keep the first N characters (max 500) of a failed output in the PRIVATE checkpoint only, never in the result file")
     p.add_argument("--run-dir", help="NEW directory for the checkpoint of the reflecting world (refused if it exists and is not empty)")
@@ -105,17 +123,22 @@ def main():
         backend = TransformersLFM3Backend(revision=args.revision)
     else:
         backend = MockInferenceBackend(use_tasks=True)
-    base, base_m = run_world(args, backend, reflect=False)                      # same backend object, reflections off
+    tr = {name: ([] if args.trace else None) for name in ("off", "off_control", "on", "on_second")}
+    base, base_m = run_world(args, backend, reflect=False, trace=tr["off"])     # same backend object, reflections off
     base_calls = backend.calls
     base2 = None
     if args.control:
-        base2, base2_m = run_world(args, backend, reflect=False)                # control: identical settings, reflections off again
+        base2, base2_m = run_world(args, backend, reflect=False, trace=tr["off_control"])   # control: identical settings, reflections off again
     on_calls_before = backend.calls
-    on, on_m = run_world(args, backend, reflect=True)                           # one shared model, reflections on
+    on, on_m = run_world(args, backend, reflect=True, trace=tr["on"])           # one shared model, reflections on
+    on_calls_after = backend.calls
+    on2 = None
+    if args.twice:
+        on2, on2_m = run_world(args, backend, reflect=True, trace=tr["on_second"])        # second reflecting world
     st = isvara.role_state(on)
     refl = list(st["reflections"].values())
     root = backend.root_metrics() if hasattr(backend, "root_metrics") else {"calls": getattr(backend, "root_calls", 0)}
-    human_calls_on = backend.calls - on_calls_before
+    human_calls_on = on_calls_after - on_calls_before          # inhabitant calls made by the (first) reflecting world only
     failures, failure_detail = {}, []
     for e in on.events:
         if e["type"] == "root_reflection_failed":                       # labels and counts only; never model text
@@ -147,6 +170,18 @@ def main():
                              "physical_state_identical_between_the_two_reflection_off_worlds": physical(base) == physical(base2),
                              "reading": "If this is false, the real model differs from run to run by itself, so a difference with reflection on "
                                         "is not evidence that reflection changed the world."}
+    if args.twice:
+        record["second_reflecting_world"] = {**on2_m, "physical_state_identical_to_first_reflecting_world": physical(on) == physical(on2),
+                                             "reflections_recorded": isvara.role_state(on2)["totals"]["recorded"]}
+    if args.trace:
+        attempts = sorted({e["world_tick"] for e in on.events if e["type"] in ("root_reflection", "root_reflection_failed")})
+        pairs = {"off_vs_off_control": ("off", "off_control"), "off_vs_on": ("off", "on"), "off_control_vs_on": ("off_control", "on"),
+                 "on_vs_on_second": ("on", "on_second")}
+        record["trace"] = {"reflection_attempt_ticks": attempts, "worlds": {k: v for k, v in tr.items() if v},
+                           "divergence": {name: divergence(tr[a], tr[b]) for name, (a, b) in pairs.items() if tr[a] and tr[b]},
+                           "reading": "If the first tick at which a reflecting world differs from a reflections-off world is BEFORE the first reflection "
+                                      "attempt, reflection cannot be the cause. If it is at or after it, compare inhabitant_calls and seconds on that tick: "
+                                      "fewer calls on one side points to the per-tick wall-clock budget, not to a change in what the model was shown."}
     if args.run_dir:
         path = on.checkpoint(args.run_dir)
         calls_before = root.get("calls", 0)
