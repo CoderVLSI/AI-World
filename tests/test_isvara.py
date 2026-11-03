@@ -97,7 +97,7 @@ def test_context_is_deterministic_recorded_evidence_only_and_excludes_private_me
     assert ca["evidence"][0]["kind"] == "genesis" and ca["evidence"][0]["id"].startswith("evt-")      # the creation record is citable
     ids = {e["event_id"] for e in a.events}
     assert all(e["id"] in ids for e in ca["evidence"])
-    assert ca["facts"]["living"] == 4 and "decision_fairness" in ca["facts"]
+    assert ca["facts"]["living"] == 4 and "decisions_per_agent" in ca["facts"] and "max_wait_ticks" in ca["facts"]
 
 
 def test_observations_conclusions_and_uncertainty_are_kept_apart_and_citations_are_checked():
@@ -324,3 +324,71 @@ def test_reflection_parser_rejects_anything_but_one_complete_call():
         with pytest.raises(ValueError):
             isvara.parse_reflection(bad)
     assert "RECORD_REFLECTION" not in {t["function"]["name"] for t in inference.TOOLS}   # inhabitants can never be offered it
+
+
+# ---------------------------------------------------------------- v2: diagnosable failures, shorter format
+def test_context_stays_compact_for_a_small_model():
+    """The first real check (0 of 3 valid) used a ~2,800-character context; keep it well under that."""
+    w = run(World(seed=314159, population=5, wildlife_per_species=6, backend=Scripted(), isvara_config={"reflect_every_ticks": 10 ** 6}), 60)
+    context, _ = isvara.build_context(w)
+    assert len(json.dumps(context, separators=(",", ":"), sort_keys=True)) < 2000
+    assert len(isvara.REFLECTION_PARAMETERS) == 5 and sum(v["maxLength"] for v in isvara.REFLECTION_PARAMETERS.values()) <= 1400
+    assert "one sentence" in isvara.REFLECTION_TOOL["function"]["description"] and "one short sentence" in isvara.ISVARA_SYSTEM
+
+
+@pytest.mark.parametrize("text,category,found", [
+    ("no tool here", "no_tool_call", 0),
+    ("<tool_call>\n<function=RECORD_REFLECTION>\n<parameter=observations>cut off mid", "incomplete_call", 0),
+    (REFLECTION_REPLY.format(cite="a") * 2, "extra_calls", 2),
+    (REFLECTION_REPLY.format(cite="a").replace("RECORD_REFLECTION", "MOVE"), "wrong_tool", 1),
+    (REFLECTION_REPLY.format(cite="a").replace("<parameter=proposal>", "<parameter=law>"), "bad_parameters", 1),
+    (REFLECTION_REPLY.format(cite="a").replace("Counts changed.", "z" * 500), "text_too_long", 1),
+    (REFLECTION_REPLY.format(cite="a").replace("<parameter=cites>a</parameter>", ""), "missing_parameters", 1),
+    ("<tool_call>" + "a" * 17000, "output_too_long", None)])
+def test_parse_failures_are_categorised_without_model_text(text, category, found):
+    with pytest.raises(isvara.ReflectionError) as caught:
+        isvara.parse_reflection(text)
+    assert caught.value.category == category and caught.value.detail.get("tool_calls_found") == found
+    assert "cut off mid" not in str(caught.value)
+
+
+def test_failure_events_carry_category_and_counts_but_no_text_and_samples_are_private_and_opt_in():
+    class Broken(Scripted):
+        def reflect(self, context, budget):
+            err = isvara.ReflectionError("incomplete_call", "expected exactly one complete RECORD_REFLECTION call", tool_calls_found=0)
+            err.detail.update(output_tokens=320, hit_token_limit=True, prompt_tokens=900, raw_head=SENTINEL + " raw head " * 100)
+            raise err
+    off = run(World(seed=2, population=3, backend=Broken(), isvara_config=FAST), 12)
+    event = next(e for e in off.events if e["type"] == "root_reflection_failed")
+    assert event["payload"]["category"] == "incomplete_call" and event["payload"]["output_tokens"] == 320
+    assert event["payload"]["hit_token_limit"] is True and event["payload"]["tool_calls_found"] == 0
+    assert "failure_samples" not in isvara.role_state(off)                      # off by default: no model text is kept at all
+    on = run(World(seed=2, population=3, backend=Broken(), isvara_config={"reflect_every_ticks": 3, "failure_backoff_ticks": 1, "keep_raw_head_chars": 40}), 30)
+    samples = isvara.role_state(on)["failure_samples"]
+    assert 1 <= len(samples) <= 3 and all(len(x["head"]) <= 40 and x["category"] == "incomplete_call" for x in samples)
+    assert not any(SENTINEL in json.dumps(e) for e in on.events if e["type"] != "tick_committed")     # never in events
+    app = create_app(on, "runs/_unused_sample_test", live=False)
+    with TestClient(app) as client:
+        pages = " ".join(client.get(p).text for p in ("/api/v1/world/snapshot", "/api/v1/metrics", "/api/v1/genesis", "/api/v1/live"))
+    assert SENTINEL not in pages and "failure_samples" not in pages
+    with pytest.raises(ValueError):
+        IsvaraConfig(keep_raw_head_chars=501).validate()
+
+
+def test_real_path_stops_at_the_first_call_does_not_penalise_copying_and_reports_why_it_failed(backend):
+    seen = []
+    original = backend.model.generate
+    backend.model.generate = lambda **kw: (seen.append({k: kw.get(k) for k in ("stop_strings", "repetition_penalty", "max_new_tokens")}), original(**kw))[1]
+    run(World(population=3, seed=3, backend=backend, autonomy=CONFIG, isvara_config={"reflect_every_ticks": 4}), 5)
+    root = [c for c in seen if c["stop_strings"] == ["</tool_call>"]]
+    human = [c for c in seen if c["stop_strings"] is None]
+    assert len(root) == 1 and len(human) == backend.calls > 0 and len(root) + len(human) == len(seen)
+    assert root[0]["repetition_penalty"] == 1.0 and root[0]["max_new_tokens"] == 320                  # Isvara: copying ids must not be penalised
+    assert all(c["repetition_penalty"] == 1.1 and c["max_new_tokens"] == 224 for c in human)          # inhabitants: exactly as before
+    # A model that runs on without closing the call: the failure says so (limit hit, no complete call), without any text
+    backend.tokenizer.decode = lambda tokens, skip_special_tokens: "".join(str(t) for t in tokens)
+    backend.model.generate = lambda **kw: [[0] * kw["input_ids"].shape[1] + ["<function=RECORD_REFLECTION><parameter=observations>x "] + ["word "] * 319]
+    w = run(World(population=3, seed=3, backend=backend, autonomy=CONFIG, isvara_config={"reflect_every_ticks": 4}), 5)
+    failed = next(e for e in w.events if e["type"] == "root_reflection_failed")["payload"]
+    assert failed["category"] == "incomplete_call" and failed["hit_token_limit"] is True and failed["output_tokens"] == 320
+    assert backend.root_metrics()["failures"] >= 1
