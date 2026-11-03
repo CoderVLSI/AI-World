@@ -171,6 +171,7 @@ class World:
         self.biology=biology or BiologyConfig()
         self._validate_clock()
         self._counts = {"births": 0, "validated": 0, "deaths": {}}
+        self._last_action = {}   # ephemeral view aid for witnesses: actor -> most recent validated action (not saved state)
         self.scheduler = DecisionScheduler(self.autonomy.scheduler)
         self.objects, self.next_object_id = {}, 0
         self.ledger = {"dispersed_g": 0.0, "atmosphere_g": 0.0}
@@ -270,6 +271,7 @@ class World:
 
     def public(self):
         state = redact_private(self.state())
+        state["last_actions"] = {aid: dict(v) for aid, v in self._last_action.items()}   # type/tick/origin only
         for a in state["agents"].values():
             a["age_years"]=round(age(self,self.agents[a["id"]]),3)
             a["life_stage"]=stage(self,self.agents[a["id"]])
@@ -473,10 +475,14 @@ class World:
         if event["type"] == "birth":c["births"] += 1
         elif event["type"] == "death":
             cause = event["payload"].get("cause", "unknown");c["deaths"][cause] = c["deaths"].get(cause, 0) + 1
-        if event["source"] == "validated_action":c["validated"] += 1
+        if event["source"] == "validated_action":
+            c["validated"] += 1
+            if event.get("actor_id"):
+                self._last_action[event["actor_id"]] = {"type": event["type"], "tick": event["world_tick"], "origin": event.get("origin")}
 
     def _rebuild_counts(self):
         self._counts = {"births": 0, "validated": 0, "deaths": {}}
+        self._last_action = {}
         for event in self.events:self._count(event)
 
     def step(self):

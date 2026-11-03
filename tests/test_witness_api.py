@@ -102,3 +102,31 @@ def test_the_godot_client_can_only_issue_get_requests():
         assert not re.search(r"request_raw|HTTPClient|WebSocket|ENetMultiplayer|PacketPeer", text), path
         for call in re.findall(r"\.request\(([^)]*)\)", text):
             assert "," not in call, f"{path.name}: request() with extra arguments could set a method or body: {call}"
+
+
+def test_live_view_reports_each_inhabitants_last_recorded_action_and_survives_restore(tmp_path):
+    from caitanya.engine import Intent
+    w = World(population=4, width=64, depth=64, autonomy="legacy")
+    a, b = w.agents["agent-0000"], w.agents["agent-0001"]
+    b.x, b.z = a.x, a.z
+    assert w.apply(Intent(a.id, 0, "REST", {}))[0] and w.apply(Intent(b.id, 0, "SPEAK", {"text": "hello"}))[0]
+    live = live_view(w.public())
+    by_id = {x["id"]: x for x in live["agents"]}
+    assert by_id[a.id]["last_action"] == {"type": "rest", "tick": 0, "origin": None}
+    assert by_id[b.id]["last_action"]["type"] == "speak"
+    assert by_id["agent-0003"]["last_action"] is None              # nothing recorded yet: never invented
+    w.step()
+    restored = World.restore(w.checkpoint(tmp_path))
+    assert restored._last_action[a.id]["type"] == "rest" and restored._last_action[b.id]["type"] == "speak"
+    text = json.dumps(live_view(restored.public()))
+    assert "hello" not in text                                       # only the action type, never its content
+
+
+def test_mechanical_steps_are_visible_as_movement_with_their_origin():
+    w = World(population=3, width=64, depth=64)
+    for _ in range(30):
+        w.step()
+    origins = {v["origin"] for v in w._last_action.values()}
+    assert "mechanical_execution" in origins or "mock_policy" in origins
+    walking = [a for a in live_view(w.public())["agents"] if a["last_action"] and a["last_action"]["type"] == "move"]
+    assert all(a["last_action"]["origin"] == "mechanical_execution" for a in walking)

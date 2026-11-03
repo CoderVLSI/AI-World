@@ -33,8 +33,9 @@ def terrain_grid(world, step=2):
             "biome": biome, "elevation": elevation}
 
 
-def _agent(a):
+def _agent(a, last_action=None):
     out = {k: a.get(k) for k in _AGENT_KEYS}
+    out["last_action"] = last_action       # {type, tick, origin} of its most recent recorded action, or None
     for need in ("hunger", "thirst", "energy", "health"):
         out[need] = round(a.get(need, 0))
     out["unwell"] = bool(a.get("illness"))
@@ -55,7 +56,7 @@ def live_view(snapshot):
     view = {"schema": SCHEMA_LIVE, "tick": snapshot["tick"], "status": snapshot["status"],
             "width": snapshot["width"], "depth": snapshot["depth"], "climate": snapshot.get("climate"),
             "calendar": snapshot.get("calendar"),
-            "agents": [_agent(a) for a in snapshot["agents"].values()],
+            "agents": [_agent(a, snapshot.get("last_actions", {}).get(a["id"])) for a in snapshot["agents"].values()],
             "resources": [{"id": n["id"], "x": n["x"], "z": n["z"], "kind": n["kind"], "amount": n["amount"]}
                           for n in snapshot["resources"].values() if n["amount"] > 0],
             "objects": objects}

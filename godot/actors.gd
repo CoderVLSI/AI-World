@@ -1,7 +1,11 @@
 extends Node3D
 ## Turns the /api/v1/live view into 3D figures. Purely presentational: nothing here talks back to the server.
 
+const AnimationMap := preload("res://animation_map.gd")
+const CharacterLibrary := preload("res://character_library.gd")
+
 const PERSON_SCALE := 2.3
+const MODEL_VISUAL_SCALE := 1.6   # animated models are drawn a little larger than life so they read at world scale
 const RESOURCE_COLORS := {
 	"food": "#cbba69", "fruit": "#c46f58", "grain": "#dbc986", "water": "#74bfd1", "wood": "#325a3b",
 	"stone": "#959a91", "clay": "#b77c60", "sand": "#c9bb84", "iron_ore": "#8b6554", "copper_ore": "#719a86",
@@ -17,6 +21,8 @@ var ring := MeshInstance3D.new()
 var trees := MultiMeshInstance3D.new()
 var small := MultiMeshInstance3D.new()
 var _materials := {}
+var library := CharacterLibrary.new()
+var current_tick := 0
 
 func _ready() -> void:
 	var tm := TorusMesh.new(); tm.inner_radius = 0.7; tm.outer_radius = 0.9
@@ -51,6 +57,10 @@ func _ground(x: float, z: float) -> Vector3:
 	return Vector3(x, maxf(terrain.height_at(x, z), -0.25 * terrain.HEIGHT_SCALE), z)
 
 func _person_node(a: Dictionary) -> Node3D:
+	if library.available:
+		var body := library.make(a, MODEL_VISUAL_SCALE)
+		if body != null:
+			return body
 	var root := Node3D.new()
 	var body := MeshInstance3D.new(); var cm := CapsuleMesh.new(); cm.radius = 0.2; cm.height = 1.05
 	body.mesh = cm; body.position.y = 0.62; body.material_override = _mat(str(a.get("clothing_color", "#678b91")))
@@ -113,7 +123,11 @@ func update_live(live: Dictionary, terrain_view) -> void:
 	for a in live.get("agents", []):
 		latest_people[str(a.id)] = a
 		if a.get("alive", false): alive.append(a)
-	_sync(people, alive, _person_node, func(n: Node3D, a: Dictionary): _place_mover(n, float(a.x), float(a.z)))
+	current_tick = int(live.get("tick", 0))
+	_sync(people, alive, _person_node, func(n: Node3D, a: Dictionary):
+		var recorded = a.get("last_action")     # note: set_meta(null) would delete the key, so store {} for "none"
+		n.set_meta("last_action", recorded if recorded != null else {})
+		_place_mover(n, float(a.x), float(a.z)))
 	var wl: Dictionary = live.get("wildlife", {})
 	var species: Dictionary = wl.get("species", {})
 	_sync(animals, wl.get("animals", []), func(b): return _animal_node(b, species),
@@ -146,6 +160,10 @@ func _process(delta: float) -> void:
 					n.position = n.position.lerp(t, clampf(delta * 3.0, 0.0, 1.0))
 					if Vector2(dir.x, dir.z).length() > 0.05:
 						n.rotation.y = lerp_angle(n.rotation.y, atan2(dir.x, dir.z), clampf(delta * 8.0, 0.0, 1.0))
+	for n in people.values():       # animation follows what the simulation recorded (see animation_map.gd)
+		if n.has_method("play_state"):
+			var moving: bool = n.has_meta("target") and n.position.distance_to(n.get_meta("target")) > 0.06
+			n.play_state(AnimationMap.state_for(n.get_meta("last_action", {}), current_tick, moving))
 	if selected != "" and people.has(selected):
 		ring.visible = true; ring.position = people[selected].position + Vector3(0, 0.05, 0)
 	else:

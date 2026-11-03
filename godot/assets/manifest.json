@@ -1,0 +1,43 @@
+{
+  "_comment": "Character models are NOT stored in git. scripts/fetch_assets.py downloads them with your own SKETCHFAB_API_TOKEN. 'raw_height' is the measured rendered height of the imported model at scale 1 (units); the client scales it to each inhabitant's height_cm. 'clips' maps this client's animation states to the model's own clip names; a missing state falls back to idle. 'rest_drop_m' lowers the body (metres, before visual scaling) while resting, because some sit clips assume a chair.",
+  "characters": {
+    "low_poly_girl": {
+      "sketchfab_uid": "4cb87c1d3c3c4b9ea3b4c61ab407500a",
+      "title": "Low Poly Girl",
+      "author": "manoeldarochadeoliveira",
+      "license": "CC Attribution",
+      "file": "characters/low_poly_girl.glb",
+      "raw_height": 1.6157,
+      "role": "woman",
+      "clips": {
+        "idle": "idle",
+        "walk": "walk",
+        "rest": "sit_idle",
+        "talk": "cycle_talking",
+        "work": "inspect_ground"
+      },
+      "rest_drop_m": 0.45
+    },
+    "bearded_man": {
+      "sketchfab_uid": "5718a53d18a142f686b1d9f02a637773",
+      "title": "Bearded man - Low poly animated",
+      "author": "Agor_",
+      "license": "CC Attribution",
+      "file": "characters/bearded_man.glb",
+      "raw_height": 10.93,
+      "role": "man",
+      "clips": {
+        "idle": "idle",
+        "walk": "walk",
+        "work": "picking_up"
+      }
+    }
+  },
+  "state_fallbacks": {
+    "rest": "idle",
+    "talk": "idle",
+    "work": "idle",
+    "eat": "idle",
+    "walk": "idle"
+  }
+}

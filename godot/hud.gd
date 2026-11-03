@@ -36,6 +36,8 @@ func show_selected(a) -> void:
 	var s := "%s\n%s · %s · generation %d\nage %.1f   height %d cm\nhunger %d   thirst %d\nenergy %d   health %d%s\n" % [
 		a.id, a.get("gender", ""), a.get("life_stage", ""), int(a.get("generation", 0)), float(a.get("age_years", 0.0)),
 		int(a.get("height_cm", 0)), int(a.hunger), int(a.thirst), int(a.energy), int(a.health), "   UNWELL" if a.get("unwell", false) else ""]
+	var la = a.get("last_action")
+	s += "last recorded action: %s\n" % ("none" if la == null else "%s (tick %d, %s)" % [la.type, int(la.tick), str(la.origin)])
 	if a.has("task"):
 		var t: Dictionary = a.task
 		s += "plan: %s %s\n  chosen by %s, %d steps left" % [t.kind, JSON.stringify(t.params), str(t.chosen_by), int(t.steps_left)]

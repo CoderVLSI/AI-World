@@ -24,6 +24,8 @@ var connected := false
 var framed := false
 var shot_timer := -1.0
 var selected := ""
+var start_distance := 55.0
+var focus_id := ""
 
 func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
@@ -32,6 +34,8 @@ func _ready() -> void:
 		elif arg.begins_with("--wait="): screenshot_wait = float(arg.substr(7))
 		elif arg.begins_with("--poll="): poll_seconds = float(arg.substr(7))
 		elif arg.begins_with("--select="): selected = arg.substr(9)
+		elif arg.begins_with("--distance="): start_distance = float(arg.substr(11))
+		elif arg.begins_with("--focus="): focus_id = arg.substr(8)
 	var we := WorldEnvironment.new()
 	env.background_mode = Environment.BG_COLOR; env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.fog_enabled = true; env.fog_density = 0.0016
@@ -66,7 +70,7 @@ func _poll() -> void:
 		var c = live.get("climate")
 		if c != null: _apply_sky(float(c.get("hour", 12.0)))
 		if not framed and not actors.people.is_empty():
-			cam.focus(actors.centroid(), 55.0); framed = true; shot_timer = 0.0
+			cam.focus(actors.people[focus_id].position if actors.people.has(focus_id) else actors.centroid(), start_distance); framed = true; shot_timer = 0.0
 		actors.selected = selected
 		hud.show_selected(actors.latest_people.get(selected))
 	hud.show_live(live, connected)
