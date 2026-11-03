@@ -1,0 +1,29 @@
+{
+  "classification": "real-records recovery verification; no inference by verifier",
+  "run_group": "integration-20261103T065039Z",
+  "observations": [
+    {
+      "reader_commit": "64e33f3fee58ab2f6bead344dd794fb19953d606",
+      "tick": 120,
+      "schema_version": 2,
+      "fauna_tick": 120,
+      "state_checksum_matches_committed_event": true,
+      "exact_replay_equal": false,
+      "differing_paths": [
+        [
+          "fauna",
+          "rng_state"
+        ]
+      ]
+    },
+    {
+      "reader_commit": "ce517b5c5f6ca90e24c64302ed7e2a9db90806b8",
+      "tick": 155,
+      "schema_version": 2,
+      "fauna_tick": 155,
+      "state_checksum_matches_committed_event": true,
+      "exact_replay_equal": true
+    }
+  ],
+  "scope": "Separate Python processes recovered checkpoints plus committed journals and replayed exact data. No model loading, decisions or advancement in verification. This is not a runtime-replacement drill."
+}

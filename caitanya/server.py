@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from .engine import World, redact_private
+from .engine import World, redact_private, SCHEMA_VERSION
 from .nature import climate
 from .autonomy import AutonomyConfig, load_experiment_file
 from .lifecycle import BiologyConfig, stage
@@ -27,19 +27,23 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     published=world.public()
     committed_count=len(world.events)
     stop=asyncio.Event()
+    execution={'running':False,'reason':'read_only' if not live else 'not_started'}
     async def worker():
         import time
         nonlocal published,committed_count
         started=time.monotonic();starting_tick=world.tick
+        execution.update(running=True,reason=None)
         cursor = len(world.events)
         try:
             while not stop.is_set():
                 await asyncio.sleep(interval)
                 if stop.is_set():break
                 if (max_ticks is not None and world.tick-starting_tick>=max_ticks) or (max_seconds is not None and time.monotonic()-started>=max_seconds):
+                    execution['reason']='budget_reached'
                     return
                 if (directory/"events.jsonl").exists() and (directory/"events.jsonl").stat().st_size > max_journal_bytes:
                     world.status="PAUSED_RESOURCE_LIMIT"
+                    execution['reason']='journal_limit'
                     published=world.public()
                     world.checkpoint(directory)
                     return
@@ -55,7 +59,11 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
                 with (directory/"metrics.jsonl").open("a",encoding="utf-8") as f:
                     f.write(json.dumps(world.metrics(),separators=(",",":"))+"\n")
                 if world.tick % checkpoint_every == 0: world.checkpoint(directory)
+        except BaseException:
+            execution['reason']='worker_error'
+            raise
         finally:
+            execution.update(running=False,reason=execution['reason'] or 'stopped')
             world.checkpoint(directory)
             if report_dir:
                 from .experiment import summarize, source_revision
@@ -77,9 +85,9 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     app=FastAPI(title="CAITANYA read-only witness",lifespan=lifespan)
     app.state.world=world
     @app.get("/api/v1/health")
-    def health(): return {"status":world.status,"schema_version":1,"mode":world.manifest["inference_backend"]}
+    def health(): return {"status":world.status,"schema_version":SCHEMA_VERSION,"mode":world.manifest["inference_backend"],"execution":dict(execution)}
     @app.get("/api/v1/world/snapshot")
-    def snapshot(): return published
+    def snapshot(): return published | {'execution':dict(execution)}
     @app.get("/api/v1/world/events")
     def events(after:int=0):
         if after < 0 or after > committed_count: raise HTTPException(400,"Invalid cursor")
@@ -105,12 +113,20 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
             biology=BiologyConfig(**state.get("biology",{}))
             state["climate"]=climate(from_tick,biology.days_per_tick)
             redact_private(state)
+            if 'fauna' in state:
+                from fauna.ecology import Ecosystem
+                state['wildlife']=Ecosystem.restore(state.pop('fauna')).public()
+                state['wildlife']['mode']='Integrated deterministic ecology — shared human world'
             for a in state["agents"].values():
                 a["age_years"]=round(a["age_years_at_start"]+(from_tick-a["born_tick"])*biology.days_per_tick/365,3)
             return state
         except ValueError as e: raise HTTPException(400,str(e))
     @app.get("/api/v1/metrics")
     def metrics(): return published["metrics"]
+    @app.get('/api/v1/wildlife')
+    def wildlife():return published.get('wildlife',{'mode':'No wildlife recorded in this run','animals':[],'species':{},'counts':{},'events':[],'tick':published['tick'],'elapsed_days':0})
+    @app.get('/api/v1/wildlife/terrain')
+    def wildlife_terrain():return dict(width=world.width,depth=world.depth,terrain=world.terrain)
     @app.get("/api/v1/scheduler")
     def scheduler_report():
         """Decision budget, fairness and LFM-versus-mechanical attribution (measured counters)."""
@@ -129,6 +145,7 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     @app.get("/viewer")
     def viewer(): return FileResponse(ROOT/"web"/"index.html")
     app.mount("/static",StaticFiles(directory=ROOT/"web"),name="static")
+    app.mount('/fauna',StaticFiles(directory=ROOT/'fauna'/'web',html=True),name='fauna')
     return app
 
 def build_parser():
@@ -139,6 +156,7 @@ def build_parser():
     p.add_argument("--root-mode",choices=["off","observe","crisis"],default="crisis")
     p.add_argument("--max-ticks",type=int);p.add_argument("--max-seconds",type=float)
     p.add_argument("--report-dir")
+    p.add_argument('--wildlife-per-species',type=int,default=6,help='Initial animals per species for NEW worlds; 0 disables wildlife. Recovery preserves saved ecology.')
     p.add_argument("--days-per-tick",type=float,default=1/144,help="World calendar rate; baseline ten minutes per tick. Accelerated experiments must be labeled.")
     p.add_argument("--resume"); p.add_argument("--run-dir",default="runs/local")
     p.add_argument("--config",help="Experiment JSON (see config/default.json). Only a file named here is ever loaded.")
@@ -160,7 +178,7 @@ def build_world(args,p,backend=None):
         autonomy=replace(autonomy,scheduler=replace(autonomy.scheduler,max_decisions_per_tick=args.decisions_per_tick))
     given=dict(seed=args.seed,population=args.population,width=args.width,depth=args.depth)
     explicit={k:v for k,v in given.items() if p.get_default(k)!=v}   # command line beats the file
-    return World(**{**given,**params,**explicit},backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),autonomy=autonomy,root_mode=args.root_mode)
+    return World(**{**given,**params,**explicit},backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),autonomy=autonomy,root_mode=args.root_mode,wildlife_per_species=args.wildlife_per_species)
 
 def main():
     import uvicorn

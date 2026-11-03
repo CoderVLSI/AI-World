@@ -5,3 +5,39 @@ Only evidence-backed observations belong here. Mock tests are not real AI experi
 ## Earlier Colab run (before this phase)
 
 Runtime inspection on 2026-11-02 found a pre-root generational run at tick 719 with zero survivors, zero births and generation zero. Its cumulative shared backend counters also include earlier experiments, so they cannot be attributed to that run. This is a survival failure, not evidence of civilization. Raw histories will be preserved before source replacement. New experiments will receive independent run directories and model-process counters.
+
+Update: Colab disconnected before those histories could be preserved. Reconnection showed that the prior runtime's model and /content/caitanya_runs directory were gone. Drive OAuth subsequently failed. No new agent actions were verified. See [the operational incident report](experiments/2026-11-02-colab-reconnection/REPORT.md). Do not interpret historical notebook outputs as a currently running civilization.
+
+## Five-agent real run — five-20261102T162454Z
+
+After the user repaired Drive authorization, a write/fsync/readback check passed. The latest main source (dfb78d59491b976286d0c0a7c5fb04c4e9306b69) ran explicitly with --backend lfm3 on a Tesla T4, using one LiquidAI/LFM3-1.7B instance pinned to ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7. Root mode was observe, with no crisis intervention. This was a 30-tick baseline-calendar smoke test, approximately five simulated hours, not a long-term civilization test.
+
+All five inhabitants completed ten validated model actions each. Totals: 14 EAT, 12 DRINK, 12 SPEAK, 11 WAIT and one REST. Fifty inference calls succeeded with no inference failures or rejected actions. Population remained five; there were no births, deaths, writings or constructed objects. Inference took 56.015 seconds for 718 output tokens (12.82 tokens/second); peak model-process GPU allocation was 4,032,325,120 bytes. These timings exclude model loading.
+
+Examples: agent-0000 ate at evt-000000002; agent-0001 waited at evt-000000003. At evt-000000027, agent-0000 said: "I see you've been eating several times already (at ticks 3, 6, 9). Your hunger is low (3) but thirst is high (12). Consider drinking some water and maybe resting if needed." This is public model-authored speech, not verified knowledge of another's private experience. Some speech adopts an assistant-like perspective or claims help that no corresponding transfer action confirms. It is not evidence of cooperation or discovery.
+
+Histories and metrics are stored privately on Drive. A fresh server process recovered tick 30 with an identical public-state hash; internal checkpoint/journal recovery also passed. This is process-restart evidence, not yet a full Colab-runtime-replacement drill. The witness returned HTTP 200, rejected snapshot POST with 405 and omitted root state/private memories. Colab's browser output-frame/proxy rendering remained unreliable.
+
+[Full report and event references](experiments/five-20261102T162454Z/REPORT.md) · [Sanitized action evidence](experiments/five-20261102T162454Z/evidence.json) · [Fresh-process recovery comparison](experiments/five-20261102T162454Z/fresh-process-recovery.json).
+
+## Fifty-agent real benchmark — fifty-20261102T163129Z
+
+The same pinned text model and source ran a separate world with fifty initial inhabitants and one model instance, in observe mode. The worker completed 60 ticks (approximately ten simulated hours) within a 240-second worker budget. Every identity agent-0000 through agent-0049 completed two validated model actions. Totals: 80 EAT, 17 WAIT and three DRINK; 100 successful model calls, zero inference failures and zero rejected actions. All fifty survived. There were no births, pregnancies, deaths, constructions or written works, and no philosophical development is evidenced.
+
+Inference produced 720 tokens over 87.472 seconds (8.23 tokens/second), excluding loading. Peak model-process GPU allocation was 4,389,524,480 bytes. The private journal occupied 443,521 bytes. This establishes bounded fifty-identity operation, not a sustainable civilization or adequate long-term decision frequency. The sparse decision schedule remains a limitation assigned to Claude's foundations work.
+
+[Full benchmark report](experiments/fifty-20261102T163129Z/REPORT.md) · [All 100 sanitized actions and request IDs](experiments/fifty-20261102T163129Z/evidence.json).
+
+Persistence follow-up: after stopping the completed benchmark, Colab's Restart session cleared notebook variables. A fresh model-backed server recovered the same tick-60 world from Drive with an identical public-state hash. See [runtime recovery evidence](experiments/fifty-20261102T163129Z/runtime-recovery-check.json). This is a kernel/session restart drill; complete VM replacement remains untested. The recovered worker has a zero-tick budget and is not making further model calls. Browser preview rendering remains a separate unresolved issue; no unauthenticated public viewer was exposed.
+
+## 2026-11-03 — integrated real-model prefix (still running)
+
+Source 64e33f3, pinned LFM3 revision ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7, Tesla T4, one shared instance; new Drive group integration-20261103T065039Z. All five human identities have validated request-linked actions. At tick 41: 205 successful calls, zero inference/prompt-budget failures, five living humans and 29 rejected decisions. These are partial counters, not a completed survival benchmark.
+
+Actual actions include inspect, speak, eat, drink, wait, move and rest. Inspection events evt-000000007 and evt-000000008 returned result `inspected`; neither is an invention. In evt-000000010 (tick 1), agent-0004 said: “I see other adults nearby. Should I move toward them or gather more resources?” Similar questions recur in evt-000000014 and evt-000000022. These are original model utterances, not evidence that the agents planned successfully or received an operator answer. No reply or discovery was injected. Later journal inspection found rejected attempts with reasons `resource unavailable`, `unknown object` and `resource out of reach`; rejected attempts caused no validated action. Wildlife continues under deterministic ecology and is not counted as real-model inhabitants.
+
+Partial evidence and exact event/request references: [integration report](experiments/integration-20261103T065039Z/REPORT.md). Long-duration Stage A, Stage B, final recovery and final summaries remain pending.
+
+The original prefix was stopped at tick 155 (1.076 simulated days): 775 successful real calls, 178 rejected decisions, five living humans and no births/deaths. A fresh-process replay check first failed only on the wildlife RNG tuple/list representation. Corrected reader ce517b5 reloaded the same preserved data with checksum agreement and exact replay equality. Replacement group integration-fixed-20261103T072124Z starts a fresh world; its duration is separate from this original prefix. No scripted answers were supplied to the agents.
+
+Owner requested immediate handoff. Corrected GPU run stopped cleanly at tick 199 (1.382 simulated days): 995 successful calls, 729 validated request-linked actions, five living/verified identities, zero births/deaths, zero inference/prompt-budget failures. Final evidence audit, checkpoint recovery and exact replay passed. Fifty-agent stage did not start. Full handoff and continuation prompt: CAITANYA_HANDOFF.md. No further GPU work is running.

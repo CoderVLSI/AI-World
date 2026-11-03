@@ -131,6 +131,7 @@ class TransformersLFM3Backend:
             "dependency_versions":{name:version(name) for name in ("torch","transformers","accelerate","huggingface-hub")}}
         self.lock=threading.Lock();self.calls=0;self.failures=0;self.output_tokens=0;self.elapsed_seconds=0
         self.last_request={}
+        self.prompt_token_counts=[];self.prompt_budget_failures=0
         self.tokenizer=AutoTokenizer.from_pretrained(self.model_id,revision=self.model_revision,trust_remote_code=True)
         self.model=AutoModelForCausalLM.from_pretrained(self.model_id,revision=self.model_revision,
             trust_remote_code=True,device_map=device,dtype=torch.float16 if device=="cuda" else torch.float32,
@@ -158,7 +159,13 @@ class TransformersLFM3Backend:
                 # small action budget on narrative. The model still chooses the tool.
                 prompt += "<tool_call>\n"
                 inputs=self.tokenizer(prompt,return_tensors="pt",add_special_tokens=False).to(self.device)
-                if inputs.input_ids.shape[1]>self.max_prompt_tokens:raise InferenceFailure("prompt budget exceeded")
+                prompt_tokens=int(inputs.input_ids.shape[1])
+                if not hasattr(self,'prompt_token_counts'):
+                    self.prompt_token_counts=[];self.prompt_budget_failures=0
+                self.prompt_token_counts.append(prompt_tokens)
+                if prompt_tokens>self.max_prompt_tokens:
+                    self.prompt_budget_failures+=1
+                    raise InferenceFailure("prompt budget exceeded")
                 with torch.inference_mode():
                     result=self.model.generate(**inputs,max_new_tokens=self.max_new_tokens,do_sample=False,
                         repetition_penalty=1.1,max_time=self.max_seconds,pad_token_id=self.tokenizer.eos_token_id)
@@ -172,6 +179,9 @@ class TransformersLFM3Backend:
     def metrics(self):
         import torch
         return {"model_calls":self.calls,"parse_or_inference_failures":self.failures,"output_tokens":self.output_tokens,
+            "prompt_tokens":{"min":min(self.prompt_token_counts,default=0),"max":max(self.prompt_token_counts,default=0),
+                "total":sum(self.prompt_token_counts),"measured_requests":len(self.prompt_token_counts),"cap":self.max_prompt_tokens},
+            "prompt_budget_failures":self.prompt_budget_failures,
             "gpu_allocated_bytes":torch.cuda.memory_allocated() if self.device=="cuda" else 0,
             "gpu_peak_allocated_bytes":torch.cuda.max_memory_allocated() if self.device=="cuda" else 0,
             "inference_seconds":round(self.elapsed_seconds,3),"tokens_per_second":round(self.output_tokens/max(.001,self.elapsed_seconds),2),

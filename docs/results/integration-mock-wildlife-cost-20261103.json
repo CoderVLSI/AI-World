@@ -1,0 +1,30 @@
+{
+  "classification": "CPU/mock cost measurement",
+  "commit_sha": "a38b935d2b71e455b38fdf1f6aff7e1d0f45895e",
+  "working_tree_changes": true,
+  "seed": 314159,
+  "width": 128,
+  "depth": 128,
+  "measurements": [
+    {
+      "wildlife_per_species": 0,
+      "ticks": 60,
+      "population": 50,
+      "journal_bytes": 2131438,
+      "bytes_per_tick": 35523.96666666667,
+      "measured_real_seconds": 39.79700000000594,
+      "projected_days_to_100MB": 19.548617725060105
+    },
+    {
+      "wildlife_per_species": 6,
+      "ticks": 60,
+      "population": 50,
+      "journal_bytes": 3182236,
+      "bytes_per_tick": 53037.26666666667,
+      "measured_real_seconds": 47.203999999997905,
+      "projected_days_to_100MB": 13.093518729178685
+    }
+  ],
+  "overhead_percent": 49.29995617981851,
+  "projection_note": "Linear projection from measured ticks, not an observed storage lifetime. Disk format unchanged."
+}

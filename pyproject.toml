@@ -14,7 +14,7 @@ gpu = ["transformers>=5.20.2", "accelerate", "torch"]
 dashboard = ["gradio>=6,<7"]
 
 [tool.setuptools.packages.find]
-include = ["caitanya*"]
+include = ["caitanya*", "fauna*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
