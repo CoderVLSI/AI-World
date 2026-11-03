@@ -596,3 +596,17 @@ def test_offered_tools_follow_the_situation_and_new_tools_parse_safely():
                     "<tool_call><function=TRAVEL_TO><parameter=x>a</parameter><parameter=z>2</parameter></function></tool_call>"):
         with pytest.raises(InferenceFailure):
             parse_tool(hostile, obs)
+
+
+def test_inspect_description_states_the_real_reach_rule():
+    """The description must match what INSPECT enforces: exact ids, one Manhattan step for resources."""
+    text = X.TOOL_DESCRIPTIONS["INSPECT"]
+    assert "exact id" in text and "one step" in text and "inventory:<material>" in text
+    w, a = lab()
+    rid, node = next((k, v) for k, v in w.resources.items() if v["kind"] == "water")
+    node["x"], node["z"] = a.x + 1, a.z                       # one step: inspectable
+    assert do(w, a, "INSPECT", subject=rid)[0]
+    node["x"] = a.x + 2                                       # two steps: visible, not inspectable
+    assert do(w, a, "INSPECT", subject=rid)[:2] == (False, "resource out of reach")
+    for wrong in ("water: renewable", "water: " + rid, "water"):   # the Stage A failure mode
+        assert do(w, a, "INSPECT", subject=wrong)[:2] == (False, "unknown object")

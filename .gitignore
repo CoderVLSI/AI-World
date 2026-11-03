@@ -7,3 +7,8 @@ node_modules/
 
 *.zip
 examples/
+
+tools/
+
+godot/assets/characters/
+godot/.godot/
