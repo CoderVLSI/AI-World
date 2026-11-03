@@ -114,6 +114,17 @@ The recorded physical-state difference between the two worlds is unexplained (se
 * `scripts/isvara_check.py --control` adds a second reflections-off world so run-to-run variation can be told apart from any effect of
   reflection; the result file now lists failure categories and per-failure counts.
 
-Still unverified with the real model: whether this revision yields valid reflections, how often they cite real ids, and their quality.
-Run `python scripts/isvara_check.py --backend lfm3 --revision <sha> --control --keep-failure-samples 300 --run-dir <NEW dir> --out <file>`
-(5 inhabitants, 60 ticks, three worlds, roughly 25 minutes on a T4); keep the private run folder out of git.
+**Second bounded T4 check (draft PR #9, source 215cd51, 5 inhabitants, 60 ticks, three worlds, 25 min 7 s): the revision worked.**
+3 of 3 reflections valid, 0 failures; 2 cited real evidence ids (the third had nothing to cite) and 2 invented ids were dropped; about 240
+output tokens each (under the 320 limit) and prompts of 683-880 tokens (were about 1,300); 10.7 s per reflection; peak GPU memory 4,693 MiB
+in every world (no extra memory); restore made no model calls. **Open question:** the two reflections-off worlds were identical to each other,
+but the reflecting world differed from them. With the mock, reflection provably does not change the world (bit-identical, tested), so the
+real-model difference is unexplained: possibilities are numerical/GPU-state effects after a long reflection prompt, or the per-tick
+wall-clock budget (about 5 calls x 3.5 s sits close to its 20 s limit). One sample cannot say which.
+
+`scripts/isvara_check.py --trace --twice` (this change) is built to find out: it records, per tick and per world, a state fingerprint, the number
+of inhabitant calls and the seconds taken (hashes, counts and seconds only), reports the first tick at which each pair of worlds differs,
+and runs a second reflecting world to see whether two reflecting runs agree. If the first difference is before the first reflection (tick 20),
+reflection is not the cause; if it is at or after it, fewer inhabitant calls on one side points to the wall-clock budget. Command (4 worlds,
+about 33 minutes on a T4; new Drive folder; pinned revision; never commit the private run folder):
+`python scripts/isvara_check.py --backend lfm3 --revision <sha> --control --twice --trace --max-real-seconds 900 --run-dir <NEW dir> --out <file>`
