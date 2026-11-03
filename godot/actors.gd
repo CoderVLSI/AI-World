@@ -28,6 +28,21 @@ var library := CharacterLibrary.new()
 var animal_builder := AnimalBuilder.new()
 var clock := 0.0
 var current_tick := 0
+# Crowds: only the people near the camera get the full articulated body (built lazily); everyone else is a cheap crowd figure drawn
+# with two MultiMeshes, so hundreds of people cost a handful of draw calls. Distant animals are not animated, very distant ones hidden.
+const NEAR_ENTER := 30.0          # a person closer than this to the camera gets the full body ...
+const NEAR_EXIT := 36.0           # ... and keeps it until farther than this (stops flicker at the edge)
+const MAX_FULL_PEOPLE := 60       # never more than this many full bodies at once, whatever the camera sees
+const SELECTED_FULL_RANGE := 90.0
+const ANIMATE_ANIMALS_WITHIN := 55.0
+const HIDE_ANIMALS_BEYOND := 150.0
+const LOD_INTERVAL := 0.25
+var crowd_body := MultiMeshInstance3D.new()
+var crowd_head := MultiMeshInstance3D.new()
+var _crowd_capacity := 0
+var crowd_flags := PackedByteArray()       # per person, in drawing order: 1 = drawn as a crowd figure (tests read this, not the renderer)
+var _lod_clock := 99.0
+var full_people_count := 0
 var human_mode := "procedural"    # "procedural": every person is built from their recorded age (grows); "models": rigged adults when fetched
 
 func _ready() -> void:
@@ -36,6 +51,13 @@ func _ready() -> void:
 	add_child(ring)
 	trees.multimesh = _multimesh(_cone(0.5, 2.4)); small.multimesh = _multimesh(_sphere(0.2))
 	add_child(trees); add_child(small)
+	# Crowd figure for a person of unit height: a capsule body and a sphere head, scaled per person.
+	var cap := CapsuleMesh.new(); cap.radius = 0.11; cap.height = 0.66; cap.radial_segments = 8; cap.rings = 3
+	var head := SphereMesh.new(); head.radius = 0.075; head.height = 0.15; head.radial_segments = 8; head.rings = 4
+	crowd_body.multimesh = _multimesh(cap); crowd_head.multimesh = _multimesh(head)
+	var vc := StandardMaterial3D.new(); vc.vertex_color_use_as_albedo = true; vc.roughness = 0.9
+	crowd_body.material_override = vc; crowd_head.material_override = vc
+	add_child(crowd_body); add_child(crowd_head)
 
 func _cone(r: float, h: float) -> Mesh:
 	var m := CylinderMesh.new(); m.top_radius = 0.0; m.bottom_radius = r; m.height = h; m.radial_segments = 6; m.rings = 1
@@ -70,7 +92,7 @@ func _person_node(a: Dictionary) -> Node3D:
 		if body != null:
 			return body
 	var h := Human.new()
-	h.setup(a)
+	h.setup(a, false)          # a crowd figure until the camera comes close (see _update_lod)
 	return h
 
 func _animal_node(b: Dictionary, species: Dictionary) -> Node3D:
@@ -133,6 +155,8 @@ func update_live(live: Dictionary, terrain_view) -> void:
 		n.position = _ground(float(o.x) + 0.5, float(o.z) + 0.5)
 		n.visible = o.get("kind") != "fire" or o.get("burning", false))
 	_resources(live.get("resources", []))
+	_refresh_crowd_colors()
+	_lod_clock = 99.0                  # re-decide who is near right away after a poll
 
 func _resources(items: Array) -> void:
 	var tree_items := []; var small_items := []
@@ -147,6 +171,86 @@ func _resources(items: Array) -> void:
 			mm.set_instance_transform(i, Transform3D(Basis(), p + Vector3(0, pair[2], 0)))
 			mm.set_instance_color(i, Color(RESOURCE_COLORS.get(str(r.kind), "#aaaaaa")))
 
+func _is_full(n: Node3D) -> bool:
+	return (not n.has_method("set_detail")) or bool(n.detail)       # rigged model nodes are always drawn in full
+
+func _update_lod() -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var cp: Vector3 = cam.global_position
+	var near := []
+	for id in people:
+		var n: Node3D = people[id]
+		if not n.has_method("set_detail"):
+			continue
+		var d: float = n.global_position.distance_to(cp)
+		var limit := NEAR_EXIT if bool(n.detail) else NEAR_ENTER
+		if id == selected and d <= SELECTED_FULL_RANGE:
+			limit = SELECTED_FULL_RANGE
+		if d <= limit:
+			near.append([d - (1000.0 if id == selected else 0.0), n])
+	near.sort_custom(func(a, b): return a[0] < b[0])
+	var keep := {}
+	for i in mini(near.size(), MAX_FULL_PEOPLE):
+		keep[near[i][1]] = true
+	full_people_count = 0
+	for id in people:
+		var n: Node3D = people[id]
+		if not n.has_method("set_detail"):
+			full_people_count += 1
+			continue
+		var want: bool = keep.has(n)
+		if want != bool(n.detail):
+			n.set_detail(want)
+		if want:
+			full_people_count += 1
+	for n: Node3D in animals.values():
+		var d: float = n.global_position.distance_to(cp)
+		n.visible = d <= HIDE_ANIMALS_BEYOND
+		n.set_meta("animate", d <= ANIMATE_ANIMALS_WITHIN)
+
+func _ensure_crowd_capacity() -> void:
+	var need := maxi(people.size(), 1)
+	if need <= _crowd_capacity:
+		return
+	_crowd_capacity = maxi(64, int(pow(2.0, ceil(log(float(need)) / log(2.0)))))
+	crowd_body.multimesh.instance_count = _crowd_capacity
+	crowd_head.multimesh.instance_count = _crowd_capacity
+	crowd_flags.resize(_crowd_capacity)
+	for i in _crowd_capacity:                                      # unused instances stay invisible
+		crowd_body.multimesh.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ZERO), Vector3.ZERO))
+		crowd_head.multimesh.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ZERO), Vector3.ZERO))
+
+func _refresh_crowd_colors() -> void:
+	_ensure_crowd_capacity()
+	var i := 0
+	for id in people:
+		var n: Node3D = people[id]
+		if n.has_method("set_detail"):
+			crowd_body.multimesh.set_instance_color(i, n.cloth_color)
+			crowd_head.multimesh.set_instance_color(i, n.skin_color)
+		i += 1
+
+func _update_crowd() -> void:
+	var mb := crowd_body.multimesh
+	var mh := crowd_head.multimesh
+	var i := 0
+	var hidden := Transform3D(Basis.from_scale(Vector3.ZERO), Vector3.ZERO)
+	for id in people:
+		var n: Node3D = people[id]
+		if n.has_method("set_detail") and not bool(n.detail):
+			var s: float = n.height_units
+			var b := Basis.from_euler(Vector3(0.0, n.rotation.y, 0.0)).scaled(Vector3(s, s, s))
+			mb.set_instance_transform(i, Transform3D(b, n.position + Vector3(0.0, 0.43 * s, 0.0)))
+			mh.set_instance_transform(i, Transform3D(b, n.position + Vector3(0.0, 0.9 * s, 0.0)))
+			crowd_flags[i] = 1
+		else:
+			mb.set_instance_transform(i, hidden)
+			mh.set_instance_transform(i, hidden)
+			crowd_flags[i] = 0
+		i += 1
+
 func _process(delta: float) -> void:
 	for group in [people, animals]:
 		for n: Node3D in group.values():
@@ -158,14 +262,21 @@ func _process(delta: float) -> void:
 					if Vector2(dir.x, dir.z).length() > 0.05:
 						n.rotation.y = lerp_angle(n.rotation.y, atan2(dir.x, dir.z), clampf(delta * 8.0, 0.0, 1.0))
 	clock += delta
-	for n: Node3D in animals.values():   # poses follow the recorded action and real movement (animal_motion.gd)
+	_lod_clock += delta
+	if _lod_clock >= LOD_INTERVAL:
+		_lod_clock = 0.0
+		_update_lod()
+	for n: Node3D in animals.values():   # poses follow the recorded action and real movement (animal_motion.gd); only nearby ones
+		if not n.get_meta("animate", true):
+			continue
 		var moving_a: bool = n.has_meta("target") and n.position.distance_to(n.get_meta("target")) > 0.06
 		animal_builder.apply_pose(n, AnimalMotion.pose(str(n.get_meta("group", "mammal")), str(n.get_meta("action", "")),
 			moving_a, clock + float(n.get_meta("phase", 0.0))))
-	for n in people.values():       # animation follows what the simulation recorded (see animation_map.gd)
-		if n.has_method("play_state"):
+	for n in people.values():       # animation follows what the simulation recorded (see animation_map.gd); only full bodies
+		if n.has_method("play_state") and _is_full(n):
 			var moving: bool = n.has_meta("target") and n.position.distance_to(n.get_meta("target")) > 0.06
 			n.play_state(AnimationMap.state_for(n.get_meta("last_action", {}), current_tick, moving))
+	_update_crowd()
 	if selected != "" and people.has(selected):
 		ring.visible = true; ring.position = people[selected].position + Vector3(0, 0.05, 0)
 	else:

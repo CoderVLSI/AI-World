@@ -6,6 +6,15 @@ extends Node3D
 const Props := preload("res://human_proportions.gd")
 const METRE := 1.6          # display units per metre, same as the animals and animated models
 
+static var _shared_materials := {}      # one material per colour for ALL people (a crowd shares them)
+static var _unit_sphere: SphereMesh
+static var _unit_tube: CylinderMesh
+
+var built := false          # the articulated rig exists (built lazily, only for people who are ever close to the camera)
+var detail := false         # the rig is currently shown and animated; otherwise the viewer draws this person as a crowd figure
+var height_units := 2.7     # standing height in display units, known even before the rig is built
+var cloth_color := Color("#678b91")
+var skin_color := Color("#bd8c68")
 var parts := {}
 var skin := Color("#bd8c68")
 var cloth := Color("#678b91")
@@ -19,40 +28,52 @@ var state := "idle"
 var phase := 0.0
 var clock := 0.0
 var cur := {}               # smoothed joint angles
-var _mats := {}
 
 func _mat(c: Color) -> StandardMaterial3D:
 	var key := c.to_html()
-	if not _mats.has(key):
+	if not _shared_materials.has(key):
 		var m := StandardMaterial3D.new(); m.albedo_color = c; m.roughness = 0.9
-		_mats[key] = m
-	return _mats[key]
+		_shared_materials[key] = m
+	return _shared_materials[key]
 
 func _pivot(parent: Node3D) -> Node3D:
 	var n := Node3D.new(); parent.add_child(n)
 	return n
 
 func _ball(parent: Node3D, c: Color) -> MeshInstance3D:
-	var mi := MeshInstance3D.new(); var sm := SphereMesh.new()
-	sm.radius = 0.5; sm.height = 1.0; sm.radial_segments = 10; sm.rings = 5
-	mi.mesh = sm; mi.material_override = _mat(c); parent.add_child(mi)
+	if _unit_sphere == null:
+		_unit_sphere = SphereMesh.new()
+		_unit_sphere.radius = 0.5; _unit_sphere.height = 1.0; _unit_sphere.radial_segments = 10; _unit_sphere.rings = 5
+	var mi := MeshInstance3D.new()
+	mi.mesh = _unit_sphere; mi.material_override = _mat(c); parent.add_child(mi)
 	return mi
 
 func _tube(parent: Node3D, c: Color) -> MeshInstance3D:
-	var mi := MeshInstance3D.new(); var cm := CylinderMesh.new()
-	cm.top_radius = 0.5; cm.bottom_radius = 0.42; cm.height = 1.0; cm.radial_segments = 8
-	mi.mesh = cm; mi.material_override = _mat(c); parent.add_child(mi)
+	if _unit_tube == null:
+		_unit_tube = CylinderMesh.new()
+		_unit_tube.top_radius = 0.5; _unit_tube.bottom_radius = 0.42; _unit_tube.height = 1.0; _unit_tube.radial_segments = 8
+	var mi := MeshInstance3D.new()
+	mi.mesh = _unit_tube; mi.material_override = _mat(c); parent.add_child(mi)
 	return mi
 
-## `agent` is one entry of /api/v1/live agents.
-func setup(agent: Dictionary) -> void:
+## `agent` is one entry of /api/v1/live agents. With `with_detail` false only the look is stored (a crowd figure); the articulated rig
+## is built the first time `set_detail(true)` is called, so a crowd of hundreds costs almost nothing until someone comes close.
+func setup(agent: Dictionary, with_detail: bool = true) -> void:
 	skin = Color(str(agent.get("skin_tone", "#bd8c68")))
 	cloth = Color(str(agent.get("clothing_color", "#678b91")))
+	skin_color = skin; cloth_color = cloth
 	gender = str(agent.get("gender", ""))
 	var digits := str(agent.get("id", "0")).get_slice("-", 1)
 	var tone := int(digits) % 3                      # hair colour is a display choice, varied by id
 	hair = [Color("#2b2118"), Color("#4a3322"), Color("#16120f")][tone]
 	phase = float(hash(str(agent.get("id"))) % 628) / 100.0
+	age = -1.0; height_cm = -1.0
+	_remember_growth(float(agent.get("age_years", 25.0)), float(agent.get("height_cm", 170.0)))
+	set_process(false)
+	if with_detail:
+		set_detail(true)
+
+func _build_rig() -> void:
 	var rig := _pivot(self); parts["rig"] = rig
 	var hips := _pivot(rig); parts["hips"] = hips
 	parts["pelvis"] = _ball(hips, cloth.darkened(0.25))
@@ -76,18 +97,45 @@ func setup(agent: Dictionary) -> void:
 		parts["foot_" + side] = _ball(knee, Color("#2a2522"))
 	for j in ["hip_l", "hip_r", "knee_l", "knee_r", "arm_l", "arm_r", "elbow_l", "elbow_r", "torso", "pitch", "yaw", "sit"]:
 		cur[j] = 0.0
-	set_growth(float(agent.get("age_years", 25.0)), float(agent.get("height_cm", 170.0)))
+	built = true
+
+## Show (true) or hide (false) the articulated rig. Hidden people cost nothing per frame; the viewer draws them as crowd figures.
+func set_detail(on: bool) -> void:
+	if on and not built:
+		_build_rig()
+		_shape(true)
+	if built:
+		parts.rig.visible = on
+		if on and shape_dirty:
+			_shape(true)
+	detail = on
+	set_process(on)
 
 func top_y() -> float:
-	return float(lens.get("height", 2.7))
+	return height_units
 
-## Re-shape the body for a new age/height. Cheap, and a no-op when nothing meaningful changed.
-func set_growth(age_years: float, height_in_cm: float) -> void:
+var shape_dirty := false
+
+func _remember_growth(age_years: float, height_in_cm: float) -> bool:
 	if absf(age_years - age) < 0.01 and absf(height_in_cm - height_cm) < 0.5:
-		return
+		return false
 	age = age_years; height_cm = height_in_cm
+	height_units = maxf(height_cm, 30.0) / 100.0 * METRE
+	shape_dirty = true
+	return true
+
+## Re-shape the body for a new age/height. Cheap, and a no-op when nothing meaningful changed. A crowd figure only remembers the
+## values; the rig is reshaped when it is next shown.
+func set_growth(age_years: float, height_in_cm: float) -> void:
+	if _remember_growth(age_years, height_in_cm) and built and detail:
+		_shape(false)
+
+func _shape(force: bool) -> void:
+	if not built or not (shape_dirty or force):
+		return
+	shape_dirty = false
 	props = Props.proportions(age, gender)
-	var h := maxf(height_cm, 30.0) / 100.0 * METRE
+	var h := height_units
 	var head_h: float = props.head * h
 	var leg_len: float = props.leg * h
 	var torso_len: float = props.torso * h
@@ -105,7 +153,7 @@ func set_growth(age_years: float, height_in_cm: float) -> void:
 	parts.neck.scale = Vector3(0.05 * h * girth, neck_len * 1.6, 0.05 * h * girth); parts.neck.position = Vector3(0, torso_len + neck_len * 0.4, 0)
 	parts.head_pivot.position = Vector3(0, torso_len + neck_len, 0)
 	parts.head.scale = Vector3(head_h * 0.82, head_h, head_h * 0.9); parts.head.position = Vector3(0, head_h * 0.5, 0)
-	var grey: float = props.grey
+	var grey: float = snappedf(props.grey, 0.05)       # quantised so a long run does not create endless materials
 	parts.hair.material_override = _mat(hair.lerp(Color("#cfcfcf"), grey))
 	parts.hair.scale = Vector3(head_h * 0.86, head_h * 0.64, head_h * 0.94); parts.hair.position = Vector3(0, head_h * 0.7, -head_h * 0.05)
 	for side in ["l", "r"]:

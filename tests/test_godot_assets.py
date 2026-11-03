@@ -164,3 +164,11 @@ def test_godot_builds_a_growing_human_at_the_simulated_height():
     done = subprocess.run([godot_binary(), "--headless", "--path", str(GODOT_DIR), "--script", "res://tests/human_test.gd"],
                           capture_output=True, text=True, timeout=180)
     assert "human tests: ok" in done.stdout and "FAIL" not in done.stdout, done.stdout[-800:] + done.stderr[-400:]
+
+
+@pytest.mark.skipif(godot_binary() is None, reason="no Godot binary (set GODOT_BIN or run scripts/setup_godot_tools.sh)")
+def test_godot_crowd_level_of_detail():
+    """Full bodies only near the camera (capped), crowd figures for everyone else, lazy rigs, shared materials."""
+    done = subprocess.run([godot_binary(), "--headless", "--path", str(GODOT_DIR), "--script", "res://tests/crowd_test.gd"],
+                          capture_output=True, text=True, timeout=240)
+    assert "crowd tests: ok" in done.stdout and "FAIL" not in done.stdout, done.stdout[-800:] + done.stderr[-400:]

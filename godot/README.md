@@ -35,6 +35,26 @@ rule as everyone else (`animation_map.gd`): walk only when really moving, sit fo
 By default everyone is drawn this way. `--humans=models` uses the fetched rigged models for adults only (a scaled adult model cannot
 show a child's proportions, so children are always drawn procedurally).
 
+## Hundreds of people
+Only the people near the camera get the full articulated body (at most 60, built the first time someone comes close, and hidden again when
+they are far); everyone else is a **crowd figure** drawn with two MultiMeshes, so a crowd costs a handful of draw calls. The selected person
+always gets a full body within 90 units. Animals farther than 55 units are not animated and beyond 150 are hidden. Bodies share their
+meshes and materials. People drawn this way still move, face their direction and grow (a crowd figure's height follows `height_cm`).
+
+Measured with `godot/tests/crowd_benchmark.gd` (100 animals; renderer counts from a software-GL run, so they do not depend on your GPU;
+the camera is either "near" = low over the middle of the crowd, or "far"):
+
+| People, camera | Draw calls old -> new | Scene nodes old -> new | First build old -> new |
+|---|---|---|---|
+| 300, near | 2,182 -> 417 | 11,154 -> 3,220 | 312 ms -> 44 ms |
+| 500, near | 3,507 -> 406 | 17,554 -> 4,040 | 487 ms -> 41 ms |
+| 300, far | 3,981 -> 502 | 11,154 -> 1,856 | 338 ms -> 38 ms |
+| 500, far | 6,556 -> 498 | 17,554 -> 2,056 | 633 ms -> 42 ms |
+
+Script work per frame (headless) went from 6.9 / 7.9 / 12.3 ms (100 / 300 / 500 people) to a flat 6.8 ms. A 300-person live poll is about
+283 KB of JSON a second. Not measured: real frame rates on a GPU (this sandbox has none; the figures above are counts and script time).
+`--humans=models` (rigged models) is not level-of-detail managed and is meant for small casts.
+
 ## Animated characters (optional)
 The viewer draws simple figures out of the box. To use animated, rigged people, fetch the models once (they are
 third-party CC-BY assets and are **not stored in this repository**):
