@@ -94,10 +94,26 @@ wildlife, spawn radius, root mode `off`, legacy). The tests check the initial wo
 * 50 inhabitants, 150 ticks, every 30: 5 reflections (0.4% of calls); physical state identical.
 * Journal: a reflection adds about the record's size (1-2 KB of `tick_committed` patch) once per interval.
 
-## Verified with the real LFM3 model: **nothing yet**
-No GPU was available. `scripts/isvara_check.py --backend lfm3` wrote `docs/results/isvara-lfm3-UNVERIFIED_no_gpu.json`.
-The real path (prompt, tool, parser, budget, counters, one shared model, isolated contexts) is tested only with stand-ins for
-torch, the tokenizer and the model. Unverified with the real model: whether LFM3 produces valid `RECORD_REFLECTION` calls,
-how often it cites real ids, the latency and GPU memory of a reflection (expect one extra call per interval, with a prompt well
-under the 3,072-token cap, but this is not measured), and the quality of anything it writes. Run the bounded check on a T4
-(defaults: 5 inhabitants, 60 ticks, a reflection every 20 ticks) to fill that in.
+## Real LFM3 results so far
+**First bounded T4 check (draft PR #7, main ce8e1dd, 5 inhabitants, 60 ticks, a reflection every 20): 0 of 3 reflections were valid.**
+All three attempts used the full 320-token output limit and failed with `expected exactly one complete RECORD_REFLECTION call`
+(read from the run's private events; no model text). What that check did establish with the real model: one shared model, no extra
+GPU memory (peak 4,693 MB with and without reflections), about 13 s per attempt, about 8% more wall time, failures contained
+(285 inhabitant calls in both worlds), restore made no model calls. It did *not* establish that the model can write a reflection.
+The recorded physical-state difference between the two worlds is unexplained (see `--control` below).
+
+**Format revision (this change; CPU-tested only, NOT yet run on a GPU):**
+* Failures are now diagnosable without keeping any model text: category (`no_tool_call`, `incomplete_call`, `extra_calls`,
+  `wrong_tool`, `bad_parameters`, `text_too_long`, `missing_parameters`, `output_too_long`, `invalid_content`, `prompt_budget`,
+  `backend_error`), output tokens, whether the token limit was hit, tool calls found. Optional `keep_raw_head_chars` (default 0, max 500)
+  keeps the first N characters of a failed output in the *private* root state only (last 3), never in events, endpoints or result files.
+* Generation for reflections stops at the first complete call (`stop_strings=["</tool_call>"]`) and uses no repetition penalty (citing an
+  id means copying tokens from the prompt). Inhabitant generation is untouched (tested).
+* Shorter ask: one sentence per field; field limits 400/300/300/200/150 characters (was 1200/1200/1200/400/300); context 2,805 -> 1,541
+  characters in the comparable case (5 inhabitants, wildlife, 60 ticks): flat compact facts, one earlier note instead of two.
+* `scripts/isvara_check.py --control` adds a second reflections-off world so run-to-run variation can be told apart from any effect of
+  reflection; the result file now lists failure categories and per-failure counts.
+
+Still unverified with the real model: whether this revision yields valid reflections, how often they cite real ids, and their quality.
+Run `python scripts/isvara_check.py --backend lfm3 --revision <sha> --control --keep-failure-samples 300 --run-dir <NEW dir> --out <file>`
+(5 inhabitants, 60 ticks, three worlds, roughly 25 minutes on a T4); keep the private run folder out of git.
