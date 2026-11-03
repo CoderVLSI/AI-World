@@ -1,0 +1,254 @@
+[
+  {
+    "classification": "scripted CPU stand-in; zero real inference calls",
+    "fixture": {
+      "all_initial_carried_water": 0,
+      "autonomy": {
+        "experiments": {
+          "carry_limit_g": 25000,
+          "enabled": true,
+          "max_components": 6,
+          "min_age_years": 6.0
+        },
+        "memory": {
+          "cultural_limit": 100,
+          "enabled": true,
+          "episodic_limit": 100,
+          "hypothesis_limit": 30,
+          "practical_limit": 100,
+          "procedural_limit": 20,
+          "recall_chars": 1500,
+          "recall_items": 8,
+          "relationship_limit": 50,
+          "witness_distance": 2
+        },
+        "mode": "foundations",
+        "physiology": {
+          "child_need_scale": 0.85,
+          "dehydration_damage_per_hour": 5.0,
+          "effort_scale": 0.25,
+          "energy_decay_per_hour": 1.0,
+          "hunger_per_hour": 0.8333333333333334,
+          "illness_damage_per_hour": 1.2,
+          "illness_max_days": 5.0,
+          "illness_min_days": 2.0,
+          "illness_per_day": 0.01,
+          "illness_stress_multiplier": 3.0,
+          "illness_supported_scale": 0.4,
+          "infant_need_scale": 0.7,
+          "max_tick_hours": 6.0,
+          "mode": "time_based",
+          "regen_need_ceiling": 50.0,
+          "regen_per_hour": 0.75,
+          "regrowth_hours": 6.0,
+          "rest_recovery_per_hour": 12.0,
+          "starvation_damage_per_hour": 3.0,
+          "thirst_per_hour": 2.0833333333333335
+        },
+        "reflex": {
+          "drink_at": 90.0,
+          "eat_at": 90.0,
+          "enabled": false
+        },
+        "scheduler": {
+          "critical_need": 85.0,
+          "default_reconsider_ticks": 18,
+          "dependent_alert_need": 60.0,
+          "failure_backoff_ticks": 6,
+          "health_drop_interrupt": 15.0,
+          "max_decisions_per_tick": 8,
+          "max_path_expansions": 8000,
+          "max_path_length": 150,
+          "max_seconds_per_tick": 20.0,
+          "max_task_ticks": 72,
+          "max_wait_ticks": 36,
+          "min_decision_gap_ticks": 1,
+          "mode": "budgeted",
+          "wake_cooldown_ticks": 6
+        }
+      },
+      "fixture_fingerprint": "a338d14b3293272747af6e9b662dc386e0b1935e4b9e88a3b4d91520e8d28cd4",
+      "focal_agent": "agent-0000",
+      "focal_recalled_places": [
+        "water was seen at x=23, z=24, 0 ticks ago (amount 40)"
+      ],
+      "initial_focal_thirst": 90,
+      "initial_water_visible": false,
+      "knowledge": "Explicit fixture prehistory: normal note_surroundings at water, then relocated to start; not a discovery.",
+      "nearest_natural_water_terrain_distance": 22,
+      "nearest_water_resource_distance": 15,
+      "other_agents_initial_thirst": 0,
+      "population": 5,
+      "root_mode": "crisis",
+      "seed": 314159,
+      "start": [
+        8,
+        24
+      ],
+      "version": "far-water-known-location-v1",
+      "water": [
+        23,
+        24
+      ],
+      "water_id": "resource-9999"
+    },
+    "outcome": {
+      "completed_ticks": 18,
+      "final_distance_to_water": 0,
+      "focal_carried_water": 0,
+      "focal_first_arrival_tick": 16,
+      "focal_first_drink_tick": 18,
+      "focal_first_water_gather_tick": 17,
+      "focal_health": 100,
+      "focal_mechanical_action_counts": {
+        "MOVE": 15
+      },
+      "focal_position": [
+        23,
+        24
+      ],
+      "focal_thirst": 61.249995999999996,
+      "focal_validated_choice_counts": {
+        "DRINK": 1,
+        "GATHER": 1,
+        "TRAVEL_TO": 1
+      },
+      "living": 5,
+      "population_end": 5,
+      "root_arrivals": 0
+    },
+    "scripted_calls_by_agent": {
+      "agent-0000": 3,
+      "agent-0001": 18,
+      "agent-0002": 18,
+      "agent-0003": 18,
+      "agent-0004": 18
+    },
+    "strategy": "TRAVEL_TO"
+  },
+  {
+    "classification": "scripted CPU stand-in; zero real inference calls",
+    "fixture": {
+      "all_initial_carried_water": 0,
+      "autonomy": {
+        "experiments": {
+          "carry_limit_g": 25000,
+          "enabled": true,
+          "max_components": 6,
+          "min_age_years": 6.0
+        },
+        "memory": {
+          "cultural_limit": 100,
+          "enabled": true,
+          "episodic_limit": 100,
+          "hypothesis_limit": 30,
+          "practical_limit": 100,
+          "procedural_limit": 20,
+          "recall_chars": 1500,
+          "recall_items": 8,
+          "relationship_limit": 50,
+          "witness_distance": 2
+        },
+        "mode": "foundations",
+        "physiology": {
+          "child_need_scale": 0.85,
+          "dehydration_damage_per_hour": 5.0,
+          "effort_scale": 0.25,
+          "energy_decay_per_hour": 1.0,
+          "hunger_per_hour": 0.8333333333333334,
+          "illness_damage_per_hour": 1.2,
+          "illness_max_days": 5.0,
+          "illness_min_days": 2.0,
+          "illness_per_day": 0.01,
+          "illness_stress_multiplier": 3.0,
+          "illness_supported_scale": 0.4,
+          "infant_need_scale": 0.7,
+          "max_tick_hours": 6.0,
+          "mode": "time_based",
+          "regen_need_ceiling": 50.0,
+          "regen_per_hour": 0.75,
+          "regrowth_hours": 6.0,
+          "rest_recovery_per_hour": 12.0,
+          "starvation_damage_per_hour": 3.0,
+          "thirst_per_hour": 2.0833333333333335
+        },
+        "reflex": {
+          "drink_at": 90.0,
+          "eat_at": 90.0,
+          "enabled": false
+        },
+        "scheduler": {
+          "critical_need": 85.0,
+          "default_reconsider_ticks": 18,
+          "dependent_alert_need": 60.0,
+          "failure_backoff_ticks": 6,
+          "health_drop_interrupt": 15.0,
+          "max_decisions_per_tick": 8,
+          "max_path_expansions": 8000,
+          "max_path_length": 150,
+          "max_seconds_per_tick": 20.0,
+          "max_task_ticks": 72,
+          "max_wait_ticks": 36,
+          "min_decision_gap_ticks": 1,
+          "mode": "budgeted",
+          "wake_cooldown_ticks": 6
+        }
+      },
+      "fixture_fingerprint": "a338d14b3293272747af6e9b662dc386e0b1935e4b9e88a3b4d91520e8d28cd4",
+      "focal_agent": "agent-0000",
+      "focal_recalled_places": [
+        "water was seen at x=23, z=24, 0 ticks ago (amount 40)"
+      ],
+      "initial_focal_thirst": 90,
+      "initial_water_visible": false,
+      "knowledge": "Explicit fixture prehistory: normal note_surroundings at water, then relocated to start; not a discovery.",
+      "nearest_natural_water_terrain_distance": 22,
+      "nearest_water_resource_distance": 15,
+      "other_agents_initial_thirst": 0,
+      "population": 5,
+      "root_mode": "crisis",
+      "seed": 314159,
+      "start": [
+        8,
+        24
+      ],
+      "version": "far-water-known-location-v1",
+      "water": [
+        23,
+        24
+      ],
+      "water_id": "resource-9999"
+    },
+    "outcome": {
+      "completed_ticks": 17,
+      "final_distance_to_water": 0,
+      "focal_carried_water": 0,
+      "focal_first_arrival_tick": 15,
+      "focal_first_drink_tick": 17,
+      "focal_first_water_gather_tick": 16,
+      "focal_health": 100,
+      "focal_mechanical_action_counts": {},
+      "focal_position": [
+        23,
+        24
+      ],
+      "focal_thirst": 60.902773999999994,
+      "focal_validated_choice_counts": {
+        "DRINK": 1,
+        "GATHER": 1,
+        "MOVE": 15
+      },
+      "living": 5,
+      "population_end": 5,
+      "root_arrivals": 0
+    },
+    "scripted_calls_by_agent": {
+      "agent-0000": 17,
+      "agent-0001": 17,
+      "agent-0002": 17,
+      "agent-0003": 17,
+      "agent-0004": 17
+    },
+    "strategy": "MOVE"
+  }
+]

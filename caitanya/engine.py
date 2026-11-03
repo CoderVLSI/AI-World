@@ -12,6 +12,7 @@ from .nature import RESOURCE_TYPES, EDIBLE, geography, anatomy, climate
 from .lifecycle import BiologyConfig, age, stage, roles_for, validate_social, apply_social, advance_lifecycle, pairing_error
 from .history import changes, apply_changes
 from .root import BrahmanAgent
+from . import genesis, isvara
 from .autonomy import AutonomyConfig, resolve
 from . import physiology
 from .scheduler import DecisionScheduler, TASK_ACTIONS
@@ -151,6 +152,19 @@ class MockInferenceBackend:
                     else: action="REST"
         return Intent(a["id"], observation["tick"], action, params, "deterministic mock policy")
 
+def _mock_reflect(self, context, budget=None):
+    """Explicit test template: it summarises the recorded counts and cites real evidence ids. Never an LLM."""
+    self.root_calls = getattr(self, "root_calls", 0) + 1
+    f = context["facts"]
+    deaths = sum(f["deaths_by_cause"].values())
+    return {"content": {
+        "observations": [f"At tick {f['tick']} the record shows {f['living']} living inhabitants, {deaths} recorded deaths and {f['births']} births."],
+        "conclusions": ["The counts are consistent with the recorded events; no cause beyond the recorded causes is established."],
+        "uncertainty": ["Counts do not show why events occurred or what inhabitants intended."],
+        "cites": ",".join(e["id"] for e in context["evidence"][:3])},
+        "meta": {"source": "mock_template", "request_id": None}}
+MockInferenceBackend.reflect = _mock_reflect
+
 def redact_private(state):
     """Remove everything an outside witness must never see (root, memories, RNG, scheduler internals)."""
     for key in ("rng_state", "root", "scheduler"):
@@ -162,7 +176,7 @@ def redact_private(state):
 
 class World:
     def __init__(self, seed=314159, population=5, width=64, depth=64, backend=None, biology=None, spawn_radius=8,
-                 root_mode="crisis", autonomy=None, wildlife_per_species=0):
+                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None):
         if not (1 <= population and width >= 8 and depth >= 8):
             raise ValueError("invalid world dimensions or population")
         if type(spawn_radius) is not int or spawn_radius<1:raise ValueError("invalid starting radius")
@@ -185,39 +199,7 @@ class World:
         self.events, self.rejections, self.works, self.parts = [], [], {}, {}
         self.agents = {}
         self.resources = {}
-        self.terrain = [dict(x=x,z=z,size=min(8,width-x,depth-z),**geography(x+4,z+4,width,depth,seed))
-                        for x in range(0,width,8) for z in range(0,depth,8)]
-        for i in range(max(120, population * 6, width*depth//40)):
-            x, z = self.rng.randrange(width), self.rng.randrange(3, depth)
-            tile=geography(x,z,width,depth,seed)
-            if not tile["walkable"]: continue
-            kinds={"forest":["wood","fruit","herbs","plant_fiber"],"highland":["stone","iron_ore","copper_ore","coal"],
-                "wetland":["water","clay","fish","plant_fiber"],"dryland":["sand","salt","stone"],
-                "grassland":["food","grain","herbs","water"]}[tile["biome"]]
-            kind=self.rng.choice(kinds);renewable,capacity=RESOURCE_TYPES[kind]
-            self.resources[f"resource-{i:04}"] = dict(id=f"resource-{i:04}", x=x, z=z,
-                kind=kind, amount=capacity, capacity=capacity, renewable=renewable)
-        # Initial nearby resources are ecology, not agent-authored events.
-        cx,cz=width//4,depth//2
-        spawn_points=[(x,z) for x in range(max(0,cx-spawn_radius),min(width,cx+spawn_radius+1))
-            for z in range(max(3,cz-spawn_radius),min(depth,cz+spawn_radius+1)) if geography(x,z,width,depth,seed)["walkable"]]
-        if not spawn_points:raise ValueError("Starting area has no walkable terrain")
-        for i in range(population):
-            x,z=self.rng.choice(spawn_points)
-            aid = f"agent-{i:04}"
-            self.agents[aid] = Agent(aid,x,z,gender=("woman","man","nonbinary")[i%3],
-                biological_sex=self.rng.choices(["female","male","intersex"],[49,49,2])[0],age_years_at_start=self.rng.randrange(18,46),
-                height_cm=self.rng.randrange(152,193),skin_tone=self.rng.choice(["#e4bc98","#bd8c68","#8d5c40","#573b2e"]),
-                clothing_color=self.rng.choice(["#678b91","#b38e5b","#8e709d","#758f62"]))
-            self.agents[aid].inventory.update({k:0 for k in RESOURCE_TYPES if k not in self.agents[aid].inventory})
-            self.agents[aid].inventory["water"]=3
-            self.agents[aid].adult_height_cm=self.agents[aid].height_cm
-            self.agents[aid].reproductive_roles=roles_for(self.agents[aid].biological_sex)
-            self.agents[aid].lifespan_years=self.rng.randint(70,95)
-            rid = f"spawn-food-{i}"
-            self.resources[rid] = dict(id=rid, x=x, z=z, kind="food", amount=8, capacity=8)
-            rid=f"spawn-water-{i}"
-            self.resources[rid]=dict(id=rid,x=x,z=z,kind="water",amount=40,capacity=40,renewable=True)
+        self.terrain = []
         self.manifest = dict(schema_version=1, world_seed=seed, model_id=self.backend.model_id,
             model_revision=self.backend.model_revision, prompt_version=PROMPT_VERSION,
             engine_version="0.3.0", inference_backend=type(self.backend).__name__,biology=asdict(self.biology),
@@ -225,15 +207,18 @@ class World:
             starting_radius=spawn_radius,
             configuration_hash=digest(dict(seed=seed, population=population, width=width, depth=depth,biology=asdict(self.biology),spawn_radius=spawn_radius)))
         self.manifest.update(getattr(self.backend,"metadata",{}))
-        self.root = BrahmanAgent(mode=root_mode)
-        self.root.register(self)
         self.fauna=None
-        if wildlife_per_species:
-            if self.biology.days_per_tick>1:
-                raise ValueError('Wildlife requires days_per_tick <= 1; use --wildlife-per-species 0 for coarse legacy clocks')
-            from fauna.ecology import Ecosystem
-            self.fauna=Ecosystem(self,seed=seed+2718,per_species=wildlife_per_species,days_per_tick=self.biology.days_per_tick)
-            self.manifest['wildlife']={'version':1,'initial_per_species':wildlife_per_species,'days_per_tick':self.biology.days_per_tick}
+        if wildlife_per_species and self.biology.days_per_tick>1:
+            raise ValueError('Wildlife requires days_per_tick <= 1; use --wildlife-per-species 0 for coarse legacy clocks')
+        # Brahman exists before the world does. Genesis is a validated, immutable plan executed exactly once;
+        # when supervisory reasoning is on, the Isvara role issues it, otherwise the identical default plan is used.
+        self.root = BrahmanAgent(mode=root_mode)
+        plan, issued_by = isvara.issue_plan(self.root, seed=seed, population=population, width=width, depth=depth,
+            spawn_radius=spawn_radius, wildlife_per_species=wildlife_per_species, days_per_tick=self.biology.days_per_tick,
+            reasoning=not self.autonomy.legacy, config=isvara_config)
+        genesis.execute(self, plan, issued_by)
+        self.manifest["genesis"] = dict(version=plan.version, plan_digest=plan.digest(), generators=dict(plan.generators))
+        self.root.register(self)
         self.manifest["engine_version"] = ENGINE_VERSION
         self.manifest["autonomy_hash"] = digest(self.autonomy.to_dict())
         self.initial_state = self.state()
@@ -526,6 +511,7 @@ class World:
             from .experiments import advance_objects
             advance_objects(self)
         self.scheduler.run(self)
+        isvara.maybe_reflect(self)       # after the inhabitants' decisions; own budget, never a decision slot
 
     def _step_legacy(self):
         """Verbatim v0.4.0 dynamics, used for ``autonomy='legacy'`` and migrated runs."""
@@ -579,7 +565,7 @@ class World:
             inference=self.backend.metrics() if hasattr(self.backend,"metrics") else {"model_instances":0},
             deaths=self.death_causes(),scheduler=self.scheduler.report(self) if not self.autonomy.legacy else None,
             knowledge=self._knowledge_metrics(),
-            autonomy_mode=self.autonomy.mode)
+            autonomy_mode=self.autonomy.mode, genesis=isvara.public_summary(self))
 
     def _knowledge_metrics(self):
         if self.autonomy.legacy or not self.autonomy.memory.enabled:return None
@@ -655,6 +641,7 @@ class World:
                       for x in range(0,self.width,8) for z in range(0,self.depth,8)]
         def tuples(v): return tuple(tuples(x) for x in v) if isinstance(v,(list,tuple)) else v
         self.rng=random.Random(); self.rng.setstate(tuples(s["rng_state"]))
+        genesis.verify_recorded(self)    # a stored world must still derive the terrain it was created with
 
     def replay(self,tick):
         if type(tick) is not int or not 0 <= tick <= self.tick: raise ValueError("invalid replay tick")

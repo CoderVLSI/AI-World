@@ -176,9 +176,45 @@ class TransformersLFM3Backend:
                 self.failures+=1
                 raise InferenceFailure(str(exc)) from exc
             finally:self.elapsed_seconds+=time.monotonic()-start
+    def reflect(self,context,budget):
+        """Isvara's dedicated interface. Same shared model and lock (one copy in memory), but its own system message,
+        its own single tool and parser, its own budget and its own counters. It never touches ``calls``,
+        ``failures`` or ``last_request``, so inhabitant attribution and fairness measurements are unaffected."""
+        import torch
+        from . import isvara
+        messages=[{"role":"system","content":isvara.ISVARA_SYSTEM},
+                  {"role":"user","content":"Recorded context follows. Write your reflection.\n"+json.dumps(context,separators=(",",":"),sort_keys=True)}]
+        r=self._root()
+        with self.lock:
+            start=time.monotonic();r["calls"]+=1;request_id=str(uuid.uuid4())
+            self.last_root_request={"request_id":request_id,"observed_tick":context["facts"]["tick"]}
+            try:
+                prompt=self.tokenizer.apply_chat_template(messages,tools=[isvara.REFLECTION_TOOL],tokenize=False,add_generation_prompt=True,enable_thinking=False)
+                prompt+="<tool_call>\n"
+                inputs=self.tokenizer(prompt,return_tensors="pt",add_special_tokens=False).to(self.device)
+                prompt_tokens=int(inputs.input_ids.shape[1]);r["prompt_tokens"].append(prompt_tokens)
+                if prompt_tokens>budget["max_prompt_tokens"]:
+                    r["budget_failures"]+=1
+                    raise InferenceFailure("root prompt budget exceeded")
+                with torch.inference_mode():
+                    result=self.model.generate(**inputs,max_new_tokens=budget["max_new_tokens"],do_sample=False,
+                        repetition_penalty=1.1,max_time=budget["max_seconds"],pad_token_id=self.tokenizer.eos_token_id)
+                tokens=result[0][inputs.input_ids.shape[1]:];r["output_tokens"]+=len(tokens)
+                raw="<tool_call>\n"+self.tokenizer.decode(tokens,skip_special_tokens=False)
+                try:content=isvara.parse_reflection(raw)
+                except ValueError as exc:raise InferenceFailure(str(exc)) from exc
+                return {"content":content,"meta":{"source":"lfm","request_id":request_id,"prompt_tokens":prompt_tokens,"output_tokens":len(tokens)}}
+            except Exception as exc:
+                r["failures"]+=1
+                raise InferenceFailure(str(exc)) from exc
+            finally:r["elapsed_seconds"]+=time.monotonic()-start
+    def _root(self):
+        if not hasattr(self,"root_counters"):
+            self.root_counters={"calls":0,"failures":0,"output_tokens":0,"elapsed_seconds":0.0,"prompt_tokens":[],"budget_failures":0}
+        return self.root_counters
     def metrics(self):
         import torch
-        return {"model_calls":self.calls,"parse_or_inference_failures":self.failures,"output_tokens":self.output_tokens,
+        return {"root_reasoning":self.root_metrics(),"model_calls":self.calls,"parse_or_inference_failures":self.failures,"output_tokens":self.output_tokens,
             "prompt_tokens":{"min":min(self.prompt_token_counts,default=0),"max":max(self.prompt_token_counts,default=0),
                 "total":sum(self.prompt_token_counts),"measured_requests":len(self.prompt_token_counts),"cap":self.max_prompt_tokens},
             "prompt_budget_failures":self.prompt_budget_failures,
@@ -188,6 +224,14 @@ class TransformersLFM3Backend:
             "successful_inference_calls":self.calls-self.failures,
             "model_id":self.model_id,"hardware":self.metadata.get("device"),
             "model_instances":1,"device":self.device,"model_revision":self.model_revision}
+
+def _root_metrics(self):
+    r=self._root();pt=r["prompt_tokens"]
+    return {"calls":r["calls"],"failures":r["failures"],"successful_calls":r["calls"]-r["failures"],"output_tokens":r["output_tokens"],
+        "prompt_tokens":{"min":min(pt,default=0),"max":max(pt,default=0),"total":sum(pt)},"prompt_budget_failures":r["budget_failures"],
+        "inference_seconds":round(r["elapsed_seconds"],3),"model_instances":1,
+        "note":"Isvara reasoning calls are counted here and never in model_calls (inhabitant decisions)."}
+TransformersLFM3Backend.root_metrics=_root_metrics
 
 # Experiment tools (offered only in foundations worlds; see experiments.py)
 from . import experiments as _experiments
