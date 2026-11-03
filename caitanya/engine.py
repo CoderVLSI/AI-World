@@ -237,10 +237,10 @@ class World:
             registry.update(task_registry())
             if self.autonomy.experiments.enabled:
                 from .experiments import registry as experiment_registry
-                registry.update(experiment_registry())
+                registry.update(experiment_registry(self))
             if self.autonomy.memory.enabled:
                 from .memory import registry as memory_registry
-                registry.update(memory_registry())
+                registry.update(memory_registry(self))
         self.registry = registry
 
     def state(self):
