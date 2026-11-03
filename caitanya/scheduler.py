@@ -49,7 +49,7 @@ def _new_totals():
             "mechanical_steps": 0, "mechanical_rejections": 0, "reflex_interventions": 0,
             "tasks_started": 0, "tasks_completed": 0, "tasks_superseded": 0, "tasks_cancelled": 0,
             "tasks_interrupted": {}, "ticks_with_decisions": 0, "budget_exhausted_ticks": 0,
-            "max_queue": 0, "next_task": 0, "decision_seq": 0}
+            "max_queue": 0, "next_task": 0, "decision_seq": 0, "memory_recalls": 0, "memory_items": 0}
 
 
 def find_path(world, start, goal, max_expansions, max_length):
@@ -387,6 +387,11 @@ class DecisionScheduler:
         rec["decisions"] += 1
         origin = "lfm_decision" if real else "mock_policy"
         try:
+            if world.autonomy.memory.enabled:
+                from .memory import note_surroundings, recall
+                note_surroundings(world, a)
+                totals["memory_recalls"] += 1
+                totals["memory_items"] += len(recall(world, a))
             intent = world.root.delegate(world, aid)
             request_id = world.backend.last_request["request_id"] if real else None
             accepted, reason = world.apply(intent, origin=origin, request_id=request_id,

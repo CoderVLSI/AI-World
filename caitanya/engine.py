@@ -508,7 +508,13 @@ class World:
             rejected=len(self.rejections),events=len(self.events),backend=type(self.backend).__name__,
             inference=self.backend.metrics() if hasattr(self.backend,"metrics") else {"model_instances":0},
             deaths=self.death_causes(),scheduler=self.scheduler.report(self) if not self.autonomy.legacy else None,
+            knowledge=self._knowledge_metrics(),
             autonomy_mode=self.autonomy.mode)
+
+    def _knowledge_metrics(self):
+        if self.autonomy.legacy or not self.autonomy.memory.enabled:return None
+        from .memory import knowledge_metrics
+        return knowledge_metrics(self)
 
     def death_causes(self):
         causes = {}

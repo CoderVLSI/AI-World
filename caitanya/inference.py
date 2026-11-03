@@ -178,3 +178,8 @@ class TransformersLFM3Backend:
 from . import experiments as _experiments
 register_extension(_experiments.TOOL_PARAMETERS,_experiments.TOOL_DESCRIPTIONS,_experiments.TOOL_OPTIONAL)
 EXTENSION_FILTERS.update(_experiments.tool_filters())
+
+# Memory tools (private; see memory.py)
+from . import memory as _memory
+register_extension(_memory.TOOL_PARAMETERS,_memory.TOOL_DESCRIPTIONS)
+EXTENSION_FILTERS.update(_memory.tool_filters())
