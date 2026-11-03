@@ -130,3 +130,60 @@ def test_mechanical_steps_are_visible_as_movement_with_their_origin():
     assert "mechanical_execution" in origins or "mock_policy" in origins
     walking = [a for a in live_view(w.public())["agents"] if a["last_action"] and a["last_action"]["type"] == "move"]
     assert all(a["last_action"]["origin"] == "mechanical_execution" for a in walking)
+
+
+# ---------------------------------------------------------------- speech bubbles: public speech only, thoughts without text
+def _talk_world():
+    from caitanya.engine import Intent
+    from conftest import IdleBackend
+    w = World(seed=3, population=3, backend=IdleBackend())
+    a, b = w.agents["agent-0000"], w.agents["agent-0001"]
+    b.x, b.z = a.x, a.z
+    return w, a, b, Intent
+
+
+def test_recent_speech_offers_spoken_text_and_thoughts_without_text():
+    from caitanya.witness import recent_speech
+    w, a, b, Intent = _talk_world()
+    assert w.apply(Intent(a.id, 0, "SPEAK", {"text": "  hello   there\nfriend "}, "a private reason"))[0]
+    assert w.apply(Intent(b.id, 0, "TEACH", {"target_id": a.id, "topic": "water", "text": "drink often"}, ""))[0]
+    assert w.apply(Intent(a.id, 0, "REFLECT", {"text": "SECRET-THOUGHT-SENTINEL"}, ""))[0]
+    assert w.apply(Intent(a.id, 0, "WRITE", {"title": "A-TITLE", "text": "WRITTEN-SENTINEL"}, ""))[0]
+    out = recent_speech(w.events, 0)
+    assert [(o["agent_id"], o["kind"], o["text"]) for o in out] == [("agent-0000", "speech", "hello there friend"),
+                                                                    ("agent-0001", "speech", "drink often"),
+                                                                    ("agent-0000", "thought", None)]
+    assert all(set(o) == {"agent_id", "tick", "kind", "text"} for o in out)
+    blob = json.dumps(out)
+    assert "SECRET-THOUGHT-SENTINEL" not in blob and "WRITTEN-SENTINEL" not in blob and "a private reason" not in blob and "A-TITLE" not in blob
+
+
+def test_speech_is_truncated_recent_and_bounded():
+    from caitanya.witness import recent_speech, SPEECH_MAX_CHARS, SPEECH_LIMIT, SPEECH_WINDOW_TICKS
+    w, a, b, Intent = _talk_world()
+    w.apply(Intent(a.id, 0, "SPEAK", {"text": "x" * 1000}, ""))
+    long_line = recent_speech(w.events, 0)[0]["text"]
+    assert len(long_line) == SPEECH_MAX_CHARS and long_line.endswith("…")
+    for _ in range(SPEECH_WINDOW_TICKS + 3):
+        w.step()
+    assert recent_speech(w.events, w.tick) == []                          # older than the window
+    for i in range(SPEECH_LIMIT + 20):
+        w.events.append({"world_tick": w.tick, "type": "speak", "source": "validated_action", "actor_id": a.id,
+                         "payload": {"parameters": {"text": f"line {i}"}}})
+    out = recent_speech(w.events, w.tick)
+    assert len(out) == SPEECH_LIMIT and out[-1]["text"] == f"line {SPEECH_LIMIT + 19}"      # the newest, in order
+
+
+def test_live_endpoint_carries_speech_and_never_a_private_thought(tmp_path):
+    from caitanya.server import create_app
+    w, a, b, Intent = _talk_world()
+    w.apply(Intent(a.id, 0, "SPEAK", {"text": "good morning"}, ""))
+    w.apply(Intent(b.id, 0, "REFLECT", {"text": "SECRET-THOUGHT-SENTINEL"}, ""))
+    w.step()
+    app = create_app(w, tmp_path, live=False)
+    with TestClient(app) as c:
+        live = c.get("/api/v1/live")
+    assert live.status_code == 200 and "SECRET-THOUGHT-SENTINEL" not in live.text
+    speech = live.json()["speech"]
+    assert {"agent_id": "agent-0000", "tick": 0, "kind": "speech", "text": "good morning"} in speech
+    assert {"agent_id": "agent-0001", "tick": 0, "kind": "thought", "text": None} in speech

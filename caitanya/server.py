@@ -13,7 +13,7 @@ from .engine import World, redact_private, SCHEMA_VERSION
 from .nature import climate
 from .autonomy import AutonomyConfig, load_experiment_file
 from .lifecycle import BiologyConfig, stage
-from .witness import terrain_grid, live_view
+from .witness import terrain_grid, live_view, recent_speech
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -166,7 +166,9 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     @app.get("/api/v1/live")
     def live_snapshot():   # not named `live`: that would shadow the create_app(live=...) flag
         """Light polling view for viewers: positions, plans, resources, objects, optional wildlife."""
-        return live_view(published)
+        view = live_view(published)
+        view["speech"] = recent_speech(world.events[:committed_count], published["tick"])      # public speech only; thoughts carry no text
+        return view
     @app.get("/api/v1/families")
     def families():
         return {"lineage":[{"id":a["id"],"parent_ids":a["parent_ids"],"guardian_ids":a["guardian_ids"],"generation":a["generation"],"alive":a["alive"]}
