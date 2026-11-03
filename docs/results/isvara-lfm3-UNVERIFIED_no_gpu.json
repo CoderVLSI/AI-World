@@ -1,0 +1,23 @@
+{
+  "status": "unverified_no_gpu",
+  "detail": "No CUDA device: Isvara reasoning with the real model was NOT run.",
+  "requested": {
+    "backend": "lfm3",
+    "revision": null,
+    "seed": 314159,
+    "population": 5,
+    "wildlife_per_species": 0,
+    "ticks": 60,
+    "reflect_every": 20,
+    "max_new_tokens": 320,
+    "max_real_seconds": 600.0,
+    "run_dir": null,
+    "out": "docs/results/isvara-lfm3-UNVERIFIED_no_gpu.json"
+  },
+  "environment": {
+    "python": "3.13.18",
+    "platform": "Linux-6.18.44-fc-v230-x86_64-with-glibc2.39",
+    "backend": "lfm3",
+    "gpu": null
+  }
+}

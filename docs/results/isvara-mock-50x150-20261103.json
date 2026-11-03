@@ -1,0 +1,58 @@
+{
+  "status": "completed",
+  "label": "MOCK template (CPU); measures bookkeeping only, not model behaviour",
+  "environment": {
+    "python": "3.13.18",
+    "platform": "Linux-6.18.44-fc-v230-x86_64-with-glibc2.39",
+    "backend": "mock",
+    "gpu": null
+  },
+  "model_id": "mock/deterministic-forager",
+  "model_revision": "1",
+  "requested": {
+    "backend": "mock",
+    "revision": null,
+    "seed": 314159,
+    "population": 50,
+    "wildlife_per_species": 0,
+    "ticks": 150,
+    "reflect_every": 30,
+    "max_new_tokens": 320,
+    "max_real_seconds": 600.0,
+    "run_dir": null
+  },
+  "without_reflection": {
+    "stop": "completed",
+    "ticks_completed": 150,
+    "real_seconds": 10.323,
+    "gpu_peak_mb": null,
+    "inhabitant_calls": 1200
+  },
+  "with_reflection": {
+    "stop": "completed",
+    "ticks_completed": 150,
+    "real_seconds": 10.611,
+    "gpu_peak_mb": null,
+    "inhabitant_calls": 1200
+  },
+  "extra_inference": {
+    "root_calls": 5,
+    "recorded": 5,
+    "failures": 0,
+    "root_calls_as_fraction_of_inhabitant_calls": 0.0042,
+    "added_wall_seconds_total": 0.288,
+    "backend_root_metrics": {
+      "calls": 5
+    }
+  },
+  "reflection_quality_counts": {
+    "reflections": 5,
+    "with_valid_citations": 4,
+    "uncited": 1,
+    "uncertainty_stated": 5,
+    "dropped_citations": 0,
+    "proposals_stored_unapplied": 0
+  },
+  "physical_state_identical_with_and_without_reflection": true,
+  "note_on_that_last_field": "Expected true for the mock. With a real model it can legitimately be false only through wall-clock-budget effects, not through reflection; report it as measured."
+}
