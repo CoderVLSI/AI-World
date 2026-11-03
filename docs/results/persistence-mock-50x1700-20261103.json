@@ -1,0 +1,9 @@
+{
+  "label": "CPU/mock measurement of segmented journal + slim checkpoints. Says nothing about LFM3 behaviour.",
+  "population": 50, "seed": 11, "checkpoint_every": 60, "segment_bytes": 25000000,
+  "ticks": 1700, "status": "RUNNING", "stop_reason": "budget_reached", "real_seconds": 208,
+  "closed_segments": 4, "journal_bytes_total": 115217656,
+  "checkpoints": 34, "checkpoint_bytes_total": 30439715, "checkpoint_bytes_newest": 946667,
+  "recovered_state_equals_live": true, "recovered_events_equal_live": true,
+  "note": "The journal passed the old 100 MB pause point (about tick 1,485 at this size) and the run continued."
+}
