@@ -177,12 +177,24 @@ def _test_hearsay(world, a, subject, prop, cond, value):
 
 # ------------------------------------------------------------ hooks
 def note_surroundings(world, a):
-    """Spatial memory: remember where resources were seen (updated when the inhabitant is asked to decide)."""
+    """Spatial memory: remember where resources were seen (updated when the inhabitant is asked to decide).
+
+    Sites that are in view but no longer hold the resource are forgotten, so memory corrects itself
+    instead of sending the inhabitant back to something it has just seen is empty.
+    """
     ltm = ensure(a)
     seen = {}
     for node in world.resources.values():
         if abs(node["x"] - a.x) + abs(node["z"] - a.z) <= 8 and node["amount"] > 0:
             seen.setdefault(node["kind"], []).append(node)
+    for kind in list(ltm["places"]):
+        present = {(n["x"], n["z"]) for n in seen.get(kind, [])}
+        kept = [s for s in ltm["places"][kind]
+                if abs(s[0] - a.x) + abs(s[1] - a.z) > 8 or (s[0], s[1]) in present]
+        if kept:
+            ltm["places"][kind] = kept
+        else:
+            del ltm["places"][kind]
     for kind, nodes in seen.items():
         sites = {tuple(s[:2]): s for s in ltm["places"].get(kind, [])}
         for node in sorted(nodes, key=lambda n: (abs(n["x"] - a.x) + abs(n["z"] - a.z), n["id"]))[:3]:

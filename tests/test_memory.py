@@ -71,6 +71,21 @@ def test_spatial_memory_recalls_where_water_was_seen():
     assert f"x={sites[0][0]}, z={sites[0][1]}" in place["text"] and "water" in place["text"]
 
 
+def test_spatial_memory_forgets_sites_seen_to_be_empty_but_keeps_unseen_ones():
+    w, a = lab()
+    a.thirst = 60
+    mem.note_surroundings(w, a)
+    here = tuple(a.ltm["places"]["water"][0][:2])
+    far = (a.x + 40, a.z)
+    a.ltm["places"]["water"].append([far[0], far[1], 30, 0])                 # remembered, but far out of sight
+    for node in w.resources.values():
+        if node["kind"] == "water" and (node["x"], node["z"]) == here:
+            node["amount"] = 0                                                  # emptied while the inhabitant watches
+    mem.note_surroundings(w, a)
+    sites = {tuple(s[:2]) for s in a.ltm["places"].get("water", [])}
+    assert here not in sites and far in sites
+
+
 # -------------------------------------------------------------- retrieval
 def test_retrieval_is_relevant_deterministic_and_bounded():
     w, a = lab(stone=2)

@@ -1,0 +1,27 @@
+{
+  "status": "unverified_no_gpu",
+  "detail": "No CUDA device: real-model acceptance was NOT run.",
+  "requested": {
+    "backend": "lfm3",
+    "revision": null,
+    "population": 50,
+    "sim_days": 2.0,
+    "max_real_seconds": 0,
+    "seed": 314159,
+    "width": 128,
+    "depth": 128,
+    "days_per_tick": 0.006944444444444444,
+    "decisions_per_tick": null,
+    "config": null,
+    "legacy": false,
+    "run_dir": "/tmp/claude-0/-home-user-AI-World/839e5785-ec29-54cc-86ef-7358b1f34237/scratchpad/bench/lfm_b",
+    "out": "docs/results/lfm3_stage_b_UNVERIFIED_no_gpu.json"
+  },
+  "environment": {
+    "python": "3.13.18",
+    "platform": "Linux-6.18.44-fc-v230-x86_64-with-glibc2.39",
+    "cpus": 4,
+    "gpu": null,
+    "backend": "lfm3"
+  }
+}

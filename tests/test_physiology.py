@@ -118,10 +118,26 @@ def test_illness_is_deterministic_independent_of_the_world_rng_and_can_kill():
     assert unit_interval(1, 2, "agent-0000", "x") == unit_interval(1, 2, "agent-0000", "x")
     weak = idle_world(BASELINE, illness_per_day=0, illness_damage_per_hour=6)
     sick = weak.agents["agent-0000"]
-    sick.health, sick.illness = 30, {"since_tick": 0, "until_tick": 10 ** 6}
-    run_hours(weak, 8)
+    sick.health, sick.thirst, sick.illness = 30, 80, {"since_tick": 0, "until_tick": 10 ** 6}
+    run_hours(weak, 8)                                              # unsupported (thirsty): full damage
     assert not sick.alive
     assert [e["payload"]["cause"] for e in weak.events if e["type"] == "death"] == ["illness"]
+
+
+def test_basic_care_makes_a_long_illness_survivable_but_neglect_does_not():
+    outcome = {}
+    for label, cared in (("cared", True), ("neglected", False)):
+        w = idle_world(BASELINE, n=2, illness_per_day=0)
+        a = w.agents["agent-0000"]
+        a.illness = {"since_tick": 0, "until_tick": 5 * 144}       # five simulated days of illness
+        for _ in range(5 * 144):
+            if cared:
+                a.hunger = a.thirst = 10                              # fed and hydrated each tick
+                a.energy = max(a.energy, 60)                          # and resting
+            w.step()
+        outcome[label] = (a.alive, a.health)
+    assert outcome["cared"][0] and outcome["cared"][1] > 20
+    assert not outcome["neglected"][0]
 
 
 def newborn(w, parent, x, z):

@@ -1,0 +1,76 @@
+[
+ {
+  "configuration": "v0.4.0 legacy (5 decisions / 3 ticks, per-tick needs)",
+  "validated_basic_actions_per_agent": 144.0,
+  "population": 5,
+  "ticks": 432,
+  "living": 5,
+  "deaths": {},
+  "model_decisions": 720,
+  "mean_decisions_per_agent": 144.0,
+  "mean_ticks_between_decisions": 3.0,
+  "max_wait_ticks": null
+ },
+ {
+  "configuration": "foundations, single-step actions, 2 decisions/tick",
+  "validated_basic_actions_per_agent": 172.8,
+  "population": 5,
+  "ticks": 432,
+  "living": 5,
+  "deaths": {},
+  "model_decisions": 864,
+  "mean_decisions_per_agent": 172.8,
+  "mean_ticks_between_decisions": 2.499,
+  "max_wait_ticks": 2
+ },
+ {
+  "configuration": "foundations, bounded intentions, 2 decisions/tick",
+  "validated_basic_actions_per_agent": 359.2,
+  "population": 5,
+  "ticks": 432,
+  "living": 5,
+  "deaths": {},
+  "model_decisions": 443,
+  "mean_decisions_per_agent": 88.6,
+  "mean_ticks_between_decisions": 4.908,
+  "max_wait_ticks": 2
+ },
+ {
+  "configuration": "v0.4.0 legacy (5 decisions / 3 ticks, per-tick needs)",
+  "validated_basic_actions_per_agent": 8.5,
+  "population": 50,
+  "ticks": 432,
+  "living": 1,
+  "deaths": {
+   "scarcity": 50
+  },
+  "model_decisions": 424,
+  "mean_decisions_per_agent": 8.5,
+  "mean_ticks_between_decisions": 50.8,
+  "max_wait_ticks": null
+ },
+ {
+  "configuration": "foundations, single-step actions, 2 decisions/tick",
+  "validated_basic_actions_per_agent": 17.3,
+  "population": 50,
+  "ticks": 432,
+  "living": 50,
+  "deaths": {},
+  "model_decisions": 864,
+  "mean_decisions_per_agent": 17.28,
+  "mean_ticks_between_decisions": 25.0,
+  "max_wait_ticks": 24
+ },
+ {
+  "configuration": "foundations, bounded intentions, 2 decisions/tick",
+  "validated_basic_actions_per_agent": 21.2,
+  "population": 50,
+  "ticks": 432,
+  "living": 50,
+  "deaths": {},
+  "model_decisions": 864,
+  "mean_decisions_per_agent": 17.28,
+  "mean_ticks_between_decisions": 25.0,
+  "max_wait_ticks": 24
+ }
+]

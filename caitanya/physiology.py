@@ -81,7 +81,8 @@ def _illness(world, cfg, a, hours, damage):
             a.illness = None
             world.emit("illness_ended", a.id, {}, "world_rule")
         else:
-            damage["illness"] = cfg.illness_damage_per_hour * hours
+            supported = a.hunger < 50 and a.thirst < 50 and a.energy > 20     # fed, hydrated and rested
+            damage["illness"] = cfg.illness_damage_per_hour * hours * (cfg.illness_supported_scale if supported else 1.0)
         return
     stressed = a.hunger > 70 or a.thirst > 70 or a.health < 50
     chance = cfg.illness_per_day * hours / 24 * (cfg.illness_stress_multiplier if stressed else 1)

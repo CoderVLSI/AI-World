@@ -126,6 +126,8 @@ function render(s){
 
   const hour=s.climate?.hour||12;sun.intensity=Math.max(.35,Math.sin((hour-6)/12*Math.PI)*2);sun.position.set(s.width/2,60,s.depth/2);
 
+  for(const o of Object.values(s.objects||{})){if(o.held_by)continue;const fire=o.kind==='fire';const m=mesh(fire?new THREE.ConeGeometry(.5,1.2,6):new THREE.BoxGeometry(.4,.3,.4),fire?'#ff8a2a':o.kind==='assembly'?'#b58a5a':'#8f8f86',o.x,heightAt(o.x,o.z)+(fire?.7:.3),o.z);if(fire)m.material.emissive=new THREE.Color('#ff5a00');}
+
   for(const p of Object.values(s.parts))mesh(new THREE.BoxGeometry(.8,p.shape==='rod'?2:.6,.8),p.material==='wood'?'#9d7549':'#a2a89c',p.x,heightAt(p.x,p.z)+.5,p.z);
 
   for(const w of Object.values(s.works))mesh(new THREE.BoxGeometry(.5,.15,.7),'#f2dfac',w.x,heightAt(w.x,w.z)+.2,w.z);
@@ -133,6 +135,7 @@ function render(s){
  }else{const c=$('fallback');c.width=innerWidth;c.height=innerHeight;const ctx=c.getContext('2d'),scale=Math.min(innerWidth/s.width,innerHeight/s.depth);ctx.fillStyle='#142922';ctx.fillRect(0,0,c.width,c.height);for(const n of Object.values(s.resources)){ctx.fillStyle=n.kind==='food'?'#b7bd64':'#4c7850';if(n.amount)ctx.fillRect(n.x*scale,n.z*scale,3,3)}for(const a of Object.values(s.agents)){ctx.fillStyle='#f2d29c';ctx.fillRect(a.x*scale,a.z*scale,5,5)}}
 
  $('generations').textContent=`Day ${Math.floor(s.tick*(s.biology?.days_per_tick||1/144))} | ${s.metrics?.births??Object.values(s.agents).filter(a=>a.generation>0).length} births | ${s.pregnancies?.length||0} pregnancies | generation ${Math.max(...Object.values(s.agents).map(a=>a.generation||0))}${(s.biology?.days_per_tick||0)>1/144?' | ACCELERATED CALENDAR':''}`;
+ {const m=s.metrics||{},sc=m.scheduler?.totals||{},k=m.knowledge||{},objs=Object.values(s.objects||{});if($('science'))$('science').textContent=m.scheduler?`decisions ${(sc.lfm_decisions||0)+(sc.mock_decisions||0)} (${sc.lfm_decisions||0} model) | mechanical steps ${sc.mechanical_steps||0} | intentions ${sc.tasks_started||0} | objects ${objs.filter(o=>o.kind!=='fire').length} | fires ${objs.filter(o=>o.kind==='fire').length} | findings ${k.practical||0} | reproduced ${k.independently_reproduced_findings||0}`:'';}
  $('backend').textContent=s.manifest.inference_backend==='MockInferenceBackend'?'DETERMINISTIC MOCK   no language model running':`SHARED MODEL   ${s.manifest.model_id}`;
 
  $('ecology').textContent=`${s.width}   ${s.depth} terrain   ${s.climate?.season||''}   ${s.climate?.weather||''}   ${s.climate?.temperature_c??''} C   ${Object.keys(s.resource_catalog||{}).length||15} resource types`;
@@ -147,7 +150,8 @@ function render(s){
 
 }
 
-function inspect(){const a=world?.agents[selected];$('anatomy').textContent=a?Object.entries(a.body?.parts||{}).map(([name,value])=>`${name.replaceAll('_',' ')}: ${value.health}`).join('\n'):'Select an inhabitant.';$('detail').textContent=a?`${a.id}\n${a.gender||"unspecified"}   sex: ${a.biological_sex||"unspecified"}\nAge ${(a.age_years??a.age_years_at_start??25).toFixed(2)}   Height ${a.height_cm||170} cm\nStage ${a.life_stage||"adult"} / Generation ${a.generation||0}\nParents ${(a.parent_ids||[]).join(", ")||"founder"}\nPosition ${a.x}, ${a.z}\nThirst ${a.thirst||0}\nBody: ${Object.keys(a.body?.parts||{}).length} parts tracked\nEnergy ${a.energy} / Hunger ${a.hunger}\nHealth ${a.health}\nInventory ${JSON.stringify(a.inventory)}\nSkills ${JSON.stringify(a.skills||{})}\nLearned records ${a.knowledge?.length||0}\nAlive ${a.alive}`:'Select an inhabitant.';}
+function plan(a){const t=a?.task;if(!t)return 'none (acts when asked)';const p=t.params||{};const what=t.kind==='TRAVEL_TO'?`to ${p.x},${p.z}`:t.kind==='GATHER_AT'?`${p.resource_id} x${p.amount}`:t.kind==='REST_FOR'?`${p.hours} h`:'';return `${t.kind} ${what}\n  chosen by ${t.selected_by?.origin||'unknown'}; ${Math.max(0,(t.path||[]).length-(t.step||0))} steps left`;}
+function inspect(){const a=world?.agents[selected];$('anatomy').textContent=a?Object.entries(a.body?.parts||{}).map(([name,value])=>`${name.replaceAll('_',' ')}: ${value.health}`).join('\n'):'Select an inhabitant.';$('detail').textContent=a?`${a.id}\n${a.gender||"unspecified"}   sex: ${a.biological_sex||"unspecified"}\nAge ${(a.age_years??a.age_years_at_start??25).toFixed(2)}   Height ${a.height_cm||170} cm\nStage ${a.life_stage||"adult"} / Generation ${a.generation||0}\nParents ${(a.parent_ids||[]).join(", ")||"founder"}\nPosition ${a.x}, ${a.z}\nThirst ${Math.round(a.thirst||0)}\nBody: ${Object.keys(a.body?.parts||{}).length} parts tracked\nEnergy ${Math.round(a.energy)} / Hunger ${Math.round(a.hunger)}\nHealth ${a.health}\nInventory ${JSON.stringify(a.inventory)}\nPlan ${plan(a)}\nBusy until tick ${a.busy_until_tick||0}${a.illness?'   UNWELL':''}\nSkills ${JSON.stringify(a.skills||{})}\nLearned records ${a.knowledge?.length||0}\nAlive ${a.alive}`:'Select an inhabitant.';}
 
 $('agents').onchange=e=>{selected=e.target.value;inspect()};$('follow').onclick=()=>{following=!following;if(following&&meshes.has(selected)){const p=meshes.get(selected).position;controls.target.copy(p);camera.position.copy(p).add(new THREE.Vector3(5,3,6));}$('follow').textContent=following?'Stop following':'Follow selected'};
 

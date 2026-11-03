@@ -541,13 +541,13 @@ def test_objects_survive_checkpoint_replay_and_journal_recovery(tmp_path):
     assert digest(recovered.state()) == digest(w.state()) and recovered.ledger == w.ledger
 
 
-def test_witness_sees_objects_but_inhabitants_do_not_see_hidden_values():
+def test_witness_sees_objects_but_inhabitants_do_not_see_hidden_values(tmp_path):
     from fastapi.testclient import TestClient
     from caitanya.server import create_app
     w, a = lab()
     flake, wood, fibre = haft(w, a)
     w.step()
-    client = TestClient(create_app(w, "/tmp/caitanya-witness-test", live=False))
+    client = TestClient(create_app(w, tmp_path, live=False))
     snapshot = client.get("/api/v1/world/snapshot").json()
     assert snapshot["objects"] and "scheduler" not in snapshot and "root" not in snapshot
     assert all("ltm" not in agent for agent in snapshot["agents"].values())

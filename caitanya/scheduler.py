@@ -18,6 +18,7 @@ changed (the inhabitant is then asked again with interrupt priority).
 """
 import copy
 import heapq
+import json
 import math
 import time
 
@@ -193,7 +194,10 @@ class DecisionScheduler:
         a.memories[:] = a.memories[-40:]
 
     def _complete(self, world, a):
+        kind, params = a.task["kind"], a.task["params"]
         self._end(world, a, "completed", {})
+        a.memories.append({"tick": world.tick, "feedback": f"Completed your intention {kind} {json.dumps(params, sort_keys=True)}"})
+        a.memories[:] = a.memories[-40:]
         self.data["totals"]["tasks_completed"] += 1
         self.record(a.id)["next_due"] = world.tick + 1
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
-import math
 import os
 import random
 import time
@@ -15,7 +14,7 @@ from .history import changes, apply_changes
 from .root import BrahmanAgent
 from .autonomy import AutonomyConfig, resolve
 from . import physiology
-from .scheduler import DecisionScheduler, TASK_ACTIONS, TASK_SPECS
+from .scheduler import DecisionScheduler, TASK_ACTIONS
 
 SCHEMA_VERSION = 2
 SUPPORTED_SCHEMAS = (1, 2)
@@ -105,6 +104,18 @@ class MockInferenceBackend:
         self.use_tasks = bool(use_tasks)
         self.metadata = {"mock_options": {"use_tasks": self.use_tasks}}
 
+    @staticmethod
+    def _remembered_site(observation, a, wanted):
+        """Mock-only: head for a remembered place of a needed resource (uses the memory system's recall)."""
+        import re
+        if not (a.get("thirst", 0) >= 12 or a["hunger"] >= 12):
+            return None
+        for item in observation.get("recalled", []):
+            m = re.match(r"(\w+) was seen at x=(\d+), z=(\d+)", item.get("text", "")) if item.get("kind") == "place" else None
+            if m and m.group(1) in wanted and (int(m.group(2)), int(m.group(3))) != (a["x"], a["z"]):
+                return int(m.group(2)), int(m.group(3))
+        return None
+
     def decide(self, observation):
         self.calls += 1
         a = observation["self"]
@@ -119,7 +130,10 @@ class MockInferenceBackend:
             wanted = {"water"} if a.get("thirst",0)>=12 and not a["inventory"].get("water",0) else set(EDIBLE) if a["hunger"]>=12 and not any(a["inventory"].get(k,0) for k in EDIBLE) else set(RESOURCE_TYPES)
             nodes = sorted((n for n in observation["resources"] if n["amount"] > 0 and n["kind"] in wanted and a["inventory"].get(n["kind"],0)<6),
                            key=lambda n: (abs(n["x"]-a["x"])+abs(n["z"]-a["z"]), n["id"]))
-            if not nodes:
+            site = self._remembered_site(observation, a, wanted) if self.use_tasks and not nodes else None
+            if site:
+                action, params = "TRAVEL_TO", {"x": site[0], "z": site[1]}
+            elif not nodes:
                 action, params = ("REST_FOR", {"hours": 1}) if self.use_tasks else ("REST", params)
             else:
                 n = nodes[0]
@@ -156,6 +170,7 @@ class World:
         self.backend = backend or MockInferenceBackend(use_tasks=not self.autonomy.legacy)
         self.biology=biology or BiologyConfig()
         self._validate_clock()
+        self._counts = {"births": 0, "validated": 0, "deaths": {}}
         self.scheduler = DecisionScheduler(self.autonomy.scheduler)
         self.objects, self.next_object_id = {}, 0
         self.ledger = {"dispersed_g": 0.0, "atmosphere_g": 0.0}
@@ -423,8 +438,9 @@ class World:
 
     def _finish(self, a, action, payload, origin, params=None):
         """Common bookkeeping for every accepted action."""
-        a.memories.append(dict(tick=self.tick, action=action, confirmed=True))
-        a.memories[:] = a.memories[-40:]
+        if origin != "mechanical_execution":   # routine path steps must not crowd out meaningful short-term memory
+            a.memories.append(dict(tick=self.tick, action=action, confirmed=True))
+            a.memories[:] = a.memories[-40:]
         self.emit(action.lower(),a.id,payload,"validated_action")
         self.root.register(self)
         self.root.record(a.id, action, payload)
@@ -441,6 +457,19 @@ class World:
         event.update(self._meta)
         event.update({k: v for k, v in extra.items() if v})
         self.events.append(event)
+        self._count(event)
+
+    def _count(self, event):
+        """Incremental tallies keep metrics O(1) per tick instead of rescanning the whole history."""
+        c = self._counts
+        if event["type"] == "birth":c["births"] += 1
+        elif event["type"] == "death":
+            cause = event["payload"].get("cause", "unknown");c["deaths"][cause] = c["deaths"].get(cause, 0) + 1
+        if event["source"] == "validated_action":c["validated"] += 1
+
+    def _rebuild_counts(self):
+        self._counts = {"births": 0, "validated": 0, "deaths": {}}
+        for event in self.events:self._count(event)
 
     def step(self):
         if self.status != "RUNNING": return
@@ -502,9 +531,9 @@ class World:
 
     def metrics(self):
         return dict(tick=self.tick,population=sum(a.alive for a in self.agents.values()),
-            pregnancies=len(self.pregnancies),births=sum(e["type"]=="birth" for e in self.events),
+            pregnancies=len(self.pregnancies),births=self._counts["births"],
             highest_generation=max((a.generation for a in self.agents.values()),default=0),
-            attempted=len(self.rejections)+sum(e["source"]=="validated_action" for e in self.events),
+            attempted=len(self.rejections)+self._counts["validated"],
             rejected=len(self.rejections),events=len(self.events),backend=type(self.backend).__name__,
             inference=self.backend.metrics() if hasattr(self.backend,"metrics") else {"model_instances":0},
             deaths=self.death_causes(),scheduler=self.scheduler.report(self) if not self.autonomy.legacy else None,
@@ -517,12 +546,7 @@ class World:
         return knowledge_metrics(self)
 
     def death_causes(self):
-        causes = {}
-        for e in self.events:
-            if e["type"] == "death":
-                cause = e["payload"].get("cause", "unknown")
-                causes[cause] = causes.get(cause, 0) + 1
-        return causes
+        return dict(self._counts["deaths"])
 
     def checkpoint(self, directory):
         directory=Path(directory); directory.mkdir(parents=True,exist_ok=True)
@@ -547,6 +571,7 @@ class World:
         if obj.backend.model_id != obj.manifest["model_id"] or obj.backend.model_revision != obj.manifest["model_revision"]:
             raise ValueError("restore backend does not match manifest")
         obj.events=body["events"]; obj.rejections=body["rejections"]; obj.initial_state=body["initial_state"]
+        obj._rebuild_counts()
         obj._last_committed_state=body.get("last_committed_state",copy.deepcopy(body["state"]))
         return obj
 
@@ -619,5 +644,5 @@ class World:
                 world.load_state(candidate);world._last_committed_state=copy.deepcopy(candidate)
                 for record in pending:
                     if record["type"]=="intent_rejected":world.rejections.append({"tick":record["world_tick"],"actor_id":record["actor_id"],"reason":record["payload"]["reason"]})
-                world.events.extend(pending);expected+=len(pending);pending=[];state=candidate
+                world.events.extend(pending);[world._count(ev) for ev in pending];expected+=len(pending);pending=[];state=candidate
         return world

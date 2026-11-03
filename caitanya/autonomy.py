@@ -55,6 +55,7 @@ class PhysiologyConfig:
     illness_min_days: float = 2.0
     illness_max_days: float = 5.0
     illness_damage_per_hour: float = 1.2
+    illness_supported_scale: float = 0.4    # damage multiplier while fed, hydrated and rested (basic care)
     regrowth_hours: float = 6.0             # renewable resources regain one unit per interval
     max_tick_hours: float = 6.0             # coarser ticks cannot support per-tick actions
 
@@ -72,6 +73,7 @@ class PhysiologyConfig:
         _num(self.infant_need_scale, "infant_need_scale", 0.1, 2)
         _num(self.child_need_scale, "child_need_scale", 0.1, 2)
         _num(self.illness_stress_multiplier, "illness_stress_multiplier", 1)
+        _num(self.illness_supported_scale, "illness_supported_scale", 0, 1)
         _num(self.illness_per_day, "illness_per_day", 0, 1)
         if self.illness_max_days < self.illness_min_days:
             raise ValueError("illness_max_days must be >= illness_min_days")

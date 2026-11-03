@@ -15,7 +15,8 @@ from .lifecycle import BiologyConfig, stage
 
 ROOT = Path(__file__).resolve().parent.parent
 
-def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_journal_bytes=100_000_000):
+def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_journal_bytes=100_000_000, checkpoint_every=60):
+    if type(checkpoint_every) is not int or checkpoint_every < 1:raise ValueError("checkpoint_every must be a positive integer")
     world = world or World()
     directory = Path(run_dir)
     directory.mkdir(parents=True,exist_ok=True)
@@ -47,7 +48,7 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
                 cursor=len(world.events)
                 published=world.public()
                 committed_count=cursor
-                if world.tick % 60 == 0: world.checkpoint(directory)
+                if world.tick % checkpoint_every == 0: world.checkpoint(directory)
         finally:
             world.checkpoint(directory)
 
@@ -95,6 +96,16 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
         except ValueError as e: raise HTTPException(400,str(e))
     @app.get("/api/v1/metrics")
     def metrics(): return published["metrics"]
+    @app.get("/api/v1/scheduler")
+    def scheduler_report():
+        """Decision budget, fairness and LFM-versus-mechanical attribution (measured counters)."""
+        return published["metrics"].get("scheduler") or {}
+    @app.get("/api/v1/knowledge")
+    def knowledge():
+        """Aggregate counts only; private memory contents are never published."""
+        return published["metrics"].get("knowledge") or {}
+    @app.get("/api/v1/objects")
+    def objects(): return published.get("objects", {})
     @app.get("/api/v1/families")
     def families():
         return {"lineage":[{"id":a["id"],"parent_ids":a["parent_ids"],"guardian_ids":a["guardian_ids"],"generation":a["generation"],"alive":a["alive"]}
@@ -105,8 +116,7 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     app.mount("/static",StaticFiles(directory=ROOT/"web"),name="static")
     return app
 
-def main():
-    import uvicorn
+def build_parser():
     p=argparse.ArgumentParser(); p.add_argument("--population",type=int,default=5)
     p.add_argument("--seed",type=int,default=314159); p.add_argument("--port",type=int,default=8000)
     p.add_argument("--width",type=int,default=256);p.add_argument("--depth",type=int,default=256)
@@ -116,24 +126,31 @@ def main():
     p.add_argument("--config",help="Experiment JSON (see config/default.json). Only a file named here is ever loaded.")
     p.add_argument("--legacy",action="store_true",help="Run the v0.4.0 per-tick physiology and fixed decision cadence")
     p.add_argument("--decisions-per-tick",type=int,help="Model calls allowed per tick (foundations mode)")
+    p.add_argument("--checkpoint-every",type=int,default=60,help="Ticks between periodic checkpoints (each embeds the event history)")
     p.add_argument("--recover",help="Restore newest valid image and replay its committed journal tail")
-    args=p.parse_args()
+    return p
+
+def build_world(args,p,backend=None):
+    """Construct or restore the world. An experiment file is read only when --config names it."""
+    if args.resume and args.recover:p.error("Choose either --resume or --recover")
+    if args.recover or args.resume:
+        return World.recover(args.recover,backend=backend) if args.recover else World.restore(args.resume,backend=backend)
+    params,autonomy=load_experiment_file(args.config) if args.config else ({},AutonomyConfig())
+    if args.legacy:autonomy=AutonomyConfig.legacy_mode()
+    if args.decisions_per_tick:
+        from dataclasses import replace
+        autonomy=replace(autonomy,scheduler=replace(autonomy.scheduler,max_decisions_per_tick=args.decisions_per_tick))
+    given=dict(seed=args.seed,population=args.population,width=args.width,depth=args.depth)
+    explicit={k:v for k,v in given.items() if p.get_default(k)!=v}   # command line beats the file
+    return World(**{**given,**params,**explicit},backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),autonomy=autonomy)
+
+def main():
+    import uvicorn
+    p=build_parser();args=p.parse_args()
     if args.backend=="lfm3":
         from .inference import TransformersLFM3Backend
         backend=TransformersLFM3Backend(revision=args.revision)
     else:backend=None
-    if args.resume and args.recover:p.error("Choose either --resume or --recover")
-    if args.recover or args.resume:
-        world=World.recover(args.recover,backend=backend) if args.recover else World.restore(args.resume,backend=backend)
-    else:
-        params,autonomy=load_experiment_file(args.config) if args.config else ({},AutonomyConfig())
-        if args.legacy:autonomy=AutonomyConfig.legacy_mode()
-        if args.decisions_per_tick:
-            from dataclasses import replace
-            autonomy=replace(autonomy,scheduler=replace(autonomy.scheduler,max_decisions_per_tick=args.decisions_per_tick))
-        explicit={k:v for k,v in dict(seed=args.seed,population=args.population,width=args.width,depth=args.depth).items()
-                  if p.get_default(k)!=v}
-        world=World(**{**dict(seed=args.seed,population=args.population,width=args.width,depth=args.depth),**params,**explicit},
-                    backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),autonomy=autonomy)
-    uvicorn.run(create_app(world,args.run_dir),host="127.0.0.1",port=args.port)
+    world=build_world(args,p,backend)
+    uvicorn.run(create_app(world,args.run_dir,checkpoint_every=args.checkpoint_every),host="127.0.0.1",port=args.port)
 if __name__=="__main__": main()
