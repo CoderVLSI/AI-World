@@ -1,0 +1,55 @@
+{
+  "classification": "synthetic CPU request capture; zero model inference calls",
+  "actor": "agent-0000",
+  "tick": 1,
+  "revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+  "tool_names": [
+    "REFLECT",
+    "MOVE",
+    "GATHER",
+    "REST",
+    "EAT",
+    "DRINK",
+    "WAIT",
+    "SPEAK",
+    "WRITE",
+    "TRAVEL_TO",
+    "GATHER_AT",
+    "REST_FOR",
+    "PICK",
+    "INSPECT",
+    "HYPOTHESIZE"
+  ],
+  "system_sha256": "e11f482d78ed8b1c226f45c93f7b29f169a7993d154777f61634e1d31f091b36",
+  "prompt_sha256": "ab0e5a9eca6971ccdfbd8dd51df8302fda16a0ff5927fcb79443a159a9f85b35",
+  "prompt_tokens": 2268,
+  "parser_probes": [
+    {
+      "classification": "synthetic CPU parser probe, not model inference",
+      "tool": "TRAVEL_TO",
+      "xml": "<tool_call><function=TRAVEL_TO><parameter=x>30</parameter><parameter=z>66</parameter></function></tool_call>",
+      "parsed_action": "TRAVEL_TO",
+      "accepted": true,
+      "reason": "accepted",
+      "mechanical_steps_after_one_tick": 1
+    },
+    {
+      "classification": "synthetic CPU parser probe, not model inference",
+      "tool": "GATHER_AT",
+      "xml": "<tool_call><function=GATHER_AT><parameter=resource_id>resource-0048</parameter><parameter=amount>1</parameter></function></tool_call>",
+      "parsed_action": "GATHER_AT",
+      "accepted": true,
+      "reason": "accepted",
+      "mechanical_steps_after_one_tick": 1
+    },
+    {
+      "classification": "synthetic CPU parser probe, not model inference",
+      "tool": "REST_FOR",
+      "xml": "<tool_call><function=REST_FOR><parameter=hours>1</parameter></function></tool_call>",
+      "parsed_action": "REST_FOR",
+      "accepted": true,
+      "reason": "accepted",
+      "mechanical_steps_after_one_tick": 1
+    }
+  ]
+}

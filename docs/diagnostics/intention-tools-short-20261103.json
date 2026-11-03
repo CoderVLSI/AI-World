@@ -1,0 +1,213 @@
+{
+  "agent_0001_invalid_inspect_examples": [
+    {
+      "accepted": false,
+      "actor": "agent-0001",
+      "inspectable_subjects": [
+        "resource-0375"
+      ],
+      "parameters": {
+        "subject": "water: renewable"
+      },
+      "tick": 18,
+      "tool": "INSPECT",
+      "validation_reason": "unknown object"
+    },
+    {
+      "accepted": false,
+      "actor": "agent-0001",
+      "inspectable_subjects": [
+        "resource-0375"
+      ],
+      "parameters": {
+        "subject": "water: spawn-water-1"
+      },
+      "tick": 19,
+      "tool": "INSPECT",
+      "validation_reason": "unknown object"
+    },
+    {
+      "accepted": false,
+      "actor": "agent-0001",
+      "inspectable_subjects": [
+        "resource-0375"
+      ],
+      "parameters": {
+        "subject": "water: renewable"
+      },
+      "tick": 20,
+      "tool": "INSPECT",
+      "validation_reason": "unknown object"
+    }
+  ],
+  "backend": "TransformersLFM3Backend",
+  "classification": "short diagnostic, genuine real-model inference; not a civilization benchmark",
+  "commit_sha": "14acb7c486556e3f11ef58240fcd5e45360138ce",
+  "completed_ticks": 20,
+  "historical_stage_a": {
+    "limitation": "Historical rejection events omit attempted tool name and parameters; do not invent missing subjects.",
+    "rejected_by_agent": {
+      "agent-0000": 2,
+      "agent-0001": 182,
+      "agent-0002": 78,
+      "agent-0003": 2,
+      "agent-0004": 2
+    },
+    "rejection_reasons_by_agent": {
+      "agent-0000": {
+        "resource unavailable": 2
+      },
+      "agent-0001": {
+        "resource out of reach": 3,
+        "unknown object": 179
+      },
+      "agent-0002": {
+        "unknown object": 78
+      },
+      "agent-0003": {
+        "resource unavailable": 2
+      },
+      "agent-0004": {
+        "resource unavailable": 2
+      }
+    },
+    "validated_by_agent": {
+      "agent-0000": 197,
+      "agent-0001": 17,
+      "agent-0002": 121,
+      "agent-0003": 197,
+      "agent-0004": 197
+    }
+  },
+  "inference": {
+    "device": "cuda",
+    "gpu_allocated_bytes": 3466130432,
+    "gpu_peak_allocated_bytes": 4657838592,
+    "hardware": "Tesla T4",
+    "inference_seconds": 154.761,
+    "model_calls": 100,
+    "model_id": "LiquidAI/LFM3-1.7B",
+    "model_instances": 1,
+    "model_revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+    "output_tokens": 2114,
+    "parse_or_inference_failures": 0,
+    "prompt_budget_failures": 0,
+    "prompt_tokens": {
+      "cap": 6144,
+      "max": 2824,
+      "measured_requests": 100,
+      "min": 1938,
+      "total": 255807
+    },
+    "successful_inference_calls": 100,
+    "tokens_per_second": 13.66
+  },
+  "model_id": "LiquidAI/LFM3-1.7B",
+  "model_revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+  "population": 5,
+  "protected_system_sha256": "e11f482d78ed8b1c226f45c93f7b29f169a7993d154777f61634e1d31f091b36",
+  "raw_tool_name_counts": {
+    "DRINK": 9,
+    "EAT": 11,
+    "GATHER": 1,
+    "INSPECT": 18,
+    "MOVE": 5,
+    "REST": 3,
+    "SPEAK": 29,
+    "WAIT": 24
+  },
+  "real_seconds": 155.99087592499927,
+  "recovery_equal": true,
+  "requested_max_seconds": 300.0,
+  "requested_max_ticks": 20,
+  "tool_offer_counts": {
+    "ASSESS": 94,
+    "CANCEL_TASK": 0,
+    "CARE": 0,
+    "COMBINE": 0,
+    "COMPARE": 39,
+    "COOL": 0,
+    "DRINK": 69,
+    "DROP": 0,
+    "EAT": 79,
+    "FEED_FIRE": 0,
+    "GATHER": 87,
+    "GATHER_AT": 100,
+    "GATHER_WITH": 0,
+    "GIVE": 0,
+    "HAND_OVER": 0,
+    "HEAT": 0,
+    "HYPOTHESIZE": 100,
+    "INSPECT": 100,
+    "MOVE": 100,
+    "PICK": 79,
+    "PLACE": 0,
+    "READ": 0,
+    "REFLECT": 100,
+    "REPRODUCE": 0,
+    "REST": 100,
+    "REST_FOR": 100,
+    "REVISE": 0,
+    "RUB": 0,
+    "SEPARATE": 0,
+    "SHARE_KNOWLEDGE": 0,
+    "SPEAK": 60,
+    "STOW": 0,
+    "STRIKE": 0,
+    "TAKE": 0,
+    "TEACH": 0,
+    "TEST": 0,
+    "TRAVEL_TO": 100,
+    "WAIT": 100,
+    "WITHDRAW_CONSENT": 0,
+    "WRITE": 100,
+    "WRITE_FINDINGS": 39
+  },
+  "tool_pick_counts": {
+    "ASSESS": 0,
+    "CANCEL_TASK": 0,
+    "CARE": 0,
+    "COMBINE": 0,
+    "COMPARE": 0,
+    "COOL": 0,
+    "DRINK": 9,
+    "DROP": 0,
+    "EAT": 11,
+    "FEED_FIRE": 0,
+    "GATHER": 1,
+    "GATHER_AT": 0,
+    "GATHER_WITH": 0,
+    "GIVE": 0,
+    "HAND_OVER": 0,
+    "HEAT": 0,
+    "HYPOTHESIZE": 0,
+    "INSPECT": 18,
+    "MOVE": 5,
+    "PICK": 0,
+    "PLACE": 0,
+    "READ": 0,
+    "REFLECT": 0,
+    "REPRODUCE": 0,
+    "REST": 3,
+    "REST_FOR": 0,
+    "REVISE": 0,
+    "RUB": 0,
+    "SEPARATE": 0,
+    "SHARE_KNOWLEDGE": 0,
+    "SPEAK": 29,
+    "STOW": 0,
+    "STRIKE": 0,
+    "TAKE": 0,
+    "TEACH": 0,
+    "TEST": 0,
+    "TRAVEL_TO": 0,
+    "WAIT": 24,
+    "WITHDRAW_CONSENT": 0,
+    "WRITE": 0,
+    "WRITE_FINDINGS": 0
+  },
+  "validation_counts": {
+    "False": 4,
+    "True": 96
+  }
+}
