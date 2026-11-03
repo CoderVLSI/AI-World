@@ -34,3 +34,12 @@ def test_historical_read_is_nonmutating_and_does_not_guess_omitted_tool(tmp_path
     assert result['rejection_reasons_by_agent']['agent-0001'] == {'unknown object':1}
     assert 'omit' in result['limitation']
     assert path.read_bytes() == before
+
+
+def test_observed_bad_inspect_subjects_parse_but_fail_world_reference_validation():
+    world = World(population=5, width=128, depth=128, wildlife_per_species=6)
+    for subject in ('water: renewable', 'water: spawn-water-1'):
+        xml = '<tool_call><function=INSPECT><parameter=subject>' + subject + '</parameter></function></tool_call>'
+        intent = inference.parse_tool(xml, world.observe('agent-0001'))
+        assert intent.parameters == {'subject': subject}
+        assert world.apply(intent) == (False, 'unknown object')
