@@ -1,0 +1,63 @@
+{
+  "status": "completed",
+  "label": "MOCK template (CPU); measures bookkeeping only, not model behaviour",
+  "environment": {
+    "python": "3.13.18",
+    "platform": "Linux-6.18.44-fc-v230-x86_64-with-glibc2.39",
+    "backend": "mock",
+    "gpu": null
+  },
+  "model_id": "mock/deterministic-forager",
+  "model_revision": "1",
+  "requested": {
+    "backend": "mock",
+    "revision": null,
+    "seed": 314159,
+    "population": 5,
+    "wildlife_per_species": 2,
+    "ticks": 400,
+    "reflect_every": 40,
+    "max_new_tokens": 320,
+    "max_real_seconds": 600.0,
+    "run_dir": "/tmp/claude-0/-home-user-AI-World/839e5785-ec29-54cc-86ef-7358b1f34237/scratchpad/ivrun"
+  },
+  "without_reflection": {
+    "stop": "completed",
+    "ticks_completed": 400,
+    "real_seconds": 2.456,
+    "gpu_peak_mb": null,
+    "inhabitant_calls": 434
+  },
+  "with_reflection": {
+    "stop": "completed",
+    "ticks_completed": 400,
+    "real_seconds": 3.925,
+    "gpu_peak_mb": null,
+    "inhabitant_calls": 434
+  },
+  "extra_inference": {
+    "root_calls": 10,
+    "recorded": 10,
+    "failures": 0,
+    "root_calls_as_fraction_of_inhabitant_calls": 0.023,
+    "added_wall_seconds_total": 1.469,
+    "backend_root_metrics": {
+      "calls": 10
+    }
+  },
+  "reflection_quality_counts": {
+    "reflections": 10,
+    "with_valid_citations": 4,
+    "uncited": 0,
+    "uncertainty_stated": 10,
+    "dropped_citations": 0,
+    "proposals_stored_unapplied": 0
+  },
+  "physical_state_identical_with_and_without_reflection": true,
+  "note_on_that_last_field": "Expected true for the mock. With a real model it can legitimately be false only through wall-clock-budget effects, not through reflection; report it as measured.",
+  "restore_check": {
+    "restored_reflections_equal": true,
+    "restore_made_no_model_calls": true,
+    "checkpoint": "/tmp/claude-0/-home-user-AI-World/839e5785-ec29-54cc-86ef-7358b1f34237/scratchpad/ivrun/checkpoint-000000400.json"
+  }
+}

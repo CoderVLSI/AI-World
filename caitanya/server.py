@@ -23,7 +23,8 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     world = world or World()
     directory = Path(run_dir)
     directory.mkdir(parents=True,exist_ok=True)
-    if storage.has_history(directory) and not world.events:
+    # A freshly created world sits at tick 0 (it already holds its genesis events); a recovered one does not.
+    if storage.has_history(directory) and world.tick == 0:
         raise ValueError("Existing run history: use --recover or choose a new --run-dir")
     # A tick-zero image makes even a pre-first-periodic-checkpoint crash recoverable.
     if not any(directory.glob("checkpoint-*.json")):world.checkpoint(directory)
@@ -98,6 +99,11 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     app.state.world=world
     @app.get("/api/v1/health")
     def health(): return {"status":world.status,"schema_version":SCHEMA_VERSION,"mode":world.manifest["inference_backend"],"execution":dict(execution)}
+    @app.get("/api/v1/genesis")
+    def genesis_summary():
+        """Counts and the deterministic creation record only: no reflection text, no proposals, no root state."""
+        from . import isvara
+        return isvara.public_summary(world)
     @app.get("/api/v1/world/snapshot")
     def snapshot(): return published | {'execution':dict(execution)}
     @app.get("/api/v1/world/events")

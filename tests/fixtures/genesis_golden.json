@@ -1,0 +1,84 @@
+[
+ {
+  "kwargs": {
+   "seed": 314159,
+   "population": 5
+  },
+  "initial": "06d426db95193a2debb24e76454fb9ae13b29da93c59db731e68c86466e40676",
+  "next_random": 0.4572317588346315,
+  "after_30_ticks": "a7b628f6e7cfe5d140ddc2ca1c80f69a223b196ad9cc45b914bfae3dbddb8dee"
+ },
+ {
+  "kwargs": {
+   "seed": 1,
+   "population": 12,
+   "width": 96,
+   "depth": 96
+  },
+  "initial": "75e87eea3b2694dc6b7d1185a0c67071d24489b23210fc4f73f58fda578de713",
+  "next_random": 0.8306775905962271,
+  "after_30_ticks": "60c3fc73e694badf92932053e8bbe9a816387e23ede5f3042be20d07ff3f4198"
+ },
+ {
+  "kwargs": {
+   "seed": 7,
+   "population": 50,
+   "width": 128,
+   "depth": 128
+  },
+  "initial": "07e5c2b2639629aa5933dc5f38368258708976ebd601d7a17ad2ae12cf1ea4b7",
+  "next_random": 0.7046594697841785,
+  "after_30_ticks": "bbe892699ea57998c16f350e0892944450cbad259cbd555f5545261045303302"
+ },
+ {
+  "kwargs": {
+   "seed": 42,
+   "population": 8,
+   "wildlife_per_species": 6
+  },
+  "initial": "d87e96c600cc932e297943d3855ce24445cf48d9daaff33304bb7a6615933811",
+  "next_random": 0.7873745091354711,
+  "after_30_ticks": "b2f417cab61ebbc259e1c8dd9e0badb7d4f9f07e3c4978e4745ae6f1ae33dc77"
+ },
+ {
+  "kwargs": {
+   "seed": 999,
+   "population": 3,
+   "width": 32,
+   "depth": 40
+  },
+  "initial": "00a6f313fe9f89b76cb00b19058a02bd3c897917c98df381896c0e58a033408d",
+  "next_random": 0.6702917909469039,
+  "after_30_ticks": "3b7e5e363502e1af972db2d238e2cdeebbce93b89d0a91f20eb8b7bb61e5dc75"
+ },
+ {
+  "kwargs": {
+   "seed": 5,
+   "population": 5,
+   "spawn_radius": 3
+  },
+  "initial": "b7b9284d81885194b60d6219a267057c44ec9e08c3ab45c99fd99c69c9a82971",
+  "next_random": 0.39186569066590216,
+  "after_30_ticks": "f3c8e1376cdcf3df3c0264234559fa6322f5cdd3ecd000c02826074e98bca750"
+ },
+ {
+  "kwargs": {
+   "seed": 11,
+   "population": 6,
+   "root_mode": "off"
+  },
+  "initial": "d9a8ec2c6a71c394c054d276041078fbe91e7baff09c41ef7bfb3541b3b4f6dc",
+  "next_random": 0.5331219683215344,
+  "after_30_ticks": "084e82e953096be8c8a142bc8f1316950c0284f9c295bd4e0d3d43ec0895fed7"
+ },
+ {
+  "kwargs": {
+   "seed": 11,
+   "population": 6,
+   "autonomy": "legacy"
+  },
+  "initial": "d9a8ec2c6a71c394c054d276041078fbe91e7baff09c41ef7bfb3541b3b4f6dc",
+  "next_random": 0.5331219683215344,
+  "after_30_ticks": "e53ddbbe2a9f5b50fa47555ce4ee3f44d4826ccd10dc6984fe14185a207533d7"
+ }
+]
