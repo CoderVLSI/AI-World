@@ -97,3 +97,12 @@ would be a separate later design change; nothing here makes that inference.
 
 Validation commands: `python -m pytest tests/test_nature_forces.py -q` and
 `python -m pytest -q`. Actual results are recorded in the draft PR.
+
+On 2026-11-03, the final targeted nature-force and witness suite passed 29 tests.
+The broad suite, started before the final edge-case test additions, finished with
+300 passed, 1 failed, and 1 skipped in 584.20 seconds. Its sole failure was the
+unchanged Godot attribution test reading UTF-8 punctuation with Windows' default
+cp1252 encoding. The attribution content matches `main` and its generator when
+decoded as UTF-8. Re-running the Godot asset suite with `PYTHONUTF8=1` gave 6 passed
+and 1 skipped (no local Godot binary). No unrelated asset or test was changed.
+`git diff --check` and Python compilation of the new module passed.
