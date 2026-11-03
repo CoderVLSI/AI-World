@@ -35,6 +35,16 @@ rule as everyone else (`animation_map.gd`): walk only when really moving, sit fo
 By default everyone is drawn this way. `--humans=models` uses the fetched rigged models for adults only (a scaled adult model cannot
 show a child's proportions, so children are always drawn procedurally).
 
+## Speech bubbles
+What inhabitants recently **said** appears in a bubble above their head (`speech` in `/api/v1/live`: `speak` and `teach` lines from the last
+12 ticks, truncated to 160 characters, 90 in the bubble). A bubble lasts 4-11 seconds depending on length, at most 14 are shown at once (nearest
+first, stacked when speakers are close), and none for speakers farther than 70 units. Press `B` to switch them off and on.
+
+**Thoughts are private.** A recorded reflection is shown only as a light-blue "..." bubble, with no text: reflection text is never in any
+event or API (a test plants a secret thought and checks it appears nowhere). Showing what a model privately thinks would need a deliberate,
+separate decision to expose private text to the operator; nothing here does that. Writings, hypotheses, memories and stated reasons are never
+included either.
+
 ## Hundreds of people
 Only the people near the camera get the full articulated body (at most 60, built the first time someone comes close, and hidden again when
 they are far); everyone else is a **crowd figure** drawn with two MultiMeshes, so a crowd costs a handful of draw calls. The selected person

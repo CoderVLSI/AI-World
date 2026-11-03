@@ -43,6 +43,20 @@ var _crowd_capacity := 0
 var crowd_flags := PackedByteArray()       # per person, in drawing order: 1 = drawn as a crowd figure (tests read this, not the renderer)
 var _lod_clock := 99.0
 var full_people_count := 0
+# Speech bubbles: what inhabitants recently SAID (public speech from /api/v1/live `speech`), drawn above their heads. A recorded
+# reflection is offered only as a text-less "..." thought bubble: reflections are private and their text is never published.
+const MAX_BUBBLES := 14
+const BUBBLE_RANGE := 70.0
+const BUBBLE_MAX_CHARS := 90
+const BUBBLE_CHARS_PER_LINE := 22.0
+const BUBBLE_FONT := 32
+const BUBBLE_PIXEL := 0.0075
+const BUBBLE_WIDTH_PX := 400.0
+var bubbles_on := true
+var bubble_seconds_override := -1.0        # tests only
+var _speech := {}                          # agent id -> {text, kind, until}
+var _seen_speech := {}                     # "agent:tick:kind" -> tick (so a poll that repeats a line does not restart its bubble)
+var _bubble_pool: Array = []
 var human_mode := "procedural"    # "procedural": every person is built from their recorded age (grows); "models": rigged adults when fetched
 
 func _ready() -> void:
@@ -58,6 +72,8 @@ func _ready() -> void:
 	var vc := StandardMaterial3D.new(); vc.vertex_color_use_as_albedo = true; vc.roughness = 0.9
 	crowd_body.material_override = vc; crowd_head.material_override = vc
 	add_child(crowd_body); add_child(crowd_head)
+	for i in MAX_BUBBLES:
+		var bubble := _make_bubble(); add_child(bubble); _bubble_pool.append(bubble)
 
 func _cone(r: float, h: float) -> Mesh:
 	var m := CylinderMesh.new(); m.top_radius = 0.0; m.bottom_radius = r; m.height = h; m.radial_segments = 6; m.rings = 1
@@ -156,6 +172,7 @@ func update_live(live: Dictionary, terrain_view) -> void:
 		n.visible = o.get("kind") != "fire" or o.get("burning", false))
 	_resources(live.get("resources", []))
 	_refresh_crowd_colors()
+	_take_speech(live)
 	_lod_clock = 99.0                  # re-decide who is near right away after a poll
 
 func _resources(items: Array) -> void:
@@ -170,6 +187,97 @@ func _resources(items: Array) -> void:
 			var p := _ground(float(r.x) + 0.5, float(r.z) + 0.5)
 			mm.set_instance_transform(i, Transform3D(Basis(), p + Vector3(0, pair[2], 0)))
 			mm.set_instance_color(i, Color(RESOURCE_COLORS.get(str(r.kind), "#aaaaaa")))
+
+func _make_bubble() -> Node3D:
+	var root := Node3D.new(); root.visible = false
+	var bg := MeshInstance3D.new(); bg.name = "bg"; bg.mesh = QuadMesh.new()
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; m.no_depth_test = true; m.render_priority = 1; m.albedo_color = Color(1, 1, 1, 0.92)
+	bg.material_override = m; root.add_child(bg)
+	var label := Label3D.new(); label.name = "label"
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED; label.font_size = BUBBLE_FONT; label.pixel_size = BUBBLE_PIXEL; label.outline_size = 0
+	label.modulate = Color("#1b1b1b"); label.width = BUBBLE_WIDTH_PX; label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.no_depth_test = true; label.render_priority = 2
+	root.add_child(label)
+	return root
+
+func _take_speech(live: Dictionary) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	for item in live.get("speech", []):
+		var key := "%s:%d:%s" % [str(item.get("agent_id")), int(item.get("tick", 0)), str(item.get("kind"))]
+		if _seen_speech.has(key):
+			continue
+		_seen_speech[key] = int(item.get("tick", 0))
+		var kind := str(item.get("kind", "speech"))
+		var text := ""
+		var seconds := 3.0
+		if kind == "thought":
+			text = "\u2026"                       # a thought is shown, never its content
+		else:
+			text = str(item.get("text", ""))
+			if text.length() > BUBBLE_MAX_CHARS:
+				text = text.substr(0, BUBBLE_MAX_CHARS - 1) + "\u2026"
+			seconds = clampf(2.5 + 0.06 * text.length(), 4.0, 11.0)
+		if bubble_seconds_override > 0.0:
+			seconds = bubble_seconds_override
+		_speech[str(item.get("agent_id"))] = {"text": text, "kind": kind, "until": now + seconds}
+	if _seen_speech.size() > 1500:                 # forget old keys
+		for key in _seen_speech.keys():
+			if int(_seen_speech[key]) < current_tick - 200:
+				_seen_speech.erase(key)
+
+## Currently visible bubbles, for tests and the HUD: [{id, text, kind}].
+func bubbles_shown() -> Array:
+	var out := []
+	for b: Node3D in _bubble_pool:
+		if b.visible:
+			out.append({"id": str(b.get_meta("agent")), "text": str(b.get_meta("text")), "kind": str(b.get_meta("kind"))})
+	return out
+
+func _update_bubbles() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	for id in _speech.keys():
+		if float(_speech[id].until) < now:
+			_speech.erase(id)
+	var active := []
+	var cam := get_viewport().get_camera_3d()
+	if bubbles_on:
+		for id in _speech:
+			if not people.has(id):
+				continue
+			var d := 0.0 if cam == null else float(people[id].global_position.distance_to(cam.global_position))
+			if d <= BUBBLE_RANGE:
+				active.append([d, id])
+		active.sort_custom(func(a, b): return a[0] < b[0])
+	for i in MAX_BUBBLES:
+		var bubble: Node3D = _bubble_pool[i]
+		if i >= active.size():
+			bubble.visible = false
+			continue
+		var id: String = active[i][1]
+		var sp: Dictionary = _speech[id]
+		var person: Node3D = people[id]
+		if str(bubble.get_meta("agent", "")) != id or str(bubble.get_meta("text", "")) != str(sp.text):
+			bubble.set_meta("agent", id); bubble.set_meta("text", str(sp.text)); bubble.set_meta("kind", str(sp.kind))
+			var label: Label3D = bubble.get_node("label"); label.text = str(sp.text)
+			var chars := float(maxi(str(sp.text).length(), 1))
+			var lines := ceilf(chars / BUBBLE_CHARS_PER_LINE)
+			var w := minf(chars, BUBBLE_CHARS_PER_LINE) * (BUBBLE_FONT * 0.55 * BUBBLE_PIXEL) + 0.3
+			var h := lines * (BUBBLE_FONT * 1.3 * BUBBLE_PIXEL) + 0.2
+			bubble.get_node("bg").mesh.size = Vector2(w, h)
+			bubble.set_meta("half_height", h * 0.5)
+			bubble.get_node("bg").material_override.albedo_color = Color(0.86, 0.91, 1.0, 0.92) if str(sp.kind) == "thought" else Color(1, 1, 1, 0.92)
+		var top: float = person.top_y() if person.has_method("top_y") else 2.7
+		var half: float = float(bubble.get_meta("half_height", 0.4))
+		var pos := person.position + Vector3(0.0, top + 0.35 + half, 0.0)
+		for j in i:                                                # nearer speakers keep their place; neighbours' bubbles stack upward
+			var other: Node3D = _bubble_pool[j]
+			if other.visible and absf(other.position.x - pos.x) < 2.2 and absf(other.position.z - pos.z) < 2.2 \
+					and absf(other.position.y - pos.y) < half + float(other.get_meta("half_height", 0.4)) + 0.05:
+				pos.y = other.position.y + float(other.get_meta("half_height", 0.4)) + half + 0.1
+		bubble.position = pos
+		bubble.visible = true
 
 func _is_full(n: Node3D) -> bool:
 	return (not n.has_method("set_detail")) or bool(n.detail)       # rigged model nodes are always drawn in full
@@ -277,6 +385,7 @@ func _process(delta: float) -> void:
 			var moving: bool = n.has_meta("target") and n.position.distance_to(n.get_meta("target")) > 0.06
 			n.play_state(AnimationMap.state_for(n.get_meta("last_action", {}), current_tick, moving))
 	_update_crowd()
+	_update_bubbles()
 	if selected != "" and people.has(selected):
 		ring.visible = true; ring.position = people[selected].position + Vector3(0, 0.05, 0)
 	else:

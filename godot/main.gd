@@ -114,5 +114,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		hud.show_selected(actors.latest_people.get(selected))
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_F:
 		cam.focus(actors.centroid(), 45.0)
+	elif event is InputEventKey and event.pressed and event.keycode == KEY_B:
+		actors.bubbles_on = not actors.bubbles_on
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_G and not actors.animals.is_empty():
 		cam.focus(actors.animal_centroid(), 30.0)

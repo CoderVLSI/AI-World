@@ -172,3 +172,11 @@ def test_godot_crowd_level_of_detail():
     done = subprocess.run([godot_binary(), "--headless", "--path", str(GODOT_DIR), "--script", "res://tests/crowd_test.gd"],
                           capture_output=True, text=True, timeout=240)
     assert "crowd tests: ok" in done.stdout and "FAIL" not in done.stdout, done.stdout[-800:] + done.stderr[-400:]
+
+
+@pytest.mark.skipif(godot_binary() is None, reason="no Godot binary (set GODOT_BIN or run scripts/setup_godot_tools.sh)")
+def test_godot_speech_bubbles():
+    """Spoken lines above speakers, thoughts only as an ellipsis, capped, expiring, switchable."""
+    done = subprocess.run([godot_binary(), "--headless", "--path", str(GODOT_DIR), "--script", "res://tests/bubble_test.gd"],
+                          capture_output=True, text=True, timeout=240)
+    assert "bubble tests: ok" in done.stdout and "FAIL" not in done.stdout, done.stdout[-800:] + done.stderr[-400:]
