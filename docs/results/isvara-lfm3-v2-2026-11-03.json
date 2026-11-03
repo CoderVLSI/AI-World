@@ -1,0 +1,89 @@
+{
+  "status": "completed",
+  "label": "REAL LFM3 on GPU",
+  "environment": {
+    "python": "3.13.16",
+    "platform": "Linux-6.6.159+-x86_64-with-glibc2.39",
+    "backend": "lfm3",
+    "gpu": "Tesla T4"
+  },
+  "model_id": "LiquidAI/LFM3-1.7B",
+  "model_revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+  "requested": {
+    "backend": "lfm3",
+    "revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+    "seed": 314159,
+    "population": 5,
+    "wildlife_per_species": 0,
+    "ticks": 60,
+    "reflect_every": 20,
+    "max_new_tokens": 320,
+    "max_real_seconds": 600.0,
+    "control": true,
+    "keep_failure_samples": 300,
+    "run_dir": "/content/drive/MyDrive/CAITANYA/isvara-check-v2-2026-11-03-1"
+  },
+  "without_reflection": {
+    "stop": "completed",
+    "ticks_completed": 60,
+    "real_seconds": 480.87,
+    "gpu_peak_mb": 4693.0,
+    "inhabitant_calls": 285
+  },
+  "with_reflection": {
+    "stop": "completed",
+    "ticks_completed": 60,
+    "real_seconds": 521.0,
+    "gpu_peak_mb": 4693.0,
+    "inhabitant_calls": 285
+  },
+  "extra_inference": {
+    "root_calls": 3,
+    "recorded": 3,
+    "failures": 0,
+    "root_calls_as_fraction_of_inhabitant_calls": 0.0105,
+    "added_wall_seconds_total": 40.13,
+    "backend_root_metrics": {
+      "calls": 3,
+      "failures": 0,
+      "successful_calls": 3,
+      "output_tokens": 720,
+      "prompt_tokens": {
+        "min": 683,
+        "max": 880,
+        "total": 2264
+      },
+      "prompt_budget_failures": 0,
+      "inference_seconds": 32.222,
+      "model_instances": 1,
+      "note": "Isvara reasoning calls are counted here and never in model_calls (inhabitant decisions)."
+    }
+  },
+  "reflection_quality_counts": {
+    "reflections": 3,
+    "with_valid_citations": 2,
+    "uncited": 0,
+    "uncertainty_stated": 3,
+    "dropped_citations": 2,
+    "proposals_stored_unapplied": 0
+  },
+  "physical_state_identical_with_and_without_reflection": false,
+  "failure_categories": {},
+  "failures_detail": [],
+  "note_on_physical_state": "A real model need not be perfectly repeatable. Without --control this field alone cannot say whether a difference comes from reflection or from run-to-run variation; with --control compare the two fields below.",
+  "control": {
+    "second_world_without_reflection": {
+      "stop": "completed",
+      "ticks_completed": 60,
+      "real_seconds": 492.38,
+      "gpu_peak_mb": 4693.0
+    },
+    "physical_state_identical_between_the_two_reflection_off_worlds": true,
+    "reading": "If this is false, the real model differs from run to run by itself, so a difference with reflection on is not evidence that reflection changed the world."
+  },
+  "restore_check": {
+    "restored_reflections_equal": true,
+    "restore_made_no_model_calls": true,
+    "checkpoint": "/content/drive/MyDrive/CAITANYA/isvara-check-v2-2026-11-03-1/checkpoint-000000060.json"
+  }
+}
