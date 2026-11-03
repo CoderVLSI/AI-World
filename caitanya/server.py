@@ -13,7 +13,7 @@ from .engine import World, redact_private, SCHEMA_VERSION
 from .nature import climate
 from .autonomy import AutonomyConfig, load_experiment_file
 from .lifecycle import BiologyConfig, stage
-from .witness import terrain_grid, live_view
+from .witness import terrain_grid, live_view, recent_speech
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -166,7 +166,9 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     @app.get("/api/v1/live")
     def live_snapshot():   # not named `live`: that would shadow the create_app(live=...) flag
         """Light polling view for viewers: positions, plans, resources, objects, optional wildlife."""
-        return live_view(published)
+        view = live_view(published)
+        view["speech"] = recent_speech(world.events[:committed_count], published["tick"])      # public speech only; thoughts carry no text
+        return view
     @app.get("/api/v1/families")
     def families():
         return {"lineage":[{"id":a["id"],"parent_ids":a["parent_ids"],"guardian_ids":a["guardian_ids"],"generation":a["generation"],"alive":a["alive"]}
@@ -184,6 +186,7 @@ def build_parser():
     p.add_argument("--width",type=int,default=256);p.add_argument("--depth",type=int,default=256)
     p.add_argument("--backend",choices=["mock","lfm3"],default="mock");p.add_argument("--revision")
     p.add_argument("--root-mode",choices=["off","observe","crisis"],default="crisis")
+    p.add_argument("--nature-forces",action="store_true",help="Opt in to experimental formless environmental pulses for NEW worlds; recovery preserves the saved setting.")
     p.add_argument("--max-ticks",type=int);p.add_argument("--max-seconds",type=float)
     p.add_argument("--report-dir")
     p.add_argument('--wildlife-per-species',type=int,default=6,help='Initial animals per species for NEW worlds; 0 disables wildlife. Recovery preserves saved ecology.')
@@ -195,6 +198,8 @@ def build_parser():
     p.add_argument("--checkpoint-every",type=int,default=60,help="Ticks between periodic checkpoints (slim images reference the journal; images are full only if the journal cannot cover the history)")
     p.add_argument("--segment-bytes",type=int,default=25_000_000,help="Close the active journal as a numbered segment after this many bytes")
     p.add_argument("--max-run-bytes",type=int,default=5_000_000_000,help="Pause (PAUSED_RESOURCE_LIMIT) when the run directory exceeds this size")
+    p.add_argument("--families",type=int,default=0,help="Found the NEW world with this many households (a woman, a man and children); overrides --population")
+    p.add_argument("--children-per-family",type=int,default=2)
     p.add_argument("--recover",help="Restore newest valid image and replay its committed journal tail")
     return p
 
@@ -210,7 +215,7 @@ def build_world(args,p,backend=None):
         autonomy=replace(autonomy,scheduler=replace(autonomy.scheduler,max_decisions_per_tick=args.decisions_per_tick))
     given=dict(seed=args.seed,population=args.population,width=args.width,depth=args.depth)
     explicit={k:v for k,v in given.items() if p.get_default(k)!=v}   # command line beats the file
-    return World(**{**given,**params,**explicit},backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),autonomy=autonomy,root_mode=args.root_mode,wildlife_per_species=args.wildlife_per_species)
+    return World(**{**given,**params,**explicit},backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),autonomy=autonomy,root_mode=args.root_mode,wildlife_per_species=args.wildlife_per_species,nature_forces=args.nature_forces,families=args.families,children_per_family=args.children_per_family)
 
 def main():
     import uvicorn

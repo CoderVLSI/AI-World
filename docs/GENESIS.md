@@ -128,3 +128,38 @@ and runs a second reflecting world to see whether two reflecting runs agree. If 
 reflection is not the cause; if it is at or after it, fewer inhabitant calls on one side points to the wall-clock budget. Command (4 worlds,
 about 33 minutes on a T4; new Drive folder; pinned revision; never commit the private run folder):
 `python scripts/isvara_check.py --backend lfm3 --revision <sha> --control --twice --trace --max-real-seconds 900 --run-dir <NEW dir> --out <file>`
+
+## Founding families (generator `founders-v2`, opt-in)
+
+`python -m caitanya.server --families 50 --children-per-family 2 --width 256 --depth 256` (or `World(families=50, children_per_family=2)`)
+founds the world with **households**: each is one woman, one man and children, living together at one spot. `--population` is ignored
+when `--families` is given (the total is `families x (2 + children_per_family)`). The default (`families=0`) builds exactly the same
+world as before: the seed-equivalence fixture still matches and a default plan's serialized form and digest are unchanged
+(the family fields are only written when families > 0). Saves from before families load as before.
+* Adults are 20-40, a woman (`biological_sex` female) and a man (male). Children are 1-16 with `parent_ids` and `guardian_ids` set to
+  their two parents, generation 1, `adulthood_recorded` false, an adult height drawn from their parents' average, and a starting height
+  from the simulation's own growth rule. They use the existing rules: infants (under 3) cannot act or carry anything and depend on their
+  guardians (CARE and the guardian wake-up), children grow every tick toward their adult height, adulthood is recorded at 18, and the
+  family tree and the viewers show them. Children 3 and over start with the standard carried water.
+* `lifecycle.py` change (one line): height growth now applies to everyone younger than adulthood, not only to people born in the world.
+  People who start as adults, and newborns, are unaffected.
+
+### How big can it get? (measured, mock policy, CPU)
+| People | World | Create | Ticks per second | One tick's journal patch | Memory |
+|---|---|---|---|---|---|
+| 40 (10 households) | 128x128 | 0.3 s | 22.8 | 53 KB | 35 MB |
+| 200 (50) | 256x256 | 1.4 s | 7.1 | 68 KB | 49 MB |
+| 500 (125) | 256x256 | 1.5 s | 3.2 | 124 KB | 71 MB |
+
+The simulation itself scales to hundreds of people on a laptop. The limit is **the real model**: the scheduler gives at most 8
+decisions per tick, so with N people each person is asked at best every ceil(N/8) ticks, and one call took about 1.7 s on a T4 in our
+Stage A run (285 calls in about 480 s). By that arithmetic (not a measurement of a large run) 200 people would mean a decision every
+25 ticks per person and roughly 14 s of waiting per tick; a month of simulated time would take days of GPU time. Larger populations
+need cheaper decisions (batching several people per model call, shorter prompts, bounded multi-step plans, a bigger GPU) before they
+can be run with the real model.
+
+### Countries
+Nothing in the simulation gives anyone territory, borders, law or government, and none is planned in. They could only arise from what
+inhabitants do. With the small model in our runs, people mostly speak or wait, and have not shown the multi-step behaviour that
+institutions would need. A bigger, mixed-age population, with time for children to grow up and have their own children, is the
+precondition, not a guarantee.
