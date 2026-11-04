@@ -2,7 +2,6 @@
 import copy
 from dataclasses import asdict, dataclass
 import random
-from caitanya.nature import geography
 
 
 SPECIES = {
@@ -49,7 +48,7 @@ class Ecosystem:
         self.rng=random.Random(seed);self.animals={};self.events=[];self.tick=0;self.next_id=0
         self.birth_budget=birth_budget;self.days_per_tick=days_per_tick
         self.aquatic_food={f'{x},{z}':3.0 for x in range(world.width) for z in range(world.depth)
-                           if geography(x,z,world.width,world.depth,world.seed)['biome']=='water'}
+                           if world.terrain_at(x,z)['biome']=='water'}
         self.aquatic_capacity=3.0
         for species,definition in SPECIES.items():
             places=[(x,z) for x in range(world.width) for z in range(world.depth)
@@ -59,7 +58,7 @@ class Ecosystem:
                 self.spawn(species,x,z,'female' if i%2==0 else 'male',definition['maturity']+self.rng.random()*10)
 
     def allowed(self,world,species,x,z):
-        return 0<=x<world.width and 0<=z<world.depth and geography(x,z,world.width,world.depth,world.seed)['biome'] in SPECIES[species]['habitats']
+        return 0<=x<world.width and 0<=z<world.depth and world.terrain_at(x,z)['biome'] in SPECIES[species]['habitats']
 
     def spawn(self,species,x,z,sex,age_days=0,parents=None):
         aid=f'animal-{self.next_id:06}';self.next_id+=1

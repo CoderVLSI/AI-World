@@ -189,11 +189,12 @@ def execute(world, plan, issued_by="genesis_default"):
     if (plan.seed, plan.width, plan.depth) != (world.seed, world.width, world.depth) or world.agents or world.resources:
         raise GenesisError("plan does not match the empty world being created")
     width, depth, seed, rng = plan.width, plan.depth, plan.seed, world.rng
+    terrain_version = dict(plan.generators)["terrain"]
     world.emit("genesis_plan_issued", None, {"version": plan.version, "plan_digest": plan.digest(),
                                              "issuer": "root_role" if issued_by != "genesis_default" else "default",
                                              "generators": dict(plan.generators)}, "genesis")   # role names stay in private root state
     # 1. terrain (a pure function of the seed; the stored list is a coarse index of it)
-    world.terrain = [dict(x=x, z=z, size=min(8, width - x, depth - z), **geography(x + 4, z + 4, width, depth, seed))
+    world.terrain = [dict(x=x, z=z, size=min(8, width - x, depth - z), **geography(x + 4, z + 4, width, depth, seed, terrain_version))
                      for x in range(0, width, 8) for z in range(0, depth, 8)]
     biome_tiles = {}
     for tile in world.terrain:
@@ -205,7 +206,7 @@ def execute(world, plan, issued_by="genesis_default"):
     table = dict(plan.biome_resources)
     for i in range(plan.resource_count):
         x, z = rng.randrange(width), rng.randrange(3, depth)
-        tile = geography(x, z, width, depth, seed)
+        tile = geography(x, z, width, depth, seed, terrain_version)
         if not tile["walkable"]:
             continue
         kind = rng.choice(list(table[tile["biome"]]))
@@ -221,7 +222,7 @@ def execute(world, plan, issued_by="genesis_default"):
     cx, cz = width // 4, depth // 2
     r = plan.spawn_radius
     spawn_points = [(x, z) for x in range(max(0, cx - r), min(width, cx + r + 1))
-                    for z in range(max(3, cz - r), min(depth, cz + r + 1)) if geography(x, z, width, depth, seed)["walkable"]]
+                    for z in range(max(3, cz - r), min(depth, cz + r + 1)) if geography(x, z, width, depth, seed, terrain_version)["walkable"]]
     if not spawn_points:
         raise ValueError("Starting area has no walkable terrain")
     if plan.families:
