@@ -87,7 +87,9 @@ def parse_tool(text,observation):
         if schema["type"]=="integer":
             if not re.fullmatch(r"-?\d+",value):raise InferenceFailure("integer expected")
             value=int(value)
-        elif len(value)>schema.get("maxLength",300):raise InferenceFailure("text exceeds limit")
+        elif len(value)>schema.get("maxLength",300):
+            if key=="reason":value=value[:schema.get("maxLength",300)]   # the optional explanation is advisory: cut it rather than lose the whole decision
+            else:raise InferenceFailure("text exceeds limit: "+key)
         params[key]=value
     required=set(PARAMETERS[name])-OPTIONAL.get(name,set())
     if re.sub(pattern,"",body,flags=re.S).strip() or not required<=set(params):
@@ -127,6 +129,11 @@ def select_tools(observation):
         available.append(tool)
     return available
 
+def visible_resources(resources,me,limit=16):
+    """The `limit` nearest nodes that still hold something. A used-up node offers nothing, so it is not listed (the engine keeps it; an
+    inhabitant's own memory already forgets sites seen empty). Without this the model kept asking to gather at nodes with zero units."""
+    return sorted((n for n in resources if n["amount"]>0),key=lambda n:abs(n["x"]-me["x"])+abs(n["z"]-me["z"]))[:limit]
+
 def nearest_others(others,me,limit=12):
     """The `limit` inhabitants nearest to `me` (ties by id). Without this a crowded inhabitant would see only the lowest-numbered neighbours."""
     return sorted(others,key=lambda o:(abs(o["x"]-me["x"])+abs(o["z"]-me["z"]),o["id"]))[:limit]
@@ -156,7 +163,7 @@ class TransformersLFM3Backend:
         walk_marker=observation.pop("walk_by_direction",False)   # selects the tool only; it is not part of what the model reads
         a.pop("body",None);a["memories"]=a["memories"][-8:]
         a["knowledge"]=a.get("knowledge",[])[-4:]
-        observation["resources"]=sorted(observation["resources"],key=lambda n:abs(n["x"]-a["x"])+abs(n["z"]-a["z"]))[:16]
+        observation["resources"]=visible_resources(observation["resources"],a)
         observation["others"]=nearest_others(observation["others"],a);observation["works"]=observation["works"][:4]
         observation["needs"]={"hunger_scale":"0=satiated; 100=starving; EAT consumes carried food and lowers hunger",
             "thirst_scale":"0=hydrated; 100=dehydrated; DRINK consumes carried water and lowers thirst",
@@ -183,13 +190,20 @@ class TransformersLFM3Backend:
                 with torch.inference_mode():
                     result=self.model.generate(**inputs,max_new_tokens=self.max_new_tokens,do_sample=False,
                         repetition_penalty=1.1,max_time=self.max_seconds,pad_token_id=self.tokenizer.eos_token_id)
-                tokens=result[0][inputs.input_ids.shape[1]:];self.output_tokens+=len(tokens)
+                tokens=result[0][inputs.input_ids.shape[1]:];self.output_tokens+=len(tokens);produced=len(tokens)
                 raw="<tool_call>\n"+self.tokenizer.decode(tokens,skip_special_tokens=False)
                 return parse_tool(raw,observation)
             except Exception as exc:
+                self._note_failure(exc,locals().get("produced"))
                 self.failures+=1
                 raise InferenceFailure(str(exc)) from exc
             finally:self.elapsed_seconds+=time.monotonic()-start
+    def _note_failure(self,exc,produced=None):
+        """Why a call failed, as counts only: a fixed message label (first 60 characters, no model text) and whether the output filled the token budget."""
+        detail=self.__dict__.setdefault("failure_detail",{"hit_token_limit":0,"by_message":{}})
+        text=str(exc).split(":")[0][:60] if isinstance(exc,InferenceFailure) else type(exc).__name__
+        detail["by_message"][text]=detail["by_message"].get(text,0)+1
+        if produced is not None and produced>=self.max_new_tokens:detail["hit_token_limit"]+=1
     def reflect(self,context,budget):
         """Isvara's dedicated interface. Same shared model and lock (one copy in memory), but its own system message,
         its own single tool and parser, its own budget and its own counters. It never touches ``calls``,
@@ -247,6 +261,7 @@ class TransformersLFM3Backend:
             "gpu_peak_allocated_bytes":torch.cuda.max_memory_allocated() if self.device=="cuda" else 0,
             "inference_seconds":round(self.elapsed_seconds,3),"tokens_per_second":round(self.output_tokens/max(.001,self.elapsed_seconds),2),
             "successful_inference_calls":self.calls-self.failures,
+            "failure_detail":getattr(self,"failure_detail",{"hit_token_limit":0,"by_message":{}}),
             "model_id":self.model_id,"hardware":self.metadata.get("device"),
             "model_instances":1,"device":self.device,"model_revision":self.model_revision}
 

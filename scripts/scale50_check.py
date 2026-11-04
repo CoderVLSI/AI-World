@@ -105,7 +105,7 @@ def run(args, backend=None):
     timed = Timed(backend)
     created = time.monotonic()
     w = World(seed=args.seed, width=args.width, depth=args.depth, families=args.couples, children_per_family=0,
-              wildlife_per_species=args.wildlife_per_species, backend=timed, isvara_config={"enabled": False}, terrain=args.terrain, start_distance=args.start_distance)
+              wildlife_per_species=args.wildlife_per_species, backend=timed, isvara_config={"enabled": False}, terrain=args.terrain, start_distance=args.start_distance, founder_water=args.founder_water)
     create_seconds = round(time.monotonic() - created, 3)
     humans = list(w.agents.values())
     identity = {"humans": len(humans), "unique_ids": len({a.id for a in humans}), "genders": dict(sorted(Counter(a.gender for a in humans).items())),
@@ -146,7 +146,7 @@ def run(args, backend=None):
                   else "MOCK policy (CPU); measures bookkeeping only, not model behaviour"),
         "environment": env, "model_id": getattr(backend, "model_id", None), "model_revision": getattr(backend, "model_revision", None),
         "requested": {k: v for k, v in vars(args).items() if k != "out"},
-        "identity": identity, "terrain": w.geography_version, "start_distance": args.start_distance, "world_creation_seconds": create_seconds,
+        "identity": identity, "terrain": w.geography_version, "start_distance": args.start_distance, "founder_water": args.founder_water, "world_creation_seconds": create_seconds,
         "ticks_completed": w.tick, "real_seconds": real_seconds,
         "decisions": {"calls": calls, "failures": sum(timed.failures.values()), "failure_categories": dict(sorted(timed.failures.items())),
                       "tool_choices": dict(sorted(timed.tools.items())),
@@ -171,6 +171,7 @@ def run(args, backend=None):
                            "cap": metrics.get("prompt_tokens", {}).get("cap"), "budget_failures": metrics.get("prompt_budget_failures")}
                           if prompt_counts else None),
         "gpu_peak_allocated_bytes": metrics.get("gpu_peak_allocated_bytes"),
+        "failure_detail": metrics.get("failure_detail"),
         "note": "Systems check, not a behavioural result: each human gets only a handful of decisions in a bounded run.",
     }
     if args.run_dir:
@@ -191,6 +192,7 @@ def build_parser():
     p.add_argument("--width", type=int, default=256)
     p.add_argument("--depth", type=int, default=256)
     p.add_argument("--terrain", choices=["geography-v1", "geography-v2"], default="geography-v1", help="map generator; geography-v2 = two river valleys")
+    p.add_argument("--founder-water", type=int, default=3, help="units of water each founder carries (default 3; 0 = thirsty sooner)")
     p.add_argument("--start-distance", type=int, default=0, help="far start: no food or water under the founders; nearest source this many tiles away (0 = off)")
     p.add_argument("--wildlife-per-species", type=int, default=6)
     p.add_argument("--ticks", type=int, default=24)

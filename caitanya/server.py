@@ -249,6 +249,7 @@ def build_parser():
     p.add_argument("--families",type=int,default=0,help="Found the NEW world with this many households (a woman, a man and children); overrides --population")
     p.add_argument("--children-per-family",type=int,default=2)
     p.add_argument("--start-distance",type=int,default=0,help="EXPERIMENT (default off): NEW world where no food or water is placed under the founders and the nearest source is this many tiles away or more")
+    p.add_argument("--founder-water",type=int,default=3,help="EXPERIMENT: units of water each founder carries at the start of a NEW world (default 3); 0 starts everyone thirsty sooner")
     p.add_argument("--terrain",choices=["geography-v1","geography-v2"],default="geography-v1",help="Map generator for the NEW world: geography-v2 is two river valleys with floodplains (opt-in); recovery keeps the saved map")
     p.add_argument("--recover",help="Restore newest valid image and replay its committed journal tail")
     p.add_argument("--playback",help="Watch a FINISHED run folder read-only (no model, no GPU, nothing written); for example one made on Colab")
@@ -268,7 +269,7 @@ def build_world(args,p,backend=None):
         autonomy=replace(autonomy,scheduler=replace(autonomy.scheduler,max_decisions_per_tick=args.decisions_per_tick))
     given=dict(seed=args.seed,population=args.population,width=args.width,depth=args.depth)
     explicit={k:v for k,v in given.items() if p.get_default(k)!=v}   # command line beats the file
-    return World(**{**given,**params,**explicit},backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),autonomy=autonomy,root_mode=args.root_mode,wildlife_per_species=args.wildlife_per_species,nature_forces=args.nature_forces,families=args.families,children_per_family=args.children_per_family,hazard_exit_hint=args.hazard_exit_hint,hazard_pain_signal=args.hazard_pain_signal,walk_by_direction=args.walk_by_direction,terrain=args.terrain,start_distance=args.start_distance)
+    return World(**{**given,**params,**explicit},backend=backend,biology=BiologyConfig(days_per_tick=args.days_per_tick),autonomy=autonomy,root_mode=args.root_mode,wildlife_per_species=args.wildlife_per_species,nature_forces=args.nature_forces,families=args.families,children_per_family=args.children_per_family,hazard_exit_hint=args.hazard_exit_hint,hazard_pain_signal=args.hazard_pain_signal,walk_by_direction=args.walk_by_direction,terrain=args.terrain,start_distance=args.start_distance,founder_water=args.founder_water)
 
 def main():
     import uvicorn

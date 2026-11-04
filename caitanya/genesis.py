@@ -172,7 +172,7 @@ class GenesisPlan:
 
 
 def default_plan(seed, population, width=64, depth=64, spawn_radius=8, wildlife_per_species=0, days_per_tick=1 / 144,
-                 families=0, children_per_family=2, terrain="geography-v1", start_distance=0):
+                 families=0, children_per_family=2, terrain="geography-v1", start_distance=0, founder_water=3):
     """The plan that reproduces the pre-genesis world construction exactly (families=0, geography-v1), or one with founding families
     and/or the geography-v2 river-valley map."""
     extra = {}
@@ -182,6 +182,8 @@ def default_plan(seed, population, width=64, depth=64, spawn_radius=8, wildlife_
         versions["founders"] = "founders-v2"
     if start_distance:
         extra["start_distance"] = start_distance
+    if founder_water != 3:                  # the default is the plan's own default, so default plan digests do not change
+        extra["founder_water"] = founder_water
     if terrain != GENERATOR_VERSIONS["terrain"]:
         versions["terrain"] = terrain
         extra["biome_resources"] = biome_table_for(terrain)

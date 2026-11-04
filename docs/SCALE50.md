@@ -27,3 +27,14 @@ failure categories, rejections by reason, decisions per human with a fairness in
 humans vs wildlife reported separately, and a checkpoint restore check (state equal, zero model calls). Mock: `python scripts/scale50_check.py
 --backend mock --out m.json`. Real model needs a CUDA GPU and the owner's go-ahead; without one it writes `unverified_no_gpu` and exits 2.
 Not included: a batch-size micro-benchmark (needs a batched decide, to be built only if worthwhile).
+
+## Fixes after the 200-tick far-start run (PR #35, stopped at tick 160 by the failure-rate rule)
+* **Used-up nodes are no longer listed to the model** (`inference.visible_resources`): in that run 427 of 528 GATHER_AT requests were rejected as
+  "resource unavailable" while only 2 nodes were depleted on the whole map, i.e. the model kept asking for nodes that were still listed with 0 units
+  (inferred from that arithmetic; the result file has no per-node record). The engine still keeps the node; an inhabitant's own memory already forgets
+  sites seen empty. This changes what the real model sees; mock policy and all fixtures are unchanged.
+* **An over-long optional `reason` is cut to its 300-character limit** instead of failing the whole decision (19 of 42 failures were "too long", most
+  likely this). Every other text limit still fails, and the message now names the parameter (a fixed label, never model text).
+* **Failure detail:** `metrics()["failure_detail"]` counts failures by fixed message label and how many filled the token budget; reported by
+  `scripts/scale50_check.py` as `failure_detail`.
+* **`--founder-water N`** (World/CLI/script; default 3 = unchanged): 0 starts everyone thirsty about 80 ticks sooner, so a shorter run reaches real need.
