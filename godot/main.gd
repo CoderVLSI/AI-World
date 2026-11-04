@@ -6,6 +6,7 @@ const Actors := preload("res://actors.gd")
 const OrbitCamera := preload("res://orbit_camera.gd")
 const Hud := preload("res://hud.gd")
 const HazardView := preload("res://hazard_view.gd")
+const Human := preload("res://human.gd")
 const SPEEDS := [0.5, 1.0, 2.0, 4.0, 8.0]
 
 var server := "http://127.0.0.1:8000"
@@ -50,6 +51,7 @@ func _ready() -> void:
 		elif arg.begins_with("--focus="): focus_id = arg.substr(8)
 		elif arg.begins_with("--humans="): actors.human_mode = arg.substr(9)
 		elif arg.begins_with("--start-tick="): start_tick = int(arg.substr(13))     # playback only
+		elif arg == "--clothing": Human.show_clothing = true                           # paint the recorded clothing colour (default: bare)
 		elif arg == "--paused": start_paused = true                                  # playback only
 	var we := WorldEnvironment.new()
 	env.background_mode = Environment.BG_COLOR; env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR

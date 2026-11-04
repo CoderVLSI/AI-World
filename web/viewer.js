@@ -1,5 +1,6 @@
 const $=id=>document.getElementById(id);
 import {createAnimalModel,animateAnimalModel} from './animal-models.mjs';
+const SHOW_CLOTHING=new URLSearchParams(location.search).get('clothing')==='1';
 
 let world,selected='',replay=false,following=false,cursor=0,events=[];
 
@@ -49,11 +50,11 @@ function person(a){
 
  function part(name,geometry,color,x,y,z,parent=root){const m=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color,roughness:.9}));m.position.set(x,y,z);m.name=name;parent.add(m);return m;}
 
- const skin=a.skin_tone||'#bd8c68',cloth=a.id===selected?'#e5bf64':a.clothing_color||'#678b91';
+ const skin=a.skin_tone||'#bd8c68',cloth=a.id===selected?'#e5bf64':(SHOW_CLOTHING?a.clothing_color||'#678b91':skin),lowerWear=SHOW_CLOTHING?'#3f4b48':skin,legWear=SHOW_CLOTHING?'#435352':skin;/* nothing in the world makes clothes, so people are drawn bare unless ?clothing=1 */
 
  part('torso',new THREE.BoxGeometry(.46,.57,.25),cloth,0,1.15,0);
 
- part('pelvis',new THREE.BoxGeometry(.43,.2,.24),'#3f4b48',0,.79,0);
+ part('pelvis',new THREE.BoxGeometry(.43,.2,.24),lowerWear,0,.79,0);
 
  part('neck',new THREE.CylinderGeometry(.07,.08,.13,6),skin,0,1.49,0);
 
@@ -77,11 +78,11 @@ function person(a){
 
   part('thumb',new THREE.BoxGeometry(.025,.055,.025),skin,side*.39,.73,.02);
 
-  part('thigh',new THREE.CapsuleGeometry(.095,.23,3,5),'#435352',side*.125,.59,0);
+  part('thigh',new THREE.CapsuleGeometry(.095,.23,3,5),legWear,side*.125,.59,0);
 
-  part('lower leg',new THREE.CapsuleGeometry(.075,.22,3,5),'#435352',side*.125,.26,0);
+  part('lower leg',new THREE.CapsuleGeometry(.075,.22,3,5),legWear,side*.125,.26,0);
 
-  part('foot',new THREE.BoxGeometry(.16,.12,.30),'#403a31',side*.125,.065,.07);
+  part('foot',new THREE.BoxGeometry(.16,.12,.30),SHOW_CLOTHING?'#403a31':skin,side*.125,.065,.07);
 
  }
 

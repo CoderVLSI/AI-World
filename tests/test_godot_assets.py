@@ -206,3 +206,12 @@ def test_the_godot_client_asks_for_ticks_with_get_only():
     for path in GODOT_DIR.glob("*.gd"):
         text = path.read_text(encoding="utf-8")
         assert "METHOD_POST" not in text and "METHOD_PUT" not in text and "METHOD_DELETE" not in text, path.name
+
+
+def test_viewers_draw_people_bare_unless_asked_because_the_world_has_no_clothing():
+    """Clothing is only a recorded colour with no rule behind it, so it is shown only on request (--clothing / ?clothing=1)."""
+    human = (GODOT_DIR / "human.gd").read_text(encoding="utf-8")
+    assert "static var show_clothing := false" in human
+    assert '"--clothing"' in (GODOT_DIR / "main.gd").read_text(encoding="utf-8")
+    web = (ROOT / "web" / "viewer.js").read_text(encoding="utf-8")
+    assert "get('clothing')==='1'" in web and "SHOW_CLOTHING?" in web
