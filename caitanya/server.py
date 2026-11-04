@@ -3,6 +3,9 @@ import argparse
 import asyncio
 import json
 import os
+import threading
+import time
+from typing import Optional
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
@@ -16,6 +19,7 @@ from .lifecycle import BiologyConfig, stage
 from .witness import terrain_grid, live_view, recent_speech
 
 ROOT = Path(__file__).resolve().parent.parent
+SCRUB_HOLD_SECONDS = 3.0      # playback: after a viewer asks for a tick, the automatic advance waits this long
 
 def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_journal_bytes=100_000_000, max_ticks=None, max_seconds=None, report_dir=None, checkpoint_every=60,
                segment_bytes=25_000_000, max_run_bytes=5_000_000_000, playback=None, loop=True):
@@ -37,17 +41,26 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
     published=world.public()
     committed_count=len(world.events)
     stop=asyncio.Event()
+    view_lock=threading.Lock()                   # playback only: the worker and a viewer asking for a tick both move the same replay
+    scrub={'until':0.0,'speed':None}             # while a viewer is choosing ticks itself, the automatic advance waits
     execution={'running':False,'reason':'read_only' if not live else 'not_started'}
     async def playback_worker():
         nonlocal published,committed_count
         execution.update(running=True,reason='playback')
         while not stop.is_set():
-            await asyncio.sleep(interval)
+            try:await asyncio.wait_for(stop.wait(),interval)     # a pause that ends at once when the server stops
+            except asyncio.TimeoutError:pass
             if stop.is_set():break
-            if not await asyncio.to_thread(playback.advance,loop):
+            if time.monotonic()<scrub['until']:continue          # a viewer is driving the replay (see /api/v1/live?tick=)
+            def advance():
+                nonlocal published,committed_count
+                with view_lock:
+                    if not playback.advance(loop):return False
+                    published=world.public();committed_count=len(world.events)
+                    return True
+            if not await asyncio.to_thread(advance):
                 execution.update(running=False,reason='playback_finished')
                 return
-            published=world.public();committed_count=len(world.events)
     async def worker():
         import time
         nonlocal published,committed_count
@@ -177,9 +190,27 @@ def create_app(world=None, run_dir="runs/local", live=True, interval=0.5, max_jo
             try:terrain_cache[step]=terrain_grid(world,step)
             except ValueError as e:raise HTTPException(400,str(e))
         return terrain_cache[step]
+    @app.get("/api/v1/playback")
+    def playback_info():
+        """Whether this server is replaying a finished run, and how long it is (so a viewer can offer pause, speed and a scrub bar)."""
+        if playback is None:return {"enabled":False}
+        return {"enabled":True,"tick":playback.tick,"final_tick":playback.final_tick,"loop":bool(loop),"seconds_per_tick":interval}
     @app.get("/api/v1/live")
-    def live_snapshot():   # not named `live`: that would shadow the create_app(live=...) flag
-        """Light polling view for viewers: positions, plans, resources, objects, optional wildlife."""
+    def live_snapshot(tick:Optional[int]=None):   # not named `live`: that would shadow the create_app(live=...) flag
+        """Light polling view for viewers: positions, plans, resources, objects, optional wildlife.
+        With `?tick=N` (finished-run playback only) the same view as it was at the end of recorded tick N. It is a pure function of N:
+        it only chooses which recorded moment to show, changes nothing in the run folder, and never makes a decision."""
+        nonlocal published,committed_count
+        if tick is not None:
+            if playback is None:raise HTTPException(400,"tick is only available when watching a finished run (--playback)")
+            with view_lock:
+                try:playback.seek(tick)
+                except ValueError as e:raise HTTPException(400,str(e))
+                scrub['until']=time.monotonic()+SCRUB_HOLD_SECONDS
+                published=world.public();committed_count=len(world.events)
+                view=live_view(published)
+                view["speech"]=recent_speech(world.events[:committed_count],published["tick"])
+                return view
         view = live_view(published)
         view["speech"] = recent_speech(world.events[:committed_count], published["tick"])      # public speech only; thoughts carry no text
         return view

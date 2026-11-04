@@ -10,16 +10,30 @@ script in this folder ever uses another method. It cannot command, feed or influ
 2. Open this folder in Godot 4.4 (Compatibility renderer, works on laptops without a GPU), press Play, or:
    `godot --path godot -- --server=http://127.0.0.1:8000`
 
-To watch a finished run, restore it locally (`python -m caitanya.server --recover <run folder>`) and point Godot at it.
+To watch a finished run, use playback (`python -m caitanya.server --playback <run folder>`, see `docs/PLAYBACK.md`) and point Godot at it.
 Keep the server on `localhost` (or reach it through SSH port-forwarding / a private network): the app has no login.
 
 ## Controls
 right-drag orbit, wheel zoom, WASD or shift+left-drag pan, click a person to inspect (needs, plan and who chose it),
-`F` focus on the people, `G` focus on the animals.
+`F` focus on the people, `G` focus on the animals, `B` speech bubbles on/off.
+Watching a finished run (playback) adds a bar along the bottom: `space` pause/resume, `←`/`→` step one tick, `[` `]` slower/faster
+(0.5-8 ticks a second), `Home`/`End`, or drag the bar to any recorded tick. These only choose which recorded moment is shown
+(`GET /api/v1/live?tick=N`); nothing is written and no decision is made.
+
+## Hazard zones
+A lasting hazard (wildfire, floodwater, heatwave, severe storm) is drawn as a translucent coloured disc that follows the ground out to its
+stated radius, with a stronger rim and a plain label, and is listed in the top line. It disappears the moment the API stops listing it.
+This is only a picture of what the simulation published; inhabitants are told nothing by it.
 
 ## Options (after `--`)
 `--server=URL` `--poll=SECONDS` `--select=agent-0003` `--focus=agent-0003|<animal id>|animals` and, for automated checks, `--screenshot=out.png --wait=SECONDS`
-(saves a frame after that many seconds of live data and quits).
+(saves a frame after that many seconds of live data and quits). Playback only: `--start-tick=N` and `--paused`.
+
+## Clothing
+Nothing in the simulation makes, wears or loses clothes: each person only carries a recorded `clothing_color` that no rule uses. So both viewers
+draw people **bare by default** (skin on every part, feet included) rather than imply a civilisation's tailoring that the world has not
+earned. `--clothing` (Godot) or `?clothing=1` (browser viewer) paints that recorded colour as a plain tunic and trousers.
+If a clothing mechanic is ever added it must be a physical rule (materials worn on the body), and the viewers should then draw what is worn.
 
 ## People who grow
 Every person is built from primitives (`human.gd`) using the simulation's recorded `age_years`, `height_cm`, gender, skin tone and

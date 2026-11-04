@@ -1,5 +1,6 @@
 const $=id=>document.getElementById(id);
 import {createAnimalModel,animateAnimalModel} from './animal-models.mjs';
+const SHOW_CLOTHING=new URLSearchParams(location.search).get('clothing')==='1';
 
 let world,selected='',replay=false,following=false,cursor=0,events=[];
 
@@ -49,11 +50,11 @@ function person(a){
 
  function part(name,geometry,color,x,y,z,parent=root){const m=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color,roughness:.9}));m.position.set(x,y,z);m.name=name;parent.add(m);return m;}
 
- const skin=a.skin_tone||'#bd8c68',cloth=a.id===selected?'#e5bf64':a.clothing_color||'#678b91';
+ const skin=a.skin_tone||'#bd8c68',cloth=a.id===selected?'#e5bf64':(SHOW_CLOTHING?a.clothing_color||'#678b91':skin),lowerWear=SHOW_CLOTHING?'#3f4b48':skin,legWear=SHOW_CLOTHING?'#435352':skin;/* nothing in the world makes clothes, so people are drawn bare unless ?clothing=1 */
 
  part('torso',new THREE.BoxGeometry(.46,.57,.25),cloth,0,1.15,0);
 
- part('pelvis',new THREE.BoxGeometry(.43,.2,.24),'#3f4b48',0,.79,0);
+ part('pelvis',new THREE.BoxGeometry(.43,.2,.24),lowerWear,0,.79,0);
 
  part('neck',new THREE.CylinderGeometry(.07,.08,.13,6),skin,0,1.49,0);
 
@@ -77,11 +78,11 @@ function person(a){
 
   part('thumb',new THREE.BoxGeometry(.025,.055,.025),skin,side*.39,.73,.02);
 
-  part('thigh',new THREE.CapsuleGeometry(.095,.23,3,5),'#435352',side*.125,.59,0);
+  part('thigh',new THREE.CapsuleGeometry(.095,.23,3,5),legWear,side*.125,.59,0);
 
-  part('lower leg',new THREE.CapsuleGeometry(.075,.22,3,5),'#435352',side*.125,.26,0);
+  part('lower leg',new THREE.CapsuleGeometry(.075,.22,3,5),legWear,side*.125,.26,0);
 
-  part('foot',new THREE.BoxGeometry(.16,.12,.30),'#403a31',side*.125,.065,.07);
+  part('foot',new THREE.BoxGeometry(.16,.12,.30),SHOW_CLOTHING?'#403a31':skin,side*.125,.065,.07);
 
  }
 
@@ -123,7 +124,7 @@ function render(s){
 
   const resourceColors={food:'#cbba69',fruit:'#c46f58',grain:'#dbc986',water:'#74bfd1',wood:'#325a3b',stone:'#959a91',clay:'#b77c60',sand:'#c9bb84',iron_ore:'#8b6554',copper_ore:'#719a86',coal:'#434340',salt:'#e7ddd0',herbs:'#76ad70',plant_fiber:'#a4b86d',fish:'#89acbd'};
 
-  nodes.forEach((n,i)=>{const tree=n.kind==='wood';dummy.position.set(n.x,heightAt(n.x,n.z)+(tree?1.6:.45),n.z);dummy.scale.set(tree?2:.65,tree?3:.65,tree?2:.65);dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix);inst.setColorAt(i,new THREE.Color(resourceColors[n.kind]||'#aaa'));});
+  nodes.forEach((n,i)=>{const tree=n.kind==='wood';let h=0;for(const c of n.id)h=(h*31+c.charCodeAt(0))>>>0;const jx=((h%100)/100-.5)*(tree?.8:.7),jz=(((h>>>7)%100)/100-.5)*(tree?.8:.7);/* resource markers sit beside the tile centre and are small, so they never swallow the legs of the person standing there */dummy.position.set(n.x+jx,heightAt(n.x,n.z)+(tree?1.6:.14),n.z+jz);dummy.scale.set(tree?2:.32,tree?3:.22,tree?2:.32);dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix);inst.setColorAt(i,new THREE.Color(resourceColors[n.kind]||'#aaa'));});
 
   for(const a of Object.values(s.agents)){if(a.alive)meshes.set(a.id,person(a));}
   for(const a of s.wildlife?.animals||[])if(a.alive){const definition=s.wildlife.species[a.species],model=createAnimalModel(THREE,a,definition);model.position.set(a.x,heightAt(a.x,a.z)+(definition.group==='bird'?(a.action==='flying'?2.4:0):definition.group==='insect'?1.3:definition.group==='fish'?.1:0),a.z);model.rotation.y=animalHeadings.get(a.id)??Math.PI;model.userData.target=model.position.clone();if(previousPositions.has(a.id))model.position.copy(previousPositions.get(a.id));animalMeshes.set(a.id,model);group.add(model);}

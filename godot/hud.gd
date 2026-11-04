@@ -4,6 +4,9 @@ extends CanvasLayer
 var top := Label.new()
 var side := Label.new()
 var hint := Label.new()
+var bar := HSlider.new()                  # playback only: pick any recorded tick
+var bar_label := Label.new()
+signal scrubbed(tick: int)
 
 func _ready() -> void:
 	for l in [top, side, hint]:
@@ -16,6 +19,30 @@ func _ready() -> void:
 	hint.add_theme_font_size_override("font_size", 13); hint.modulate = Color(1, 1, 1, 0.7)
 	hint.position = Vector2(18, 690)
 	top.text = "Connecting…"
+	bar.position = Vector2(18, 652); bar.custom_minimum_size = Vector2(560, 22); bar.size = Vector2(560, 22)
+	bar.step = 1.0; bar.visible = false; bar.focus_mode = Control.FOCUS_NONE
+	bar.value_changed.connect(func(v: float): scrubbed.emit(int(v)))
+	add_child(bar)
+	bar_label.position = Vector2(592, 650); bar_label.add_theme_font_size_override("font_size", 14); bar_label.visible = false
+	bar_label.add_theme_color_override("font_color", Color("#e6ede5")); bar_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	add_child(bar_label)
+
+## Playback of a finished run: a bar over the recorded ticks. Moving it only chooses which recorded moment to show.
+func setup_playback(final_tick: int) -> void:
+	bar.max_value = maxi(final_tick, 1); bar.visible = true; bar_label.visible = true
+	hint.text = "PLAYBACK  |  space pause · ←/→ step · [ ] speed · Home/End · drag the bar  |  right-drag orbit · wheel zoom · WASD pan · click a person"
+
+func show_playback(tick: int, final_tick: int, playing: bool, speed: float) -> void:
+	bar.set_value_no_signal(tick)
+	bar_label.text = "tick %d / %d   %s   %s×" % [tick, final_tick, "▶ playing" if playing else "❚❚ paused", str(speed)]
+
+## Plain names of the hazard zones currently listed, for the top line.
+static func zone_summary(hazards: Array) -> String:
+	var words := []
+	for h in hazards:
+		var w := str(h.get("phenomenon", ""))
+		if w != "" and not words.has(w): words.append(w)
+	return "" if words.is_empty() else "   ⚠ " + ", ".join(words)
 
 func show_live(live: Dictionary, connected: bool) -> void:
 	if not connected:
@@ -29,6 +56,7 @@ func show_live(live: Dictionary, connected: bool) -> void:
 	top.text = "CAITANYA   tick %d   day %d %02d:%02d   %s %s %s°C   %d alive%s" % [
 		int(live.tick), int(c.get("day", 0)), int(hour), int((hour - floor(hour)) * 60.0), str(c.get("season", "")),
 		str(c.get("weather", "")), str(c.get("temperature_c", "")), alive, ("   %d animals" % animals) if animals > 0 else ""]
+	top.text += zone_summary(live.get("environment_hazards", []))
 
 func show_selected(a) -> void:
 	if a == null:

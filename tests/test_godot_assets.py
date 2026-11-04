@@ -23,7 +23,7 @@ def load_fetch_module():
 
 
 def mapped_actions():
-    text = (GODOT_DIR / "animation_map.gd").read_text()
+    text = (GODOT_DIR / "animation_map.gd").read_text(encoding="utf-8")
     block = re.search(r"const ACTION_STATES := \{(.*?)\n\}", text, re.S).group(1)
     pairs = re.findall(r'"([a-z_]+)":\s*"([a-z]+)"', block)
     moves = re.search(r"const MOVE_ACTIONS := \[(.*?)\]", text).group(1)
@@ -44,7 +44,7 @@ def test_every_animated_action_is_a_real_action_the_engine_can_record():
 
 
 def test_no_clip_state_is_invented_for_behaviour_the_simulation_cannot_produce():
-    text = (GODOT_DIR / "animation_map.gd").read_text().lower()
+    text = (GODOT_DIR / "animation_map.gd").read_text(encoding="utf-8").lower()
     states, _ = mapped_actions()
     for forbidden in ("fight", "hunt", "attack", "kill", "run", "pray", "meditat", "worship"):
         assert forbidden not in set(states.values()) and forbidden not in set(states), forbidden
@@ -52,7 +52,7 @@ def test_no_clip_state_is_invented_for_behaviour_the_simulation_cannot_produce()
 
 
 def test_asset_manifest_is_complete_and_only_uses_known_states():
-    manifest = json.loads((GODOT_DIR / "assets" / "manifest.json").read_text())
+    manifest = json.loads((GODOT_DIR / "assets" / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["characters"]
     for key, c in manifest["characters"].items():
         for field in ("sketchfab_uid", "title", "author", "license", "file", "raw_height", "clips", "role"):
@@ -70,7 +70,7 @@ def test_attribution_file_credits_every_model_and_matches_the_manifest():
     for c in manifest["characters"].values():
         assert c["title"] in text and c["author"] in text and c["sketchfab_uid"] in text and c["license"] in text
     committed = GODOT_DIR / "assets" / "ATTRIBUTIONS.md"
-    assert committed.exists() and committed.read_text() == text            # regenerate with scripts/fetch_assets.py
+    assert committed.exists() and committed.read_text(encoding="utf-8") == text            # regenerate with scripts/fetch_assets.py
 
 
 def test_fetch_script_refuses_without_a_token_and_never_echoes_one():
@@ -111,10 +111,10 @@ def test_godot_builds_every_animal_and_applies_every_pose_rule():
 def test_every_animal_action_the_engine_records_has_a_pose_rule():
     """animal_motion.gd must list exactly the action strings fauna/ecology.py can record (no invented ones)."""
     import re
-    engine = set(re.findall(r"""\.action\s*=\s*'([a-z ]+)'""", (ROOT / "fauna" / "ecology.py").read_text()))
+    engine = set(re.findall(r"""\.action\s*=\s*'([a-z ]+)'""", (ROOT / "fauna" / "ecology.py").read_text(encoding="utf-8")))
     # 'swimming' / 'flying' / 'roaming' come from one conditional expression
-    engine |= set(re.findall(r"""'(swimming|flying|roaming)'""", (ROOT / "fauna" / "ecology.py").read_text()))
-    motion = re.search(r"const ACTIONS := \[(.*?)\]", (GODOT_DIR / "animal_motion.gd").read_text()).group(1)
+    engine |= set(re.findall(r"""'(swimming|flying|roaming)'""", (ROOT / "fauna" / "ecology.py").read_text(encoding="utf-8")))
+    motion = re.search(r"const ACTIONS := \[(.*?)\]", (GODOT_DIR / "animal_motion.gd").read_text(encoding="utf-8")).group(1)
     listed = set(re.findall(r'"([a-z ]+)"', motion))
     assert engine == listed, (sorted(engine ^ listed))
 
@@ -122,14 +122,14 @@ def test_every_animal_action_the_engine_records_has_a_pose_rule():
 def test_every_species_has_its_own_silhouette():
     import re
     from fauna.ecology import SPECIES
-    builder = (GODOT_DIR / "animal_builder.gd").read_text()
+    builder = (GODOT_DIR / "animal_builder.gd").read_text(encoding="utf-8")
     specs = set(re.findall(r'^\t"([a-z]+)":\s+\{"kind"', builder, re.M))
     assert set(SPECIES) <= specs, sorted(set(SPECIES) - specs)
 
 
 def _gd_constants(name):
     import re
-    text = (GODOT_DIR / name).read_text()
+    text = (GODOT_DIR / name).read_text(encoding="utf-8")
     return {k: float(v) for k, v in re.findall(r"^const ([A-Z_]+) := ([0-9.]+)$", text, re.M)}
 
 
@@ -150,9 +150,9 @@ def test_viewer_life_stage_ages_match_the_simulations_own_stages():
 
 def test_every_recorded_pose_state_has_a_human_pose_and_no_invented_ones():
     import re
-    from_map = set(re.findall(r'"([a-z]+)"', " ".join(re.findall(r"ACTION_STATES := \{(.*?)\n\}", (GODOT_DIR / "animation_map.gd").read_text(), re.S)[0:1])))
+    from_map = set(re.findall(r'"([a-z]+)"', " ".join(re.findall(r"ACTION_STATES := \{(.*?)\n\}", (GODOT_DIR / "animation_map.gd").read_text(encoding="utf-8"), re.S)[0:1])))
     states = {"idle", "walk", "rest", "talk", "work", "eat"}
-    text = (GODOT_DIR / "human.gd").read_text()
+    text = (GODOT_DIR / "human.gd").read_text(encoding="utf-8")
     body = text[text.index("static func targets"):text.index("func _process")]
     handled = set(re.findall(r'^\t\t"([a-z]+)":\s*(?:#.*)?$', body, re.M))
     assert handled == {"walk", "rest", "talk", "work", "eat"}              # everything else (and anything unknown) is idle
@@ -181,3 +181,38 @@ def test_godot_speech_bubbles():
     done = subprocess.run([godot_binary(), "--headless", "--path", str(GODOT_DIR), "--script", "res://tests/bubble_test.gd"],
                           capture_output=True, text=True, timeout=240)
     assert "bubble tests: ok" in done.stdout and "FAIL" not in done.stdout, done.stdout[-800:] + done.stderr[-400:]
+
+
+@pytest.mark.skipif(godot_binary() is None, reason="no Godot binary (set GODOT_BIN or run scripts/setup_godot_tools.sh)")
+def test_godot_hazard_zones():
+    """Zones drawn for what the API lists, following the ground out to the stated radius, removed when no longer listed."""
+    done = subprocess.run([godot_binary(), "--headless", "--path", str(GODOT_DIR), "--script", "res://tests/hazard_test.gd"],
+                          capture_output=True, text=True, timeout=240)
+    assert "hazard tests: ok" in done.stdout and "FAIL" not in done.stdout, done.stdout[-800:] + done.stderr[-400:]
+
+
+def test_every_lasting_hazard_the_engine_can_publish_has_a_colour_in_the_viewer():
+    """The viewer keys colours by the phenomenon the API names; if the engine renames one, this fails instead of the zone turning grey."""
+    from caitanya.forces import FORCES, HAZARDS
+    source = (GODOT_DIR / "hazard_view.gd").read_text(encoding="utf-8")
+    colours = source.split("const COLORS := {")[1].split("}")[0]
+    for force in HAZARDS:
+        assert f'"{FORCES[force].phenomenon}"' in colours, FORCES[force].phenomenon
+
+
+def test_the_godot_client_asks_for_ticks_with_get_only():
+    """Playback controls choose a recorded tick through `GET /api/v1/live?tick=N`; nothing in the client sends another method."""
+    main = (GODOT_DIR / "main.gd").read_text(encoding="utf-8")
+    assert "/api/v1/live?tick=" in main and "/api/v1/playback" in main
+    for path in GODOT_DIR.glob("*.gd"):
+        text = path.read_text(encoding="utf-8")
+        assert "METHOD_POST" not in text and "METHOD_PUT" not in text and "METHOD_DELETE" not in text, path.name
+
+
+def test_viewers_draw_people_bare_unless_asked_because_the_world_has_no_clothing():
+    """Clothing is only a recorded colour with no rule behind it, so it is shown only on request (--clothing / ?clothing=1)."""
+    human = (GODOT_DIR / "human.gd").read_text(encoding="utf-8")
+    assert "static var show_clothing := false" in human
+    assert '"--clothing"' in (GODOT_DIR / "main.gd").read_text(encoding="utf-8")
+    web = (ROOT / "web" / "viewer.js").read_text(encoding="utf-8")
+    assert "get('clothing')==='1'" in web and "SHOW_CLOTHING?" in web
