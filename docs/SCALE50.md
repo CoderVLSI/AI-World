@@ -38,3 +38,11 @@ Not included: a batch-size micro-benchmark (needs a batched decide, to be built 
 * **Failure detail:** `metrics()["failure_detail"]` counts failures by fixed message label and how many filled the token budget; reported by
   `scripts/scale50_check.py` as `failure_detail`.
 * **`--founder-water N`** (World/CLI/script; default 3 = unchanged): 0 starts everyone thirsty about 80 ticks sooner, so a shorter run reaches real need.
+
+## Sight range (`sight_range`, opt-in experiment)
+Inhabitants see resource nodes only within 8 tiles and have no terrain information at all, so a thirsty person with no water in sight has nothing to act
+on (the 200-tick thirsty-start run, PR #37: mean thirst 69, nobody drank, 52% of choices were SPEAK, 16 of 50 moved at all). `World(sight_range=N)` /
+`--sight-range N` (8 to 64; default 8 = unchanged and not recorded) lets them see resource nodes N tiles away (Manhattan), nearest first, up to the usual
+16 listed. It is a fact about what a person can see, not advice; nobody is told what to do, and others, works and animals keep their own ranges.
+At 32 tiles, 48 of 50 far-start founders see food or water (0 of 50 at 8). It is stored in the checkpoint manifest, so restore and replay keep it.
+The question it tests: does a thirsty model act on water it can see? `scripts/scale50_check.py --sight-range 32`.

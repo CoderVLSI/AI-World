@@ -178,7 +178,7 @@ def redact_private(state):
 
 class World:
     def __init__(self, seed=314159, population=5, width=64, depth=64, backend=None, biology=None, spawn_radius=8,
-                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None, nature_forces=False, families=0, children_per_family=2, hazard_exit_hint=False, hazard_pain_signal=False, walk_by_direction=False, terrain="geography-v1", start_distance=0, founder_water=3):
+                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None, nature_forces=False, families=0, children_per_family=2, hazard_exit_hint=False, hazard_pain_signal=False, walk_by_direction=False, terrain="geography-v1", start_distance=0, founder_water=3, sight_range=8):
         if type(families) is not int or families < 0 or type(children_per_family) is not int or not 0 <= children_per_family <= 12:
             raise ValueError("invalid founding families")
         if families:
@@ -198,6 +198,9 @@ class World:
         self._meta, self._selected_by = {}, None
         if type(walk_by_direction) is not bool or (walk_by_direction and self.autonomy.legacy):
             raise ValueError("walk_by_direction is a boolean and needs the foundations mode")
+        if type(sight_range) is not int or not 8 <= sight_range <= 64:
+            raise ValueError("sight_range must be an integer from 8 to 64")
+        self.sight_range = sight_range     # how far an inhabitant sees resource nodes (default 8; opt-in experiment: farther)
         self.walk_by_direction = walk_by_direction     # opt-in experiment: WALK (north/south/east/west) is offered instead of MOVE (dx, dz)
         self._build_registry()
         self.pregnancies=[];self.next_agent_id=population;self.next_pregnancy_id=0
@@ -247,6 +250,8 @@ class World:
         self.root.register(self)
         if self.walk_by_direction:
             self.manifest["walk_by_direction"] = True
+        if self.sight_range != 8:
+            self.manifest["sight_range"] = self.sight_range
         self.manifest["engine_version"] = ENGINE_VERSION
         self.manifest["autonomy_hash"] = digest(self.autonomy.to_dict())
         self.initial_state = self.state()
@@ -379,7 +384,8 @@ class World:
             if self.autonomy.memory.enabled:
                 from .memory import recall
                 extra["recalled"]=recall(self,a)
-        return dict(tick=self.tick, self=own, **extra, resources=[copy.deepcopy(n) for n in self.resources.values() if nearby(n)],
+        return dict(tick=self.tick, self=own, **extra, resources=[copy.deepcopy(n) for n in self.resources.values()
+                                                                  if abs(n["x"]-a.x)+abs(n["z"]-a.z) <= self.sight_range],
             climate=climate(self.tick,self.biology.days_per_tick),
             eligible_parenting_partners=[b.id for b in nearby_agents if pairing_error(self,a,b) is None],
             parenting_requests=[b.id for b in nearby_agents if b.parenting_proposals.get(aid,-1)>=self.tick*self.biology.days_per_tick],
@@ -702,6 +708,7 @@ class World:
             self.fauna=Ecosystem.restore(s['fauna'])
         self._meta,self._selected_by={},None
         self.walk_by_direction=bool(s.get("manifest",{}).get("walk_by_direction",False))
+        self.sight_range=int(s.get("manifest",{}).get("sight_range",8))
         self._build_registry()
         self.biology=BiologyConfig(**s.get("biology",{}));self.pregnancies=copy.deepcopy(s.get("pregnancies",[]))
         self.next_agent_id=s.get("next_agent_id",len(s["agents"]));self.next_pregnancy_id=s.get("next_pregnancy_id",0)
