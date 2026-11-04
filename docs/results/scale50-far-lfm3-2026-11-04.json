@@ -1,0 +1,125 @@
+{
+  "status": "completed",
+  "stop": "completed",
+  "label": "REAL LFM3 on GPU, sequential decisions, ONE bounded run",
+  "environment": {
+    "python": "3.13.16",
+    "platform": "Linux-6.6.159+-x86_64-with-glibc2.39",
+    "backend": "lfm3",
+    "gpu": "Tesla T4"
+  },
+  "model_id": "LiquidAI/LFM3-1.7B",
+  "model_revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+  "requested": {
+    "backend": "lfm3",
+    "revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+    "seed": 314159,
+    "couples": 25,
+    "width": 256,
+    "depth": 256,
+    "terrain": "geography-v2",
+    "start_distance": 24,
+    "wildlife_per_species": 6,
+    "ticks": 60,
+    "max_real_seconds": 1500.0,
+    "max_failure_rate": 0.2,
+    "max_run_mb": 200.0,
+    "run_dir": "/content/drive/MyDrive/CAITANYA/scale50-far-1"
+  },
+  "identity": {
+    "humans": 50,
+    "unique_ids": 50,
+    "genders": {
+      "man": 25,
+      "woman": 25
+    },
+    "separate_memory_objects": true,
+    "animals_alive_outside_the_human_count": 72
+  },
+  "terrain": "geography-v2",
+  "start_distance": 24,
+  "world_creation_seconds": 4.002,
+  "ticks_completed": 60,
+  "real_seconds": 869.23,
+  "decisions": {
+    "calls": 476,
+    "failures": 1,
+    "failure_categories": {
+      "no_single_complete_tool_call": 1
+    },
+    "tool_choices": {
+      "DRINK": 139,
+      "EAT": 78,
+      "GATHER": 2,
+      "GATHER_AT": 150,
+      "INSPECT": 1,
+      "PICK": 22,
+      "REST": 6,
+      "SPEAK": 57,
+      "WAIT": 20
+    },
+    "seconds_per_call": {
+      "mean": 1.8046,
+      "p50": 1.2935,
+      "p95": 3.2428,
+      "max": 9.7853
+    }
+  },
+  "per_tick_seconds": {
+    "mean": 14.4859,
+    "p95": 22.339,
+    "max": 23.0791
+  },
+  "scheduling": {
+    "decisions_per_human": {
+      "min": 8,
+      "max": 10,
+      "jain_fairness_index": 0.9968
+    },
+    "mean_decision_interval_ticks": {
+      "min": 5.889,
+      "max": 7.571,
+      "mean": 6.311
+    },
+    "max_wait_ticks": 7,
+    "max_interval_ticks": 16,
+    "budget_exhausted_ticks": 60,
+    "max_queue": 50,
+    "decisions_per_tick_cap": 8,
+    "seconds_per_tick_cap": 20.0
+  },
+  "rejections_by_reason": {
+    "inference_failed": 1,
+    "invalid amount": 4,
+    "no such material carried": 22,
+    "resource out of reach": 1,
+    "resource unavailable": 129
+  },
+  "humans_vs_wildlife": {
+    "human_decisions_model": 475,
+    "human_decisions_mock": 0,
+    "wildlife_events_deterministic_rules": 36,
+    "wildlife_model_calls": 0
+  },
+  "outcomes": {
+    "alive": 50,
+    "deaths": 0,
+    "lowest_health": 100
+  },
+  "recorded_event_bytes": 3376129,
+  "events": 694,
+  "prompt_tokens": {
+    "p50": 2890,
+    "p95": 3263,
+    "max": 3410,
+    "cap": 6144,
+    "budget_failures": 0
+  },
+  "gpu_peak_allocated_bytes": 5167099392,
+  "note": "Systems check, not a behavioural result: each human gets only a handful of decisions in a bounded run.",
+  "restore_check": {
+    "restored_state_equals_live": true,
+    "restore_made_no_model_calls": true,
+    "checkpoint": "/content/drive/MyDrive/CAITANYA/scale50-far-1/checkpoint-000000060.json"
+  }
+}
