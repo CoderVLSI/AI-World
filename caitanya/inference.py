@@ -140,7 +140,8 @@ def nearest_others(others,me,limit=12):
 
 class TransformersLFM3Backend:
     model_id="LiquidAI/LFM3-1.7B"
-    def __init__(self,revision=None,device="cuda",max_new_tokens=224,max_seconds=15,max_prompt_tokens=6144):
+    def __init__(self,revision=None,device="cuda",max_new_tokens=224,max_seconds=15,max_prompt_tokens=6144,batch_size=1):
+        if type(batch_size) is not int or not 1<=batch_size<=32:raise ValueError("batch_size must be an integer from 1 to 32")
         import torch
         from huggingface_hub import model_info
         from transformers import AutoTokenizer,AutoModelForCausalLM
@@ -152,12 +153,14 @@ class TransformersLFM3Backend:
         self.lock=threading.Lock();self.calls=0;self.failures=0;self.output_tokens=0;self.elapsed_seconds=0
         self.last_request={}
         self.prompt_token_counts=[];self.prompt_budget_failures=0
+        self.batch_size=batch_size;self._prefetched={};self.batches=0;self.batched_items=0;self.batch_seconds=0.0;self.batch_fallbacks=0
         self.tokenizer=AutoTokenizer.from_pretrained(self.model_id,revision=self.model_revision,trust_remote_code=True)
+        if batch_size>1 and self.tokenizer.pad_token is None:self.tokenizer.pad_token=self.tokenizer.eos_token
         self.model=AutoModelForCausalLM.from_pretrained(self.model_id,revision=self.model_revision,
             trust_remote_code=True,device_map=device,dtype=torch.float16 if device=="cuda" else torch.float32,
             attn_implementation="eager").eval()
-    def decide(self,observation):
-        import torch
+    def _prepare(self,observation):
+        """Everything done before the model runs: trim the observation, build the messages, choose the offered tools."""
         # Send only the current individual's recent memories and nearby observations.
         observation=json.loads(json.dumps(observation));a=observation["self"]
         walk_marker=observation.pop("walk_by_direction",False)   # selects the tool only; it is not part of what the model reads
@@ -171,6 +174,15 @@ class TransformersLFM3Backend:
         messages=[{"role":"system","content":system_message()},
                   {"role":"user","content":"Your current local observation follows. Decide your next action.\n"+json.dumps(observation,separators=(",",":"))}]
         available=select_tools(dict(observation,walk_by_direction=True) if walk_marker else observation)
+        return observation,messages,available
+    def decide(self,observation):
+        import torch
+        hit=getattr(self,"_prefetched",{}).pop(observation["self"]["id"],None)
+        if hit is not None and hit["tick"]==observation["tick"]:   # decided in this tick's batch (see prefetch)
+            self.last_request=hit["request"]
+            if hit.get("error") is not None:raise hit["error"]
+            return hit["intent"]
+        observation,messages,available=self._prepare(observation);a=observation["self"]
         with self.lock:
             start=time.monotonic();self.calls+=1
             self.last_request={"request_id":str(uuid.uuid4()),"actor_id":a["id"],"observed_tick":observation["tick"]}
@@ -204,6 +216,69 @@ class TransformersLFM3Backend:
         text=str(exc).split(":")[0][:60] if isinstance(exc,InferenceFailure) else type(exc).__name__
         detail["by_message"][text]=detail["by_message"].get(text,0)+1
         if produced is not None and produced>=self.max_new_tokens:detail["hit_token_limit"]+=1
+    def prefetch(self,observations):
+        """Opt-in batching (batch_size > 1): decide for several inhabitants in ONE generate call, from observations all taken at the same moment.
+
+        The results wait in a per-tick cache; the scheduler then asks for each inhabitant in its normal order and `decide` hands back the
+        batched choice (each is still validated against the world as it is when applied, so conflicts are rejected as usual).
+        Each item counts as one model call and one decision. A failed item fails alone; if the batch itself cannot run (for example out of
+        memory) every item is retried one at a time. Greedy decoding with left padding may not give the very same text as a batch of one:
+        that is measured, not assumed."""
+        if getattr(self,"batch_size",1)<2 or not observations:return
+        tick=observations[0]["tick"]
+        self._prefetched={k:v for k,v in self._prefetched.items() if v["tick"]==tick}
+        items=[]
+        for observation in observations:
+            prepared,messages,available=self._prepare(observation)
+            items.append({"id":prepared["self"]["id"],"tick":prepared["tick"],"obs":prepared,"messages":messages,"available":available,
+                          "request":{"request_id":str(uuid.uuid4()),"actor_id":prepared["self"]["id"],"observed_tick":prepared["tick"]}})
+        with self.lock:
+            start=time.monotonic();live=[]
+            for item in items:
+                self.calls+=1
+                try:
+                    item["prompt"]=self.tokenizer.apply_chat_template(item["messages"],tools=item["available"],tokenize=False,
+                        add_generation_prompt=True,enable_thinking=False)+"<tool_call>\n"
+                    tokens=len(self.tokenizer(item["prompt"],add_special_tokens=False).input_ids)
+                    self.prompt_token_counts.append(tokens)
+                    if tokens>self.max_prompt_tokens:
+                        self.prompt_budget_failures+=1
+                        raise InferenceFailure("prompt budget exceeded")
+                    live.append(item)
+                except Exception as exc:self._fail(item,exc)
+            if live:self._generate_batch(live)
+            self.batches+=1;self.batched_items+=len(items);took=time.monotonic()-start
+            self.batch_seconds+=took;self.elapsed_seconds+=took
+        for item in items:
+            self._prefetched[item["id"]]={"tick":item["tick"],"request":item["request"],"intent":item.get("intent"),"error":item.get("error")}
+    def _fail(self,item,exc):
+        self._note_failure(exc,item.get("produced"));self.failures+=1;item["error"]=exc if isinstance(exc,InferenceFailure) else InferenceFailure(str(exc))
+    def _generate_batch(self,live):
+        import torch
+        tok=self.tokenizer
+        try:
+            tok.padding_side="left"
+            inputs=tok([item["prompt"] for item in live],return_tensors="pt",padding=True,add_special_tokens=False).to(self.device)
+            with torch.inference_mode():
+                result=self.model.generate(**inputs,max_new_tokens=self.max_new_tokens,do_sample=False,repetition_penalty=1.1,
+                    max_time=self.max_seconds,pad_token_id=tok.eos_token_id)
+            width=int(inputs.input_ids.shape[1])
+            for row,item in zip(result,live):
+                tokens=row[width:];item["produced"]=sum(1 for t in tokens.tolist() if t!=tok.eos_token_id);self.output_tokens+=item["produced"]
+                try:item["intent"]=parse_tool("<tool_call>\n"+tok.decode(tokens,skip_special_tokens=False),item["obs"])
+                except Exception as exc:self._fail(item,exc)
+        except Exception:
+            self.batch_fallbacks+=1                 # the batch could not run as a whole: one at a time, each on its own
+            for item in live:
+                item.pop("intent",None);item.pop("error",None)
+                try:
+                    inputs=tok(item["prompt"],return_tensors="pt",add_special_tokens=False).to(self.device)
+                    with torch.inference_mode():
+                        result=self.model.generate(**inputs,max_new_tokens=self.max_new_tokens,do_sample=False,repetition_penalty=1.1,
+                            max_time=self.max_seconds,pad_token_id=tok.eos_token_id)
+                    tokens=result[0][inputs.input_ids.shape[1]:];self.output_tokens+=len(tokens)
+                    item["intent"]=parse_tool("<tool_call>\n"+tok.decode(tokens,skip_special_tokens=False),item["obs"])
+                except Exception as exc:self._fail(item,exc)
     def reflect(self,context,budget):
         """Isvara's dedicated interface. Same shared model and lock (one copy in memory), but its own system message,
         its own single tool and parser, its own budget and its own counters. It never touches ``calls``,
@@ -262,6 +337,8 @@ class TransformersLFM3Backend:
             "inference_seconds":round(self.elapsed_seconds,3),"tokens_per_second":round(self.output_tokens/max(.001,self.elapsed_seconds),2),
             "successful_inference_calls":self.calls-self.failures,
             "failure_detail":getattr(self,"failure_detail",{"hit_token_limit":0,"by_message":{}}),
+            "batching":{"batch_size":getattr(self,"batch_size",1),"batches":getattr(self,"batches",0),"batched_items":getattr(self,"batched_items",0),
+                "batch_seconds":round(getattr(self,"batch_seconds",0.0),3),"batch_fallbacks":getattr(self,"batch_fallbacks",0)},
             "model_id":self.model_id,"hardware":self.metadata.get("device"),
             "model_instances":1,"device":self.device,"model_revision":self.model_revision}
 
