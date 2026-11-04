@@ -13,11 +13,15 @@ static var _unit_tube: CylinderMesh
 var built := false          # the articulated rig exists (built lazily, only for people who are ever close to the camera)
 var detail := false         # the rig is currently shown and animated; otherwise the viewer draws this person as a crowd figure
 var height_units := 2.7     # standing height in display units, known even before the rig is built
+## Nothing in the simulation makes, wears or loses clothes: `clothing_color` is only a recorded colour. So by default people are drawn bare
+## (skin everywhere); `--clothing` (or setting this before people are created) paints that recorded colour as a plain tunic and trousers.
+static var show_clothing := false
 var cloth_color := Color("#678b91")
 var skin_color := Color("#bd8c68")
 var parts := {}
 var skin := Color("#bd8c68")
 var cloth := Color("#678b91")
+var lower := Color("#678b91")      # what covers the legs and hips; skin when bare
 var hair := Color("#2b2118")
 var gender := ""
 var age := -1.0
@@ -60,7 +64,8 @@ func _tube(parent: Node3D, c: Color) -> MeshInstance3D:
 ## is built the first time `set_detail(true)` is called, so a crowd of hundreds costs almost nothing until someone comes close.
 func setup(agent: Dictionary, with_detail: bool = true) -> void:
 	skin = Color(str(agent.get("skin_tone", "#bd8c68")))
-	cloth = Color(str(agent.get("clothing_color", "#678b91")))
+	cloth = Color(str(agent.get("clothing_color", "#678b91"))) if show_clothing else skin
+	lower = cloth.darkened(0.25) if show_clothing else skin
 	skin_color = skin; cloth_color = cloth
 	gender = str(agent.get("gender", ""))
 	var digits := str(agent.get("id", "0")).get_slice("-", 1)
@@ -76,7 +81,7 @@ func setup(agent: Dictionary, with_detail: bool = true) -> void:
 func _build_rig() -> void:
 	var rig := _pivot(self); parts["rig"] = rig
 	var hips := _pivot(rig); parts["hips"] = hips
-	parts["pelvis"] = _ball(hips, cloth.darkened(0.25))
+	parts["pelvis"] = _ball(hips, lower)
 	var torso_pivot := _pivot(hips); parts["torso_pivot"] = torso_pivot
 	parts["torso"] = _ball(torso_pivot, cloth)
 	parts["neck"] = _tube(torso_pivot, skin)
@@ -91,10 +96,10 @@ func _build_rig() -> void:
 		parts["forearm_" + side] = _tube(elbow, skin)
 		parts["hand_" + side] = _ball(elbow, skin)
 		var hip := _pivot(hips); parts["hip_" + side] = hip
-		parts["thigh_" + side] = _tube(hip, cloth.darkened(0.25))
+		parts["thigh_" + side] = _tube(hip, lower)
 		var knee := _pivot(hip); parts["knee_" + side] = knee
-		parts["shin_" + side] = _tube(knee, cloth.darkened(0.25))
-		parts["foot_" + side] = _ball(knee, Color("#2a2522"))
+		parts["shin_" + side] = _tube(knee, lower)
+		parts["foot_" + side] = _ball(knee, Color("#2a2522") if show_clothing else skin)     # shoes are clothing too
 	for j in ["hip_l", "hip_r", "knee_l", "knee_r", "arm_l", "arm_r", "elbow_l", "elbow_r", "torso", "pitch", "yaw", "sit"]:
 		cur[j] = 0.0
 	built = true

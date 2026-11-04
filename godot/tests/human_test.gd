@@ -55,6 +55,17 @@ func _init() -> void:
 	check(h.get_child_count() == children_before and _count(h) == nodes_before, "growth reshapes the same nodes, it does not rebuild")
 	var greyed: Color = h.parts.hair.material_override.albedo_color
 	check(greyed.r > 0.4, "an elder's hair is grey")
+	# nothing in the world makes clothes, so by default a person is drawn bare; the recorded colour is only painted on request
+	var skin_hex := Color("#8d5c40")
+	check(not Human.show_clothing, "bare by default")
+	for part in ["torso", "pelvis", "upper_arm_l", "thigh_l", "shin_r", "foot_l"]:
+		check(h.parts[part].material_override.albedo_color.is_equal_approx(skin_hex), part + " is skin when bare")
+	check(h.cloth_color.is_equal_approx(skin_hex) and h.skin_color.is_equal_approx(skin_hex), "a crowd figure is bare too")
+	Human.show_clothing = true
+	var dressed: Node3D = Human.new(); dressed.setup(agent)
+	check(dressed.parts["torso"].material_override.albedo_color.is_equal_approx(Color("#8e709d")), "--clothing paints the recorded colour")
+	check(not dressed.parts["thigh_l"].material_override.albedo_color.is_equal_approx(skin_hex), "--clothing covers the legs")
+	Human.show_clothing = false
 	# poses come only from the recorded state
 	var idle := Human.targets("idle", 1.0, 0.0, false)
 	var walk := Human.targets("walk", 0.3, 0.0, false)

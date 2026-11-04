@@ -29,6 +29,12 @@ This is only a picture of what the simulation published; inhabitants are told no
 `--server=URL` `--poll=SECONDS` `--select=agent-0003` `--focus=agent-0003|<animal id>|animals` and, for automated checks, `--screenshot=out.png --wait=SECONDS`
 (saves a frame after that many seconds of live data and quits). Playback only: `--start-tick=N` and `--paused`.
 
+## Clothing
+Nothing in the simulation makes, wears or loses clothes: each person only carries a recorded `clothing_color` that no rule uses. So both viewers
+draw people **bare by default** (skin on every part, feet included) rather than imply a civilisation's tailoring that the world has not
+earned. `--clothing` (Godot) or `?clothing=1` (browser viewer) paints that recorded colour as a plain tunic and trousers.
+If a clothing mechanic is ever added it must be a physical rule (materials worn on the body), and the viewers should then draw what is worn.
+
 ## People who grow
 Every person is built from primitives (`human.gd`) using the simulation's recorded `age_years`, `height_cm`, gender, skin tone and
 clothing, so one person visibly grows: an infant's head is about a quarter of their height, a child's legs are short, an adolescent
