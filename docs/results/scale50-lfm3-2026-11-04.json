@@ -1,0 +1,114 @@
+{
+  "status": "completed",
+  "stop": "completed",
+  "label": "REAL LFM3 on GPU, sequential decisions, ONE bounded run",
+  "environment": {
+    "python": "3.13.16",
+    "platform": "Linux-6.6.159+-x86_64-with-glibc2.39",
+    "backend": "lfm3",
+    "gpu": "Tesla T4"
+  },
+  "model_id": "LiquidAI/LFM3-1.7B",
+  "model_revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+  "requested": {
+    "backend": "lfm3",
+    "revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+    "seed": 314159,
+    "couples": 25,
+    "width": 256,
+    "depth": 256,
+    "wildlife_per_species": 6,
+    "ticks": 24,
+    "max_real_seconds": 900.0,
+    "max_failure_rate": 0.2,
+    "max_run_mb": 200.0,
+    "run_dir": "/content/drive/MyDrive/CAITANYA/scale50-1"
+  },
+  "identity": {
+    "humans": 50,
+    "unique_ids": 50,
+    "genders": {
+      "man": 25,
+      "woman": 25
+    },
+    "separate_memory_objects": true,
+    "animals_alive_outside_the_human_count": 72
+  },
+  "world_creation_seconds": 4.397,
+  "ticks_completed": 24,
+  "real_seconds": 323.005,
+  "decisions": {
+    "calls": 190,
+    "failures": 4,
+    "failure_categories": {
+      "bad_parameter": 4
+    },
+    "tool_choices": {
+      "DRINK": 95,
+      "EAT": 19,
+      "GATHER": 49,
+      "SPEAK": 14,
+      "WAIT": 9
+    },
+    "seconds_per_call": {
+      "mean": 1.6791,
+      "p50": 1.4377,
+      "p95": 2.7882,
+      "max": 8.2223
+    }
+  },
+  "per_tick_seconds": {
+    "mean": 13.4574,
+    "p95": 18.4523,
+    "max": 20.2165
+  },
+  "scheduling": {
+    "decisions_per_human": {
+      "min": 3,
+      "max": 4,
+      "jain_fairness_index": 0.989
+    },
+    "mean_decision_interval_ticks": {
+      "min": 6.0,
+      "max": 6.5,
+      "mean": 6.24
+    },
+    "max_wait_ticks": 6,
+    "max_interval_ticks": 7,
+    "budget_exhausted_ticks": 24,
+    "max_queue": 50,
+    "decisions_per_tick_cap": 8,
+    "seconds_per_tick_cap": 20.0
+  },
+  "rejections_by_reason": {
+    "inference_failed": 4,
+    "resource unavailable": 18
+  },
+  "humans_vs_wildlife": {
+    "human_decisions_model": 186,
+    "human_decisions_mock": 0,
+    "wildlife_events_deterministic_rules": 49,
+    "wildlife_model_calls": 0
+  },
+  "outcomes": {
+    "alive": 50,
+    "deaths": 0,
+    "lowest_health": 100
+  },
+  "recorded_event_bytes": 1286647,
+  "events": 273,
+  "prompt_tokens": {
+    "p50": 3281,
+    "p95": 3722,
+    "max": 3736,
+    "cap": 6144,
+    "budget_failures": 0
+  },
+  "gpu_peak_allocated_bytes": 5489888256,
+  "note": "Systems check, not a behavioural result: each human gets only a handful of decisions in a bounded run.",
+  "restore_check": {
+    "restored_state_equals_live": true,
+    "restore_made_no_model_calls": true,
+    "checkpoint": "/content/drive/MyDrive/CAITANYA/scale50-1/checkpoint-000000024.json"
+  }
+}
