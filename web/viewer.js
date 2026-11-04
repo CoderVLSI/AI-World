@@ -38,7 +38,7 @@ try {
 
 function mesh(geometry,color,x,y,z){const m=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color,roughness:1}));m.position.set(x,y,z);group.add(m);return m;}
 
-const colors={forest:'#526e46',grassland:'#7f8b50',highland:'#858778',wetland:'#597665',dryland:'#b3a277',water:'#4e8d99'};
+const colors={forest:'#526e46',grassland:'#7f8b50',highland:'#858778',wetland:'#597665',dryland:'#b3a277',water:'#4e8d99',floodplain:'#6f9440'};
 
 let terrainIndex=new Map();
 

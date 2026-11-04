@@ -38,7 +38,16 @@ def _geography_v1(x, z, width, depth, seed):
     else: biome="grassland"
     return dict(biome=biome,elevation=round(elevation,3),walkable=True)
 
-GEOGRAPHY_GENERATORS = {"geography-v1": _geography_v1}
+from . import valley  # noqa: E402  (geography-v2 lives in its own module)
+
+GEOGRAPHY_GENERATORS = {"geography-v1": _geography_v1, "geography-v2": valley.tile}
+
+
+def founding_site(width, depth, seed, version, radius):
+    """Centre of the founders' starting area for the given terrain generator."""
+    if version == "geography-v2":
+        return valley.founding_site(width, depth, seed, radius)
+    return width // 4, depth // 2
 
 
 def anatomy():

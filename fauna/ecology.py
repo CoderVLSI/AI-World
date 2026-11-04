@@ -20,6 +20,12 @@ SPECIES = {
 }
 
 
+# The floodplain biome (geography-v2) counts as grassland for every species that lives on grassland; v1 worlds never contain it.
+for _species in SPECIES.values():
+    if 'grassland' in _species['habitats'] and 'floodplain' not in _species['habitats']:
+        _species['habitats'].append('floodplain')
+
+
 @dataclass
 class Animal:
     id: str

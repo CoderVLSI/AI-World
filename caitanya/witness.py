@@ -6,7 +6,7 @@ snapshot, and ``terrain_grid`` is a pure function of the seed. Neither can chang
 
 SCHEMA_TERRAIN = "caitanya.terrain.v1"
 SCHEMA_LIVE = "caitanya.live.v1"
-BIOMES = ["water", "wetland", "grassland", "forest", "dryland", "highland"]
+BIOMES = ["water", "wetland", "grassland", "forest", "dryland", "highland", "floodplain"]    # new kinds are only ever appended
 WATER_LEVEL = -0.25
 MAX_STEP = 16
 _AGENT_KEYS = ("id", "x", "z", "alive", "gender", "life_stage", "generation", "age_years", "height_cm",

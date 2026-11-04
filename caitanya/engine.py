@@ -178,7 +178,7 @@ def redact_private(state):
 
 class World:
     def __init__(self, seed=314159, population=5, width=64, depth=64, backend=None, biology=None, spawn_radius=8,
-                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None, nature_forces=False, families=0, children_per_family=2, hazard_exit_hint=False, hazard_pain_signal=False, walk_by_direction=False):
+                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None, nature_forces=False, families=0, children_per_family=2, hazard_exit_hint=False, hazard_pain_signal=False, walk_by_direction=False, terrain="geography-v1"):
         if type(families) is not int or families < 0 or type(children_per_family) is not int or not 0 <= children_per_family <= 12:
             raise ValueError("invalid founding families")
         if families:
@@ -241,7 +241,7 @@ class World:
         self.root = BrahmanAgent(mode=root_mode)
         plan, issued_by = isvara.issue_plan(self.root, seed=seed, population=population, width=width, depth=depth,
             spawn_radius=spawn_radius, wildlife_per_species=wildlife_per_species, days_per_tick=self.biology.days_per_tick,
-            reasoning=not self.autonomy.legacy, config=isvara_config, families=families, children_per_family=children_per_family)
+            reasoning=not self.autonomy.legacy, config=isvara_config, families=families, children_per_family=children_per_family, terrain=terrain)
         genesis.execute(self, plan, issued_by)
         self.manifest["genesis"] = dict(version=plan.version, plan_digest=plan.digest(), generators=dict(plan.generators))
         self.root.register(self)
