@@ -35,6 +35,10 @@ def test_a_walking_run_shows_displacement_walks_and_progress_toward_sources_and_
     assert d["peak_max"] >= d["final_max"] >= 0 and d["humans_peaked_at_least_8"] >= d["humans_peaked_at_least_16"]
     assert r["events_by_type_and_origin"].get("move:mechanical_execution", 0) > 0 or r["events_by_type_and_origin"].get("move:validated_action", 0) > 0
     assert "alive" in r["needs_at_end"]
+    near = r["sources_near_the_start_at_tick_0"]
+    assert sum(near["of_these_depleted_at_end_by_kind"].values()) <= near["nodes_within_sight_of_any_human"]
+    assert sum(near["of_these_depleted_at_end_by_kind"].values()) <= sum(r["depleted_nodes_at_end_by_kind_whole_map"].values()), \
+        "near-start depletion is a part of whole-map depletion, labelled as such"
     blob = json.dumps(r)
     for word in ("memories", "<tool_call>", "feedback"):
         assert word not in blob

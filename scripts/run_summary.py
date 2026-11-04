@@ -61,6 +61,7 @@ def summarize(directory):
             interrupts[str(e["payload"].get("reason", ""))[:40]] += 1
     near0 = [n for n in start_world.resources.values() if any(manhattan((n["x"], n["z"]), p) <= SIGHT for p in start.values())]
     depleted = Counter(n["kind"] for n in end.resources.values() if n["amount"] <= 0)
+    depleted_near = Counter(n["kind"] for n in near0 if end.resources.get(n["id"], {"amount": 0})["amount"] <= 0)
     water_carried = sum(a.inventory.get("water", 0) for a in humans)
     return {
         "ticks": pb.final_tick, "humans": len(start),
@@ -79,7 +80,8 @@ def summarize(directory):
                          "hunger_mean": round(statistics.mean(a.hunger for a in humans), 2), "hunger_max": round(max(a.hunger for a in humans), 2),
                          "water_units_still_carried": water_carried, "alive": sum(a.alive for a in humans)},
         "sources_near_the_start_at_tick_0": {"nodes_within_sight_of_any_human": len(near0), "kinds": dict(sorted(Counter(n["kind"] for n in near0).items())),
-                                             "depleted_nodes_at_end_by_kind": dict(sorted(depleted.items()))},
+                                             "of_these_depleted_at_end_by_kind": dict(sorted(depleted_near.items()))},
+        "depleted_nodes_at_end_by_kind_whole_map": dict(sorted(depleted.items())),
         "note": "Aggregate numbers only. Derived from the recorded run; nothing was re-simulated with a model.",
     }
 
