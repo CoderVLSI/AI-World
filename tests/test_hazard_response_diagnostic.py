@@ -27,6 +27,15 @@ def test_cpu_mode_measures_staying_versus_leaving_and_writes_no_text(tmp_path):
     assert hint["moves_while_inside"]["inward"] == 0 and hint["moves_while_inside"]["outward"] == hint["moves_while_inside"]["total"] > 0
     assert flee["moves_while_inside"]["total"] == flee["moves_while_inside"]["outward"] + flee["moves_while_inside"]["inward"]
     assert flee["exit_hint_visible_in_observations"] == 0                                # the baseline never shows the hint
+    # v3: the pain and direction-word variants are separate, labelled runs; malformed moves are counted
+    pain, both = r["pain_following_stand_in"], r["pain_and_walk_stand_in"]
+    assert pain["variant"] == "pain_signal" and both["variant"] == "pain_signal+walk_by_direction"
+    assert pain["pain_signal_visible_in_observations"] > 0 and both["pain_signal_visible_in_observations"] > 0
+    assert idle["pain_signal_visible_in_observations"] == 0 and hint["pain_signal_visible_in_observations"] == 0       # off unless asked for
+    assert pain["left_count"] == pain["inside_count_at_start"] == both["left_count"]
+    assert set(pain["choices_while_inside"]) == {"MOVE"} and set(both["choices_while_inside"]) == {"WALK"}           # WALK replaces MOVE
+    assert all(e["malformed_moves_chosen_anywhere"] == 0 and e["moves_chosen_anywhere"] >= e["moves_while_inside"]["total"]
+               for e in (idle, flee, hint, pain, both))
     trace = hint["distance_to_zone_edge_by_tick"]
     assert set(trace) == set(hint["fixture"]["inhabitants_inside_at_start"]) and all(len(v) == 40 and v[0] == 0 for v in trace.values())
     assert "SPEAK" not in json.dumps(r["fleeing_stand_in"]["choices_while_inside"]) and '"text"' not in out.read_text()      # choices are tool names only
