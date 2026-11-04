@@ -361,6 +361,8 @@ class DecisionScheduler:
         totals["max_queue"] = max(totals["max_queue"], len(queue))
         real = world.is_real_backend
         started, made = time.monotonic(), 0
+        if real and queue and getattr(world.backend, "batch_size", 1) > 1:       # opt-in batching: see _prefetch
+            self._prefetch(world, [item[-1] for item in queue[:cfg.max_decisions_per_tick]], started)
         for priority, *_, aid in queue:
             if made >= cfg.max_decisions_per_tick:
                 break
@@ -372,6 +374,22 @@ class DecisionScheduler:
             totals["ticks_with_decisions"] += 1
         if len(queue) > made:
             totals["budget_exhausted_ticks"] += 1
+
+    def _prefetch(self, world, aids, started):
+        """Opt-in (the backend must offer ``batch_size`` > 1 and ``prefetch``): the inhabitants about to be asked this tick are decided in batches
+        from observations taken at the same moment; `_decide` below then collects each result in its normal order. The per-tick wall-clock cap
+        also limits how many batches are started. Nothing here changes who is asked or in what order."""
+        from .memory import note_surroundings
+        size = world.backend.batch_size
+        for i in range(0, len(aids), size):
+            if i and time.monotonic() - started >= self.config.max_seconds_per_tick:
+                break
+            observations = []
+            for aid in aids[i:i + size]:
+                if world.autonomy.memory.enabled:
+                    note_surroundings(world, world.agents[aid])
+                observations.append(world.observe(aid))
+            world.backend.prefetch(observations)
 
     def _decide(self, world, aid, priority):
         a, rec, totals = world.agents[aid], self.record(aid), self.data["totals"]

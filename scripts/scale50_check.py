@@ -61,6 +61,7 @@ class Timed:
     def __init__(self, inner):
         self.inner = inner
         self.seconds, self.tools, self.failures = [], Counter(), Counter()
+        self.batch_seconds, self.batch_sizes = [], []
         self.window = deque(maxlen=40)
 
     def __getattr__(self, name):
@@ -79,6 +80,13 @@ class Timed:
         self.tools[intent.action] += 1
         self.window.append(0)
         return intent
+
+    def prefetch(self, observations):
+        """Only reached when the inner backend batches (the scheduler checks `batch_size` first); times each batch."""
+        started = time.monotonic()
+        self.inner.prefetch(observations)
+        self.batch_seconds.append(time.monotonic() - started)
+        self.batch_sizes.append(len(observations))
 
     def failure_rate(self):
         return sum(self.window) / len(self.window) if len(self.window) == self.window.maxlen else 0.0
@@ -99,7 +107,7 @@ def run(args, backend=None):
     if backend is None:
         if args.backend == "lfm3":
             from caitanya.inference import TransformersLFM3Backend
-            backend = TransformersLFM3Backend(revision=args.revision)
+            backend = TransformersLFM3Backend(revision=args.revision, batch_size=args.batch_size)
         else:
             backend = MockInferenceBackend(use_tasks=True)
     timed = Timed(backend)
@@ -171,6 +179,12 @@ def run(args, backend=None):
                            "cap": metrics.get("prompt_tokens", {}).get("cap"), "budget_failures": metrics.get("prompt_budget_failures")}
                           if prompt_counts else None),
         "gpu_peak_allocated_bytes": metrics.get("gpu_peak_allocated_bytes"),
+        "batching": {"batch_size": args.batch_size, "batches": len(timed.batch_sizes), "batch_sizes": dict(sorted(Counter(timed.batch_sizes).items())),
+                     "seconds_per_batch": {"mean": round(statistics.mean(timed.batch_seconds), 4) if timed.batch_seconds else None,
+                                           "p95": percentile(timed.batch_seconds, .95), "max": percentile(timed.batch_seconds, 1.0)},
+                     "model_seconds_per_decision": round(sum(timed.batch_seconds) / max(1, sum(timed.batch_sizes)), 4) if timed.batch_sizes else None,
+                     "backend": metrics.get("batching"),
+                     "reading": "With batching, decide() only collects a result, so seconds_per_call is not the model time; use the batch figures."},
         "note": "Systems check, not a behavioural result: each human gets only a handful of decisions in a bounded run.",
     }
     if args.run_dir:
@@ -191,6 +205,7 @@ def build_parser():
     p.add_argument("--width", type=int, default=256)
     p.add_argument("--depth", type=int, default=256)
     p.add_argument("--terrain", choices=["geography-v1", "geography-v2"], default="geography-v1", help="map generator; geography-v2 = two river valleys")
+    p.add_argument("--batch-size", type=int, default=1, help="EXPERIMENT (default 1 = sequential, as always): decide this many inhabitants per generate call (lfm3 only)")
     p.add_argument("--wildlife-per-species", type=int, default=6)
     p.add_argument("--ticks", type=int, default=24)
     p.add_argument("--max-real-seconds", type=float, default=900.0, help="hard wall-clock cap")

@@ -27,3 +27,18 @@ failure categories, rejections by reason, decisions per human with a fairness in
 humans vs wildlife reported separately, and a checkpoint restore check (state equal, zero model calls). Mock: `python scripts/scale50_check.py
 --backend mock --out m.json`. Real model needs a CUDA GPU and the owner's go-ahead; without one it writes `unverified_no_gpu` and exits 2.
 Not included: a batch-size micro-benchmark (needs a batched decide, to be built only if worthwhile).
+
+## Batched decisions (opt-in, off by default)
+`TransformersLFM3Backend(batch_size=N)` / `scripts/scale50_check.py --batch-size N` decide up to N inhabitants in one generate call.
+* **How:** before a tick's decisions, `Scheduler._prefetch` (a guarded hook: only when the backend offers `batch_size` > 1) takes observations of the
+  first `max_decisions_per_tick` inhabitants in the queue at one moment and hands them to the backend in chunks of N; `decide` then returns each batched
+  choice when the scheduler asks in its normal order. Each choice is still validated against the world as it is when applied, so conflicts are rejected
+  as usual. Who is asked, in what order and how many per tick are unchanged. The per-tick wall-clock cap also limits how many batches start.
+* **Semantics that differ (by design, say so when comparing runs):** inhabitants in one batch decide from the same snapshot instead of seeing the
+  effects of earlier inhabitants in the same tick. A prompt over the token budget, an unparseable output or a failed item fails alone; if a whole
+  batch cannot run (for example out of memory) each item is retried one at a time.
+* **Verified (fakes, no GPU):** batch of one equals the ordinary path; one prompt of several fails alone; stale-tick results are never used; fallback;
+  counters; the scheduler hook (chunking, one snapshot, cap); nothing changes with batch size 1 or the mock.
+* **NOT verified:** that it is faster on a T4 or L4, memory use, and whether greedy decoding with left padding gives the same text as a batch of one.
+  `scripts/batch_check.py` measures exactly that on fixed observations (speed, peak memory, failures, and the fraction of choices equal to batch size 1).
+  The protected `scheduler.py` has one small guarded addition for the hook; `root.py`, prompts and tool descriptions are untouched.
