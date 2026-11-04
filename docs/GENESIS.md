@@ -177,3 +177,13 @@ The plan names the map generator for each world (`generators.terrain`); `World.t
   with map size.
 
 ![geography-v2, seed 314159, 256x256 (north = high z at the top; blue = water, grey-blue = marsh and fords, bright green = floodplain)](images/geography_v2.png)
+
+## Far start (`start_distance`, opt-in experiment)
+Default worlds place a food node and a water node under every founder, so a model that never walks still never goes thirsty (the 50-human runs
+of 2026-11-04: zero movement choices in 190 and 476 decisions). `World(start_distance=24)` / `--start-distance 24` (any map) places **no**
+food or water under the founders; they carry only the plan's `founder_water`, and the founding area is chosen where the nearest food or water
+source is at least `start_distance` + the spawn radius (and at most 25 further) tiles from its centre, in mostly grassland/forest/floodplain.
+Every founder is therefore beyond sight (8 tiles) of any source, and a walkable route exists (tested). Nothing tells anyone where anything is, and
+no prompt, tool or advice changes. A mock policy walks to sources and all 50 survive 60 ticks (CPU, `scripts/scale50_check.py --start-distance 24`).
+It is off by default and invisible when off (`start_distance` is not serialized when 0, so default plan digests are unchanged). A distance for
+which no site exists is refused (`GenesisError`), never silently changed.
