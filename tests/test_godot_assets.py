@@ -216,3 +216,13 @@ def test_viewers_draw_people_bare_unless_asked_because_the_world_has_no_clothing
     assert '"--clothing"' in (GODOT_DIR / "main.gd").read_text(encoding="utf-8")
     web = (ROOT / "web" / "viewer.js").read_text(encoding="utf-8")
     assert "get('clothing')==='1'" in web and "SHOW_CLOTHING?" in web
+
+
+def test_the_godot_terrain_has_a_colour_for_every_biome_the_api_lists():
+    """An index past the colour table would crash the terrain build, so the table must cover witness.BIOMES (geography-v2 added one)."""
+    from caitanya.witness import BIOMES
+    source = (GODOT_DIR / "terrain_view.gd").read_text(encoding="utf-8")
+    table = source.split("const BIOME_COLORS := [")[1].split("]\n")[0]
+    assert table.count("Color(") == len(BIOMES)
+    web = (ROOT / "web" / "viewer.js").read_text(encoding="utf-8")
+    assert all(f"{b}:'#" in web.split("const colors={")[1].split("}")[0] for b in BIOMES)

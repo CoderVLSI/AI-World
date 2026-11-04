@@ -163,3 +163,17 @@ Nothing in the simulation gives anyone territory, borders, law or government, an
 inhabitants do. With the small model in our runs, people mostly speak or wait, and have not shown the multi-step behaviour that
 institutions would need. A bigger, mixed-age population, with time for children to grow up and have their own children, is the
 precondition, not a guarantee.
+
+## Terrain generators (`geography-v1`, `geography-v2`)
+The plan names the map generator for each world (`generators.terrain`); `World.terrain_at(x, z)` is how all code asks about land.
+* `geography-v1` (default, frozen): one wavy river, one lake, a 3-tile coast. Every existing world and checkpoint uses it.
+* `geography-v2` (opt-in for NEW worlds: `World(terrain="geography-v2")` or `--terrain geography-v2`): two river valleys that join into a
+  trunk reaching the sea, each with a tributary; fords (shallow, walkable crossings) so rivers divide land without walling it off; marsh
+  then a fertile **floodplain** beside the water; dryland between the valleys; forest where it is wetter; highlands upstream (high z); the
+  sea along the low-z edge. The founders start on the floodplain. `floodplain` holds only resource kinds that already exist; animals that
+  live on grassland also live on floodplain. It describes land only: it tells inhabitants nothing and preprograms no farming, no
+  irrigation and no settlements. The output for a seed is frozen (`tests/fixtures/geography_v2_golden.json`).
+  Design and the remaining steps: `docs/GEOGRAPHY_V2_PLAN.md`. Not in this step: seasonal floods, new fibre plants, scaling wildlife
+  with map size.
+
+![geography-v2, seed 314159, 256x256 (north = high z at the top; blue = water, grey-blue = marsh and fords, bright green = floodplain)](images/geography_v2.png)

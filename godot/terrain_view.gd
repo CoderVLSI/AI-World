@@ -2,7 +2,7 @@ extends Node3D
 ## Builds the land from /api/v1/terrain (the simulation's own heightmap and biomes).
 
 const HEIGHT_SCALE := 1.6   # vertical exaggeration so relief is readable at world scale
-const BIOME_COLORS := [Color("#4e8d99"), Color("#597665"), Color("#7f8b50"), Color("#526e46"), Color("#b3a277"), Color("#858778")]
+const BIOME_COLORS := [Color("#4e8d99"), Color("#597665"), Color("#7f8b50"), Color("#526e46"), Color("#b3a277"), Color("#858778"), Color("#6f9440")]
 
 var cols := 0
 var rows := 0

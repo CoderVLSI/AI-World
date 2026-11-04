@@ -22,6 +22,7 @@ from dataclasses import dataclass, fields
 GENESIS_VERSION = "genesis-v1"
 GENERATOR_VERSIONS = {"terrain": "geography-v1", "resources": "scatter-v1", "founders": "founders-v1", "wildlife": "ecology-v1"}
 SUPPORTED_GENERATORS = {stage: (version,) for stage, version in GENERATOR_VERSIONS.items()}
+SUPPORTED_GENERATORS["terrain"] = ("geography-v1", "geography-v2")     # v2: two river valleys with floodplains; opt-in for new worlds
 SUPPORTED_GENERATORS["founders"] = ("founders-v1", "founders-v2")     # v2: founding families (women, men and children); opt-in
 FAMILY_FIELDS = ("families", "children_per_family", "parent_age_range", "child_age_range")
 
@@ -32,6 +33,14 @@ _BIOME_RESOURCES = (("forest", ("wood", "fruit", "herbs", "plant_fiber")), ("hig
 
 class GenesisError(ValueError):
     pass
+
+
+# geography-v2 adds the floodplain biome (fertile ground beside the rivers); it holds only resource kinds that already exist.
+_BIOME_RESOURCES_V2 = _BIOME_RESOURCES + (("floodplain", ("grain", "food", "herbs", "plant_fiber", "water", "fruit")),)
+
+
+def biome_table_for(terrain_version):
+    return _BIOME_RESOURCES_V2 if terrain_version == "geography-v2" else _BIOME_RESOURCES
 
 
 def _canonical(value):
@@ -115,7 +124,7 @@ class GenesisPlan:
             if version not in SUPPORTED_GENERATORS[stage]:
                 raise GenesisError(f"unsupported {stage} generator {version!r}")
         biomes = dict(self.biome_resources)
-        if set(biomes) != {b for b, _ in _BIOME_RESOURCES}:
+        if set(biomes) != {b for b, _ in biome_table_for(generators["terrain"])}:
             raise GenesisError("biome table must cover exactly the known biomes")
         for biome, kinds in biomes.items():
             if not kinds or any(k not in RESOURCE_TYPES for k in kinds):
@@ -155,12 +164,19 @@ class GenesisPlan:
 
 
 def default_plan(seed, population, width=64, depth=64, spawn_radius=8, wildlife_per_species=0, days_per_tick=1 / 144,
-                 families=0, children_per_family=2):
-    """The plan that reproduces the pre-genesis world construction exactly (families=0), or one with founding families."""
+                 families=0, children_per_family=2, terrain="geography-v1"):
+    """The plan that reproduces the pre-genesis world construction exactly (families=0, geography-v1), or one with founding families
+    and/or the geography-v2 river-valley map."""
     extra = {}
+    versions = dict(GENERATOR_VERSIONS)
     if families:
-        extra = dict(families=families, children_per_family=children_per_family,
-                     generators=tuple(sorted({**GENERATOR_VERSIONS, "founders": "founders-v2"}.items())))
+        extra = dict(families=families, children_per_family=children_per_family)
+        versions["founders"] = "founders-v2"
+    if terrain != GENERATOR_VERSIONS["terrain"]:
+        versions["terrain"] = terrain
+        extra["biome_resources"] = biome_table_for(terrain)
+    if extra:
+        extra["generators"] = tuple(sorted(versions.items()))
     return GenesisPlan(seed=seed, population=population, width=width, depth=depth, spawn_radius=spawn_radius,
                        wildlife_per_species=wildlife_per_species, days_per_tick=days_per_tick, **extra).validate()
 
@@ -182,7 +198,7 @@ def execute(world, plan, issued_by="genesis_default"):
     """
     from .engine import Agent
     from .lifecycle import roles_for
-    from .nature import RESOURCE_TYPES, geography
+    from .nature import RESOURCE_TYPES, geography, founding_site
     plan.validate()
     if is_executed(world.root.data):
         raise GenesisError("genesis has already run for this world")
@@ -219,7 +235,7 @@ def execute(world, plan, issued_by="genesis_default"):
     world.emit("genesis_resources_placed", None, {"generator": dict(plan.generators)["resources"], "nodes": len(world.resources),
                                                   "by_kind": dict(sorted(by_kind.items()))}, "genesis")
     # 3. founders and their starting supplies (initial nearby resources are ecology, not agent-authored events)
-    cx, cz = width // 4, depth // 2
+    cx, cz = founding_site(width, depth, seed, terrain_version, plan.spawn_radius)
     r = plan.spawn_radius
     spawn_points = [(x, z) for x in range(max(0, cx - r), min(width, cx + r + 1))
                     for z in range(max(3, cz - r), min(depth, cz + r + 1)) if geography(x, z, width, depth, seed, terrain_version)["walkable"]]
