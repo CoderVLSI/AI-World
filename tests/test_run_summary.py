@@ -35,6 +35,8 @@ def test_a_walking_run_shows_displacement_walks_and_progress_toward_sources_and_
     assert d["peak_max"] >= d["final_max"] >= 0 and d["humans_peaked_at_least_8"] >= d["humans_peaked_at_least_16"]
     assert r["events_by_type_and_origin"].get("move:mechanical_execution", 0) > 0 or r["events_by_type_and_origin"].get("move:validated_action", 0) > 0
     assert "alive" in r["needs_at_end"]
+    tl = r["timeline"]
+    assert tl and tl[-1]["tick"] == 40 and all(a["tick"] < b["tick"] for a, b in zip(tl, tl[1:])) and tl[-1]["alive"] == r["needs_at_end"]["alive"]
     near = r["sources_near_the_start_at_tick_0"]
     assert sum(near["of_these_depleted_at_end_by_kind"].values()) <= near["nodes_within_sight_of_any_human"]
     assert sum(near["of_these_depleted_at_end_by_kind"].values()) <= sum(r["depleted_nodes_at_end_by_kind_whole_map"].values()), \
