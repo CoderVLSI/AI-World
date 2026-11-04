@@ -298,7 +298,7 @@ class World:
                 nx, nz = a.x + step[0], a.z + step[1]
                 if not (0 <= nx < world.width and 3 <= nz < world.depth):
                     return "blocked terrain"
-                if not geography(nx, nz, world.width, world.depth, world.seed)["walkable"]:
+                if not world.terrain_at(nx, nz)["walkable"]:
                     return "water requires a crossing"
                 if not world._spend_energy(a, 2):         # the same cost as MOVE
                     return "insufficient energy"
