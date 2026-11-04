@@ -79,6 +79,10 @@ class GenesisPlan:
     children_per_family: int = 2
     parent_age_range: tuple = (20, 41)
     child_age_range: tuple = (1, 17)
+    # Far start (opt-in, 0 = off and NOT serialized, so a default plan is byte-identical to before): no food or water is placed under the
+    # founders; they start where the nearest food or water source is between start_distance and start_distance + 25 tiles away (beyond sight,
+    # which is 8 tiles). They carry only `founder_water`. Nothing tells them where anything is.
+    start_distance: int = 0
 
     # -- validation -------------------------------------------------------------------------------------
     def validate(self):
@@ -106,6 +110,7 @@ class GenesisPlan:
         if self.wildlife_per_species and self.days_per_tick > 1:
             raise GenesisError("wildlife requires days_per_tick <= 1")
         integer("families", 0, 100_000)
+        integer("start_distance", 0, 4096)
         integer("children_per_family", 0, 12)
         for name in ("parent_age_range", "child_age_range"):
             low, high = getattr(self, name)
@@ -148,7 +153,10 @@ class GenesisPlan:
     def to_dict(self):
         def plain(v):
             return [plain(x) for x in v] if isinstance(v, (tuple, list)) else v
-        return {f.name: plain(getattr(self, f.name)) for f in fields(self) if self.families or f.name not in FAMILY_FIELDS}
+        hidden = set() if self.families else set(FAMILY_FIELDS)
+        if not self.start_distance:
+            hidden.add("start_distance")
+        return {f.name: plain(getattr(self, f.name)) for f in fields(self) if f.name not in hidden}
 
     @classmethod
     def from_dict(cls, data):
@@ -164,7 +172,7 @@ class GenesisPlan:
 
 
 def default_plan(seed, population, width=64, depth=64, spawn_radius=8, wildlife_per_species=0, days_per_tick=1 / 144,
-                 families=0, children_per_family=2, terrain="geography-v1"):
+                 families=0, children_per_family=2, terrain="geography-v1", start_distance=0):
     """The plan that reproduces the pre-genesis world construction exactly (families=0, geography-v1), or one with founding families
     and/or the geography-v2 river-valley map."""
     extra = {}
@@ -172,6 +180,8 @@ def default_plan(seed, population, width=64, depth=64, spawn_radius=8, wildlife_
     if families:
         extra = dict(families=families, children_per_family=children_per_family)
         versions["founders"] = "founders-v2"
+    if start_distance:
+        extra["start_distance"] = start_distance
     if terrain != GENERATOR_VERSIONS["terrain"]:
         versions["terrain"] = terrain
         extra["biome_resources"] = biome_table_for(terrain)
@@ -235,7 +245,8 @@ def execute(world, plan, issued_by="genesis_default"):
     world.emit("genesis_resources_placed", None, {"generator": dict(plan.generators)["resources"], "nodes": len(world.resources),
                                                   "by_kind": dict(sorted(by_kind.items()))}, "genesis")
     # 3. founders and their starting supplies (initial nearby resources are ecology, not agent-authored events)
-    cx, cz = founding_site(width, depth, seed, terrain_version, plan.spawn_radius)
+    cx, cz = (_far_site(world, plan, terrain_version) if plan.start_distance
+              else founding_site(width, depth, seed, terrain_version, plan.spawn_radius))
     r = plan.spawn_radius
     spawn_points = [(x, z) for x in range(max(0, cx - r), min(width, cx + r + 1))
                     for z in range(max(3, cz - r), min(depth, cz + r + 1)) if geography(x, z, width, depth, seed, terrain_version)["walkable"]]
@@ -257,11 +268,12 @@ def execute(world, plan, issued_by="genesis_default"):
             agent.adult_height_cm = agent.height_cm
             agent.reproductive_roles = roles_for(agent.biological_sex)
             agent.lifespan_years = rng.randint(*plan.lifespan_range)
-            rid = f"spawn-food-{i}"
-            world.resources[rid] = dict(id=rid, x=x, z=z, kind="food", amount=plan.spawn_food_units, capacity=plan.spawn_food_units)
-            rid = f"spawn-water-{i}"
-            world.resources[rid] = dict(id=rid, x=x, z=z, kind="water", amount=plan.spawn_water_units,
-                                        capacity=plan.spawn_water_units, renewable=True)
+            if not plan.start_distance:
+                rid = f"spawn-food-{i}"
+                world.resources[rid] = dict(id=rid, x=x, z=z, kind="food", amount=plan.spawn_food_units, capacity=plan.spawn_food_units)
+                rid = f"spawn-water-{i}"
+                world.resources[rid] = dict(id=rid, x=x, z=z, kind="water", amount=plan.spawn_water_units,
+                                            capacity=plan.spawn_water_units, renewable=True)
     world.emit("genesis_founders_created", None, {"generator": dict(plan.generators)["founders"], "founders": plan.population,
                **({"families": plan.families, "children": plan.families * plan.children_per_family} if plan.families else {})}, "genesis")
     # 4. wildlife (own RNG seeded from the world seed; independent of the world RNG)
@@ -281,6 +293,36 @@ def execute(world, plan, issued_by="genesis_default"):
     return summary
 
 
+_FAR_FERTILE_SHARE = 0.5      # share of the founding square that must be grassland, forest or floodplain
+_FAR_MARGIN_RADII = 1         # the nearest source is measured from the centre; this many spawn radii are added so founders in the square keep the distance
+
+
+def _far_site(world, plan, terrain_version):
+    """Centre of a founding area whose nearest food or water source is between start_distance and start_distance + 25 tiles away
+    (measured from the centre with one spawn radius added, so every founder in the square is at least start_distance - spawn_radius away: beyond sight). Deterministic and uses no
+    random numbers, so the rest of creation is unaffected. The scan starts at the usual founding spot and spirals outward."""
+    from .nature import founding_site, geography
+    terrain_at = lambda x, z: geography(x, z, plan.width, plan.depth, plan.seed, terrain_version)   # the world's manifest is not written yet
+    width, depth, seed, r = plan.width, plan.depth, plan.seed, plan.spawn_radius
+    sources = [(n["x"], n["z"]) for n in world.resources.values() if n["kind"] in ("food", "water")]
+    low, high = plan.start_distance + _FAR_MARGIN_RADII * r, plan.start_distance + _FAR_MARGIN_RADII * r + 25
+    ax, az = founding_site(width, depth, seed, terrain_version, r)
+    tiles = sorted(((x, z) for x in range(width) for z in range(3, depth)), key=lambda p: (abs(p[0] - ax) + abs(p[1] - az), p))
+    for cx, cz in tiles:
+        tile = terrain_at(cx, cz)
+        if not tile["walkable"] or tile["biome"] not in ("grassland", "forest", "floodplain"):
+            continue
+        nearest = min((abs(cx - x) + abs(cz - z) for x, z in sources), default=None)
+        if nearest is None or not low <= nearest <= high:
+            continue
+        window = [(x, z) for x in range(max(0, cx - r), min(width, cx + r + 1)) for z in range(max(3, cz - r), min(depth, cz + r + 1))]
+        tiles_here = [terrain_at(x, z) for x, z in window]
+        if sum(t["walkable"] for t in tiles_here) >= 0.85 * len(window) and \
+                sum(t["biome"] in ("grassland", "forest", "floodplain") for t in tiles_here) >= _FAR_FERTILE_SHARE * len(window):
+            return cx, cz        # mostly land that can grow things, not desert or mountain
+    raise GenesisError("no founding area has its nearest food or water source at the requested distance")
+
+
 def _found_families(world, plan, spawn_points):
     """Founders-v2: each household is one woman, one man and children, living together; deterministic from the world RNG.
 
@@ -296,6 +338,8 @@ def _found_families(world, plan, spawn_points):
         world.agents[agent.id] = agent
         agent.inventory.update({k: 0 for k in RESOURCE_TYPES if k not in agent.inventory})
         agent.inventory["water"] = plan.founder_water
+        if plan.start_distance:
+            return
         rid = f"spawn-food-{i}"
         world.resources[rid] = dict(id=rid, x=x, z=z, kind="food", amount=plan.spawn_food_units, capacity=plan.spawn_food_units)
         rid = f"spawn-water-{i}"
