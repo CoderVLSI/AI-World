@@ -1,0 +1,146 @@
+{
+  "status": "completed",
+  "stop": "completed",
+  "label": "REAL LFM3 on GPU, sequential decisions, ONE bounded run",
+  "environment": {
+    "python": "3.13.16",
+    "platform": "Linux-6.6.159+-x86_64-with-glibc2.39",
+    "backend": "lfm3",
+    "gpu": "Tesla T4"
+  },
+  "model_id": "LiquidAI/LFM3-1.7B",
+  "model_revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+  "requested": {
+    "backend": "lfm3",
+    "revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+    "seed": 314159,
+    "couples": 25,
+    "width": 256,
+    "depth": 256,
+    "terrain": "geography-v2",
+    "founder_water": 0,
+    "start_distance": 24,
+    "wildlife_per_species": 6,
+    "ticks": 200,
+    "max_real_seconds": 4200.0,
+    "max_failure_rate": 0.4,
+    "max_run_mb": 200.0,
+    "run_dir": "/content/scale50-long-2"
+  },
+  "identity": {
+    "humans": 50,
+    "unique_ids": 50,
+    "genders": {
+      "man": 25,
+      "woman": 25
+    },
+    "separate_memory_objects": true,
+    "animals_alive_outside_the_human_count": 72
+  },
+  "terrain": "geography-v2",
+  "start_distance": 24,
+  "founder_water": 0,
+  "world_creation_seconds": 3.086,
+  "ticks_completed": 200,
+  "real_seconds": 3829.442,
+  "decisions": {
+    "calls": 1523,
+    "failures": 25,
+    "failure_categories": {
+      "bad_parameter": 3,
+      "no_single_complete_tool_call": 19,
+      "too_long": 3
+    },
+    "tool_choices": {
+      "DRINK": 2,
+      "EAT": 126,
+      "GATHER": 65,
+      "GATHER_AT": 150,
+      "GIVE": 209,
+      "INSPECT": 5,
+      "MOVE": 2,
+      "PICK": 8,
+      "REFLECT": 17,
+      "SPEAK": 783,
+      "TEACH": 42,
+      "TRAVEL_TO": 4,
+      "WAIT": 85
+    },
+    "seconds_per_call": {
+      "mean": 2.4875,
+      "p50": 2.2328,
+      "p95": 4.6105,
+      "max": 10.0606
+    }
+  },
+  "per_tick_seconds": {
+    "mean": 19.1449,
+    "p95": 23.3284,
+    "max": 29.2474
+  },
+  "scheduling": {
+    "decisions_per_human": {
+      "min": 23,
+      "max": 32,
+      "jain_fairness_index": 0.9976
+    },
+    "mean_decision_interval_ticks": {
+      "min": 6.333,
+      "max": 8.818,
+      "mean": 6.592
+    },
+    "max_wait_ticks": 7,
+    "max_interval_ticks": 29,
+    "budget_exhausted_ticks": 200,
+    "max_queue": 50,
+    "decisions_per_tick_cap": 8,
+    "seconds_per_tick_cap": 20.0
+  },
+  "rejections_by_reason": {
+    "already at destination": 2,
+    "inference_failed": 25,
+    "insufficient inventory": 83,
+    "invalid amount": 62,
+    "invalid movement": 2,
+    "no such material carried": 7,
+    "no water": 2,
+    "resource out of reach": 5,
+    "resource unavailable": 116,
+    "target unavailable or not nearby": 163
+  },
+  "humans_vs_wildlife": {
+    "human_decisions_model": 1498,
+    "human_decisions_mock": 0,
+    "wildlife_events_deterministic_rules": 64,
+    "wildlife_model_calls": 0
+  },
+  "outcomes": {
+    "alive": 50,
+    "deaths": 0,
+    "lowest_health": 100
+  },
+  "recorded_event_bytes": 28869357,
+  "events": 2021,
+  "prompt_tokens": {
+    "p50": 3178,
+    "p95": 3387,
+    "max": 3841,
+    "cap": 6144,
+    "budget_failures": 0
+  },
+  "gpu_peak_allocated_bytes": 5601514496,
+  "failure_detail": {
+    "hit_token_limit": 19,
+    "by_message": {
+      "expected exactly one complete tool call": 19,
+      "unknown or duplicate parameter": 3,
+      "text exceeds limit": 3
+    }
+  },
+  "note": "Systems check, not a behavioural result: each human gets only a handful of decisions in a bounded run.",
+  "restore_check": {
+    "restored_state_equals_live": true,
+    "restore_made_no_model_calls": true,
+    "checkpoint": "/content/scale50-long-2/checkpoint-000000200.json"
+  }
+}
