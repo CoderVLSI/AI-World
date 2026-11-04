@@ -110,6 +110,8 @@ class Recorder:
         self.move_steps = Counter()                      # which (dx,dz) were chosen while inside
         self.hint_seen = 0
         self.moves_all, self.malformed, self.pain_seen = 0, 0, 0     # every MOVE/WALK chosen anywhere; those the engine must reject; pain shown
+        self.offered = Counter()                         # how many decisions had each tool on offer (names only)
+        self.travel = {"total": 0, "target_outside_zone": 0, "target_inside_zone": 0, "target_is_own_position": 0, "target_not_integer": 0}
 
     def __getattr__(self, name):
         return getattr(self.inner, name)
@@ -118,12 +120,31 @@ class Recorder:
         inside = any(h["inside"] for h in observation.get("environment_hazards", []))
         offered = [h["phenomenon"] for h in observation.get("environment_hazards", [])]
         try:
+            from caitanya.inference import select_tools
+            for tool in select_tools(observation):
+                self.offered[tool["function"]["name"]] += 1     # tool names offered for this decision (the model's list), counts only
+        except Exception:
+            pass
+        try:
             intent = self.inner.decide(observation)
         except Exception:
             self.failures += 1
             raise
         hz = self.world_ref.get("hz")
         step = None
+        if intent.action == "TRAVEL_TO" and inside and hz:
+            p = intent.parameters
+            self.travel["total"] += 1
+            if type(p.get("x")) is not int or type(p.get("z")) is not int:
+                self.travel["target_not_integer"] += 1
+            else:
+                me = observation["self"]
+                if (p["x"], p["z"]) == (me["x"], me["z"]):
+                    self.travel["target_is_own_position"] += 1
+                elif abs(p["x"] - hz["x"]) + abs(p["z"] - hz["z"]) > hz["radius"]:
+                    self.travel["target_outside_zone"] += 1
+                else:
+                    self.travel["target_inside_zone"] += 1
         if intent.action == "MOVE":
             p = intent.parameters
             step = (p.get("dx", 0), p.get("dz", 0))
@@ -193,6 +214,10 @@ def run(backend, ticks, max_seconds, seed=314159, hint=False, pain=False, walk=F
             "hazard_visible_in_observations": sum(1 for c in rec.choices if c["hazard_visible"]),
             "variant": "+".join(n for n, on in (("exit_hint", hint), ("pain_signal", pain), ("walk_by_direction", walk)) if on) or "baseline",
             "exit_hint_visible_in_observations": rec.hint_seen, "pain_signal_visible_in_observations": rec.pain_seen,
+            "tools_offered_decision_counts": dict(sorted(rec.offered.items())),
+            "travel_to_chosen_while_inside": dict(rec.travel),
+            "task_events": dict(sorted(Counter(e["type"] for e in w.events if e["type"].startswith("task_")).items())),
+            "task_interrupt_reasons": dict(sorted(Counter(str(e["payload"].get("reason", ""))[:40] for e in w.events if e["type"] == "task_interrupted").items())),
             "moves_chosen_anywhere": rec.moves_all, "malformed_moves_chosen_anywhere": rec.malformed,
             "moves_while_inside": {"total": sum(rec.moves.values()), **rec.moves, "steps_chosen": dict(sorted(rec.move_steps.items()))},
             "distance_to_zone_edge_by_tick": {a: t for a, t in sorted(edge_trace.items())}}

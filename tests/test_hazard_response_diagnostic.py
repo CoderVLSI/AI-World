@@ -47,3 +47,32 @@ def test_without_a_gpu_the_real_model_mode_says_so_and_runs_nothing(tmp_path):
                           capture_output=True, text=True, timeout=120)
     assert done.returncode == 2
     assert json.loads(out.read_text())["status"] == "unverified_no_gpu"
+
+
+def _load_script():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("hazard_response_diagnostic", ROOT / "scripts" / "hazard_response_diagnostic.py")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["hazard_response_diagnostic"] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_it_records_which_tools_were_offered_and_where_each_travel_to_pointed():
+    """Separates 'the tool was on offer' from 'the model chose it' and 'the walk went outside the zone' (numbers only)."""
+    mod = _load_script()
+
+    class TravelOut(mod.IdleStandIn):
+        def decide(self, observation):
+            self.calls += 1
+            a = observation["self"]
+            for h in observation.get("environment_hazards", []):
+                if h["inside"] and not a.get("task"):
+                    return mod.Intent(a["id"], observation["tick"], "TRAVEL_TO", {"x": h["x"] + h["radius"] + 3, "z": a["z"]}, "")
+            return mod.Intent(a["id"], observation["tick"], "WAIT", {}, "")
+    r = mod.run(TravelOut(), 14, 120)
+    assert r["travel_to_chosen_while_inside"]["target_outside_zone"] >= 1 and r["travel_to_chosen_while_inside"]["target_inside_zone"] == 0
+    assert r["left_count"] >= 1 and r["task_events"].get("task_completed", 0) >= 1
+    assert r["tools_offered_decision_counts"].get("MOVE") and "WALK" not in r["tools_offered_decision_counts"]
+    walk = mod.run(mod.IdleStandIn(), 4, 120, walk=True)
+    assert walk["tools_offered_decision_counts"].get("WALK") and "MOVE" not in walk["tools_offered_decision_counts"]
