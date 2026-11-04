@@ -75,3 +75,10 @@ def test_failure_categories_cover_the_parser_errors_and_gpu_oom():
                         ("something new", "other")):
         assert mod.failure_category(RuntimeError(text)) == label
     assert mod.jain([5, 5, 5]) == 1.0 and mod.jain([]) is None
+
+
+def test_the_terrain_option_selects_the_river_valley_map_and_the_founders_stand_on_land(tmp_path):
+    record, code = mod.run(args(tmp_path, "--ticks", "3", "--terrain", "geography-v2"))
+    assert code == 0 and record["terrain"] == "geography-v2" and record["identity"]["humans"] == 50
+    default, _ = mod.run(args(tmp_path, "--ticks", "1"))
+    assert default["terrain"] == "geography-v1"
