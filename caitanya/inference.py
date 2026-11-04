@@ -127,6 +127,10 @@ def select_tools(observation):
         available.append(tool)
     return available
 
+def nearest_others(others,me,limit=12):
+    """The `limit` inhabitants nearest to `me` (ties by id). Without this a crowded inhabitant would see only the lowest-numbered neighbours."""
+    return sorted(others,key=lambda o:(abs(o["x"]-me["x"])+abs(o["z"]-me["z"]),o["id"]))[:limit]
+
 class TransformersLFM3Backend:
     model_id="LiquidAI/LFM3-1.7B"
     def __init__(self,revision=None,device="cuda",max_new_tokens=224,max_seconds=15,max_prompt_tokens=6144):
@@ -153,7 +157,7 @@ class TransformersLFM3Backend:
         a.pop("body",None);a["memories"]=a["memories"][-8:]
         a["knowledge"]=a.get("knowledge",[])[-4:]
         observation["resources"]=sorted(observation["resources"],key=lambda n:abs(n["x"]-a["x"])+abs(n["z"]-a["z"]))[:16]
-        observation["others"]=observation["others"][:12];observation["works"]=observation["works"][:4]
+        observation["others"]=nearest_others(observation["others"],a);observation["works"]=observation["works"][:4]
         observation["needs"]={"hunger_scale":"0=satiated; 100=starving; EAT consumes carried food and lowers hunger",
             "thirst_scale":"0=hydrated; 100=dehydrated; DRINK consumes carried water and lowers thirst",
             "energy_scale":"0=exhausted; 100=rested; REST restores energy"}
