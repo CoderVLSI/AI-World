@@ -16,7 +16,7 @@ const ACTION_STATES := {
 	"revise": "work", "read": "work", "care": "work", "give": "work", "hand_over": "work", "write_findings": "work",
 	"eat": "eat", "drink": "eat",
 }
-const MOVE_ACTIONS := ["move"]
+const MOVE_ACTIONS := ["move", "walk"]       # "walk" is the opt-in WALK-by-direction tool
 
 static func state_for(last_action, tick: int, moving: bool) -> String:
 	if moving:

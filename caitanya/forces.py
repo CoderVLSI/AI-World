@@ -53,19 +53,23 @@ HAZARDS = {
     "surya": dict(hours=8, thirst=3.0, energy=-.5),
     "rudra": dict(hours=4, injury=1.0, energy=-3.0),
 }
+HARM_WINDOW_TICKS = 6    # how far back the optional pain signal looks (one simulated hour at the baseline 10-minute tick)
 VIEW_RANGE = 8      # an inhabitant perceives a hazard whose edge is within this many steps (same as other observations)
 
 
 class NatureForces:
     """Saved operator configuration and recent physically observable effects."""
 
-    def __init__(self, state=None, exit_hint=False):
+    def __init__(self, state=None, exit_hint=False, pain_signal=False):
         self.data = copy.deepcopy(state) if state is not None else {
             "version": VERSION, "last_tick": 0, "recent": [], "counts": {},
             "hazard_version": HAZARD_VERSION, "hazards": [], "next_hazard": 1,
         }
         if state is None and exit_hint:
             self.data["exit_hint"] = True
+        if state is None and pain_signal:
+            self.data["pain_signal"] = True
+            self.data["harm"] = {}
         if self.data["version"] != VERSION:
             raise ValueError("unsupported nature forces version")
         if "hazard_version" in self.data and self.data["hazard_version"] != HAZARD_VERSION:
@@ -75,6 +79,23 @@ class NatureForces:
     def exit_hint(self):
         """Experimental, OFF by default: also tell an inhabitant inside a zone the geometric way out (see observe_hazards)."""
         return bool(self.data.get("exit_hint", False))
+
+    @property
+    def pain_signal(self):
+        """Experimental, OFF by default: an inhabitant that was recently hurt is told how much and by what (never what to do)."""
+        return bool(self.data.get("pain_signal", False))
+
+    def _log_harm(self, world, aid, lost, phenomenon):
+        if self.pain_signal and lost > 0:
+            self.data["harm"].setdefault(aid, []).append([world.tick, round(lost, 6), phenomenon])
+
+    def observe_harm(self, world, agent):
+        """What the body felt recently: health lost over the last few ticks and the phenomenon that did it. A fact about the past,
+        like pain; it names the cause and says nothing about what to do."""
+        entries = [e for e in self.data.get("harm", {}).get(agent.id, []) if world.tick - e[0] < HARM_WINDOW_TICKS]
+        if not entries:
+            return None
+        return {"health_lost": round(sum(e[1] for e in entries), 1), "in_last_ticks": HARM_WINDOW_TICKS, "from": entries[-1][2]}
 
     @property
     def hazards_enabled(self):
@@ -105,6 +126,9 @@ class NatureForces:
                 self.apply(world, key, rng.randrange(world.width), rng.randrange(world.depth), rng.randint(1, 3))
         self.data["last_tick"] = world.tick
         self.data["recent"] = [e for e in self.data["recent"] if world.tick-e["tick"] <= 6][-32:]
+        if self.pain_signal:
+            kept = {aid: [e for e in es if world.tick - e[0] < HARM_WINDOW_TICKS] for aid, es in self.data["harm"].items()}
+            self.data["harm"] = {aid: es for aid, es in kept.items() if es}
 
     def apply(self, world, key, x, z, strength=1):
         """Operator/test pulse; no inhabitant tool or HTTP mutation route exists.
@@ -136,7 +160,9 @@ class NatureForces:
             agent.thirst = max(0, min(100, agent.thirst + force.thirst*strength))
             agent.energy = max(0, min(100, agent.energy + force.energy*strength))
             if force.injury and agent.health > 0:
+                before_hp = agent.health
                 agent.health = min(agent.health, max(1, agent.health-force.injury*strength))
+                self._log_harm(world, aid, before_hp-agent.health, force.phenomenon)
             after = {field: getattr(agent, field) for field in before}
             if before != after:
                 outcomes.append({"agent_id": aid, "before": before, "after": after})
@@ -189,6 +215,7 @@ class NatureForces:
                     before_hp = agent.health
                     agent.health = min(agent.health, max(1, round(agent.health - spec["injury"]*scale, 6)))
                     rec["injury"] = round(rec["injury"] + (before_hp-agent.health), 6)
+                    self._log_harm(world, aid, before_hp-agent.health, hz["phenomenon"])
                 rec["thirst"] = round(rec["thirst"] + spec.get("thirst", 0)*scale, 6)
             for aid, rec in hz["exposed"].items():
                 if aid not in inside:
@@ -224,7 +251,11 @@ class NatureForces:
                         dx, dz = (1 if ox >= 0 else -1), 0
                     else:
                         dx, dz = 0, (1 if oz > 0 else -1)
-                    item.update(leave_dx=dx, leave_dz=dz, steps_to_leave=h["radius"]-(abs(ox)+abs(oz))+1)
+                    if getattr(world, "walk_by_direction", False):      # the same vocabulary as the WALK tool
+                        item.update(leave_direction={(1, 0): "east", (-1, 0): "west", (0, 1): "south", (0, -1): "north"}[(dx, dz)],
+                                    steps_to_leave=h["radius"]-(abs(ox)+abs(oz))+1)
+                    else:
+                        item.update(leave_dx=dx, leave_dz=dz, steps_to_leave=h["radius"]-(abs(ox)+abs(oz))+1)
                 out.append(item)
         return out
 

@@ -35,6 +35,7 @@ PARAMETERS.update({
     "GATHER_AT":{"resource_id":{"type":"string"},"amount":{"type":"integer","minimum":1,"maximum":8},**_WHY},
     "REST_FOR":{"hours":{"type":"integer","minimum":1,"maximum":12},**_WHY},
     "CANCEL_TASK":{},
+    "WALK":{"direction":{"type":"string","enum":["north","south","east","west"]}},     # opt-in experiment: offered INSTEAD of MOVE
 })
 OPTIONAL={name:set(_WHY) for name in ("TRAVEL_TO","GATHER_AT","REST_FOR")}
 def register_extension(parameters,descriptions,optional=None):
@@ -55,7 +56,8 @@ DESCRIPTIONS={"REFLECT":"Privately examine your experiences, questions or assump
  "TRAVEL_TO":"Start walking to the grid position x,z along a walkable route. Steps run without new decisions and the walk ends if circumstances change. Optionally say why and after how many hours you want to reconsider.",
  "GATHER_AT":"Walk to an observed resource and gather up to the given number of units there. Ends early if the resource is gone or circumstances change.",
  "REST_FOR":"Rest for the given number of hours; ends early if circumstances change.",
- "CANCEL_TASK":"Stop your current walk, gathering or rest."}
+ "CANCEL_TASK":"Stop your current walk, gathering or rest.",
+ "WALK":"Walk one step: north (z-1), south (z+1), east (x+1) or west (x-1). Respect blocked adjacent coordinates."}
 def _build_tools():
     return [{"type":"function","function":{"name":name,"description":DESCRIPTIONS[name],
         "parameters":{"type":"object","properties":params,
@@ -64,6 +66,9 @@ def _build_tools():
 TOOLS=_build_tools()
 
 EXTENSION_FILTERS={}  # tool name -> predicate(observation, self) registered by extension modules
+# Moving by direction word is an opt-in experiment: when the world offers it, WALK replaces MOVE (never both).
+EXTENSION_FILTERS["WALK"]=lambda observation,a:bool(observation.get("walk_by_direction"))
+EXTENSION_FILTERS["MOVE"]=lambda observation,a:not observation.get("walk_by_direction")
 
 def parse_tool(text,observation):
     # Ignore incomplete/complete reasoning, which is not a confirmed action.
@@ -144,6 +149,7 @@ class TransformersLFM3Backend:
         import torch
         # Send only the current individual's recent memories and nearby observations.
         observation=json.loads(json.dumps(observation));a=observation["self"]
+        walk_marker=observation.pop("walk_by_direction",False)   # selects the tool only; it is not part of what the model reads
         a.pop("body",None);a["memories"]=a["memories"][-8:]
         a["knowledge"]=a.get("knowledge",[])[-4:]
         observation["resources"]=sorted(observation["resources"],key=lambda n:abs(n["x"]-a["x"])+abs(n["z"]-a["z"]))[:16]
@@ -153,7 +159,7 @@ class TransformersLFM3Backend:
             "energy_scale":"0=exhausted; 100=rested; REST restores energy"}
         messages=[{"role":"system","content":system_message()},
                   {"role":"user","content":"Your current local observation follows. Decide your next action.\n"+json.dumps(observation,separators=(",",":"))}]
-        available=select_tools(observation)
+        available=select_tools(dict(observation,walk_by_direction=True) if walk_marker else observation)
         with self.lock:
             start=time.monotonic();self.calls+=1
             self.last_request={"request_id":str(uuid.uuid4()),"actor_id":a["id"],"observed_tick":observation["tick"]}

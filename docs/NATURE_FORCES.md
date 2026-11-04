@@ -172,3 +172,25 @@ Read it as: did anyone leave (and after how many ticks), how many inside MOVEs w
 mostly random MOVE directions and a hint run where the same model follows the stated way out would say the missing piece is the geometry,
 not the willingness to move; if the hint run still stays, the problem is elsewhere. Scripted CPU stand-ins show what is measured (saved in
 `docs/results/hazard-response-cpu-standins-v2-20261103.json`): they say nothing about any model.
+
+
+### Two more opt-in experiments: a pain signal, and moving by direction word (both OFF by default)
+The A/B in draft PR #17 (merged) showed the geometric hint changed behaviour (MOVE choices 15 -> 31, outward 47% -> 71%) but nobody really
+left (one stepped out for a single tick and came back), and about 1 in 5 chosen moves was malformed (diagonals like (-1,1), two-cell
+steps like (0,-2)). Two possible reasons the model does not treat fire as a threat: it cannot connect its health dropping to the zone,
+and the move format is hard. These two variants test those one at a time.
+
+* **Pain signal** (`--hazard-pain-signal`, `World(..., hazard_pain_signal=True)`, needs `--nature-forces`): an inhabitant that lost health to a hazard
+  or pulse in the last 6 ticks (one simulated hour at the baseline tick) sees `recent_harm: {health_lost, in_last_ticks, from}`, for example
+  `{"health_lost": 11.5, "in_last_ticks": 6, "from": "wildfire"}`. It reports what the body felt and what caused it, in terms of the
+  phenomenon (never a force's internal name). It never says what to do, and a test fails if advice words appear. Only injury counts (a heatwave
+  that only thirsts does not). The key is absent when nothing hurt them.
+* **WALK** (`--walk-by-direction`, `World(..., walk_by_direction=True)`, foundations mode): the model is offered
+  `WALK direction = north | south | east | west` **instead of** `MOVE dx, dz` (never both): north is z-1, south z+1, east x+1, west x-1, one step,
+  the same rules and energy cost as MOVE. The exit hint then speaks the same words (`leave_direction`). An internal marker only selects the
+  tool and is removed from the prompt (tested). Mechanical steps of multi-step plans are unchanged.
+
+The diagnostic also counts `moves_chosen_anywhere` and `malformed_moves_chosen_anywhere`, so the effect of the direction words on the 1-in-5
+malformed rate can be read directly. Each variant is a separate, labelled, one-episode run on the same fixture and revision:
+`--pain-signal`, `--walk-by-direction`, then both together (`--pain-signal --walk-by-direction`). CPU stand-ins show what is measured (saved
+in `docs/results/hazard-response-cpu-standins-v3-20261104.json`); they say nothing about any model.

@@ -34,7 +34,8 @@ def test_every_animated_action_is_a_real_action_the_engine_can_record():
     """A clip may only be driven by something the simulation records; a typo here would silently never fire."""
     states, moves = mapped_actions()
     world = World()
-    vocabulary = {name.lower() for name in world.registry} | {
+    walking = World(walk_by_direction=True)                    # the opt-in WALK tool is a recordable action too
+    vocabulary = {name.lower() for name in world.registry} | {name.lower() for name in walking.registry} | {
         "move", "gather", "rest", "eat", "drink", "wait", "speak", "write", "read", "place", "reproduce",
         "withdraw_consent", "care", "give", "teach", "revise", "reflect"}
     unknown = (set(states) | set(moves)) - vocabulary

@@ -150,6 +150,8 @@ class MockInferenceBackend:
                     choices=[s for s in choices if (a["x"]+s[0],a["z"]+s[1]) not in blocked]
                     if choices: action, params = "MOVE", {"dx":choices[0][0],"dz":choices[0][1]}
                     else: action="REST"
+        if action == "MOVE" and observation.get("walk_by_direction"):
+            action, params = "WALK", {"direction": {(1, 0): "east", (-1, 0): "west", (0, 1): "south", (0, -1): "north"}[(params["dx"], params["dz"])]}
         return Intent(a["id"], observation["tick"], action, params, "deterministic mock policy")
 
 def _mock_reflect(self, context, budget=None):
@@ -176,7 +178,7 @@ def redact_private(state):
 
 class World:
     def __init__(self, seed=314159, population=5, width=64, depth=64, backend=None, biology=None, spawn_radius=8,
-                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None, nature_forces=False, families=0, children_per_family=2, hazard_exit_hint=False):
+                 root_mode="crisis", autonomy=None, wildlife_per_species=0, isvara_config=None, nature_forces=False, families=0, children_per_family=2, hazard_exit_hint=False, hazard_pain_signal=False, walk_by_direction=False):
         if type(families) is not int or families < 0 or type(children_per_family) is not int or not 0 <= children_per_family <= 12:
             raise ValueError("invalid founding families")
         if families:
@@ -194,6 +196,9 @@ class World:
         self.objects, self.next_object_id = {}, 0
         self.ledger = {"dispersed_g": 0.0, "atmosphere_g": 0.0}
         self._meta, self._selected_by = {}, None
+        if type(walk_by_direction) is not bool or (walk_by_direction and self.autonomy.legacy):
+            raise ValueError("walk_by_direction is a boolean and needs the foundations mode")
+        self.walk_by_direction = walk_by_direction     # opt-in experiment: WALK (north/south/east/west) is offered instead of MOVE (dx, dz)
         self._build_registry()
         self.pregnancies=[];self.next_agent_id=population;self.next_pregnancy_id=0
         self.rng = random.Random(seed)
@@ -214,14 +219,17 @@ class World:
         self.fauna=None
         if type(nature_forces) is not bool:raise ValueError("nature_forces must be boolean")
         from .forces import NatureForces
-        if type(hazard_exit_hint) is not bool or (hazard_exit_hint and not nature_forces):
-            raise ValueError("hazard_exit_hint is a boolean and needs nature_forces")
-        self.nature_forces = NatureForces(exit_hint=hazard_exit_hint) if nature_forces else None
+        for flag in (hazard_exit_hint, hazard_pain_signal):
+            if type(flag) is not bool or (flag and not nature_forces):
+                raise ValueError("hazard_exit_hint and hazard_pain_signal are booleans and need nature_forces")
+        self.nature_forces = NatureForces(exit_hint=hazard_exit_hint, pain_signal=hazard_pain_signal) if nature_forces else None
         if nature_forces:
             self.manifest["nature_forces"] = self.nature_forces.data["version"]
             self.manifest["nature_hazards"] = self.nature_forces.data["hazard_version"]
             if self.nature_forces.exit_hint:
                 self.manifest["nature_hazard_exit_hint"] = True
+            if self.nature_forces.pain_signal:
+                self.manifest["nature_hazard_pain_signal"] = True
             self.manifest["configuration_hash"] = digest({
                 "base_configuration_hash": self.manifest["configuration_hash"],
                 "nature_forces": self.nature_forces.data["version"], "nature_hazards": self.nature_forces.data["hazard_version"],
@@ -237,6 +245,8 @@ class World:
         genesis.execute(self, plan, issued_by)
         self.manifest["genesis"] = dict(version=plan.version, plan_digest=plan.digest(), generators=dict(plan.generators))
         self.root.register(self)
+        if self.walk_by_direction:
+            self.manifest["walk_by_direction"] = True
         self.manifest["engine_version"] = ENGINE_VERSION
         self.manifest["autonomy_hash"] = digest(self.autonomy.to_dict())
         self.initial_state = self.state()
@@ -267,6 +277,24 @@ class World:
             if self.autonomy.memory.enabled:
                 from .memory import registry as memory_registry
                 registry.update(memory_registry(self))
+        if getattr(self, "walk_by_direction", False):
+            from .actions import Spec
+            steps = {"north": (0, -1), "south": (0, 1), "east": (1, 0), "west": (-1, 0)}     # +x is east, +z is south
+
+            def walk(world, a, p, payload):
+                step = steps.get(p["direction"]) if isinstance(p["direction"], str) else None
+                if step is None:
+                    return "invalid direction"
+                nx, nz = a.x + step[0], a.z + step[1]
+                if not (0 <= nx < world.width and 3 <= nz < world.depth):
+                    return "blocked terrain"
+                if not geography(nx, nz, world.width, world.depth, world.seed)["walkable"]:
+                    return "water requires a crossing"
+                if not world._spend_energy(a, 2):         # the same cost as MOVE
+                    return "insufficient energy"
+                a.x, a.z = nx, nz
+                return None
+            registry["WALK"] = Spec(frozenset({"direction"}), walk, min_age=3.0)
         self.registry = registry
 
     def state(self):
@@ -314,8 +342,14 @@ class World:
         own.pop("ltm",None);own.pop("task",None);ill=own.pop("illness",None);busy=own.pop("busy_until_tick",0)
         nearby_agents=[b for b in self.agents.values() if b.id!=aid and b.alive and nearby(asdict(b))]
         extra={}
+        if self.walk_by_direction:
+            extra["walk_by_direction"] = True           # removed from the model's prompt by the backend; it only selects the tool
         if self.nature_forces is not None:
             extra["environment_effects"] = self.nature_forces.observe(self, a)
+            if self.nature_forces.pain_signal:
+                harm = self.nature_forces.observe_harm(self, a)
+                if harm:
+                    extra["recent_harm"] = harm
             if self.nature_forces.hazards_enabled:
                 extra["environment_hazards"] = self.nature_forces.observe_hazards(self, a)
         if self.fauna is not None:
@@ -657,6 +691,7 @@ class World:
             from fauna.ecology import Ecosystem
             self.fauna=Ecosystem.restore(s['fauna'])
         self._meta,self._selected_by={},None
+        self.walk_by_direction=bool(s.get("manifest",{}).get("walk_by_direction",False))
         self._build_registry()
         self.biology=BiologyConfig(**s.get("biology",{}));self.pregnancies=copy.deepcopy(s.get("pregnancies",[]))
         self.next_agent_id=s.get("next_agent_id",len(s["agents"]));self.next_pregnancy_id=s.get("next_pregnancy_id",0)
