@@ -3,7 +3,6 @@
 Nothing here reads private state: ``live_view`` works only from the already-redacted public
 snapshot, and ``terrain_grid`` is a pure function of the seed. Neither can change the world.
 """
-from .nature import geography
 
 SCHEMA_TERRAIN = "caitanya.terrain.v1"
 SCHEMA_LIVE = "caitanya.live.v1"
@@ -25,7 +24,7 @@ def terrain_grid(world, step=2):
     biome, elevation = [], []
     for z in zs:
         for x in xs:
-            g = geography(x, z, world.width, world.depth, world.seed)
+            g = world.terrain_at(x, z)
             biome.append(BIOMES.index(g["biome"]))
             elevation.append(round(g["elevation"], 3))
     return {"schema": SCHEMA_TERRAIN, "seed": world.seed, "width": world.width, "depth": world.depth,

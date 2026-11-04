@@ -55,11 +55,10 @@ def _new_totals():
 
 def find_path(world, start, goal, max_expansions, max_length):
     """Deterministic A* over walkable tiles.  Returns tiles after ``start`` or ``None``."""
-    from .nature import geography
 
     def walkable(x, z):
         return 0 <= x < world.width and 3 <= z < world.depth and \
-            geography(x, z, world.width, world.depth, world.seed)["walkable"]
+            world.terrain_at(x, z)["walkable"]
 
     if start == goal:
         return []

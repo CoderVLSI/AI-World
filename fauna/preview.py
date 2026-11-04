@@ -7,13 +7,12 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 from caitanya.engine import World
 from .ecology import Ecosystem
-from caitanya.nature import geography
 
 def create_preview():
     world=World(width=96,depth=96);eco=Ecosystem(world)
     published=eco.public()
     terrain_data=dict(width=world.width,depth=world.depth,terrain=[dict(x=x,z=z,size=1,
-         biome=geography(x,z,world.width,world.depth,world.seed)['biome']) for x in range(world.width) for z in range(world.depth)])
+         biome=world.terrain_at(x,z)['biome']) for x in range(world.width) for z in range(world.depth)])
     async def worker():
         nonlocal published
         while True:

@@ -10,8 +10,20 @@ RESOURCE_TYPES = {
 }
 EDIBLE = ("food", "fruit", "grain", "fish")
 
-def geography(x, z, width, depth, seed):
-    """Returns authoritative terrain; continuous hills, a river, lake and coast."""
+DEFAULT_GEOGRAPHY = "geography-v1"
+
+
+def geography(x, z, width, depth, seed, version=DEFAULT_GEOGRAPHY):
+    """Authoritative terrain for one tile, from the generator named by `version` (recorded in the world's genesis plan)."""
+    try:
+        generator = GEOGRAPHY_GENERATORS[version]
+    except KeyError:
+        raise ValueError(f"unknown geography generator {version!r}") from None
+    return generator(x, z, width, depth, seed)
+
+
+def _geography_v1(x, z, width, depth, seed):
+    """geography-v1: continuous hills, one river, a lake and a coast. Frozen: worlds and checkpoints made with it must reproduce exactly."""
     phase = seed % 101 / 17
     river = width * .40 + math.sin(z / 19 + phase) * width * .065
     lake = ((x-width*.72)/(width*.10))**2 + ((z-depth*.65)/(depth*.13))**2
@@ -25,6 +37,9 @@ def geography(x, z, width, depth, seed):
     elif math.sin(z/31-x/37)>.65: biome="dryland"
     else: biome="grassland"
     return dict(biome=biome,elevation=round(elevation,3),walkable=True)
+
+GEOGRAPHY_GENERATORS = {"geography-v1": _geography_v1}
+
 
 def anatomy():
     parts = {name: {"health":100} for name in (

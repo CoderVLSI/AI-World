@@ -8,7 +8,7 @@ import random
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from .nature import RESOURCE_TYPES, EDIBLE, geography, anatomy, climate
+from .nature import RESOURCE_TYPES, EDIBLE, DEFAULT_GEOGRAPHY, geography, anatomy, climate
 from .lifecycle import BiologyConfig, age, stage, roles_for, validate_social, apply_social, advance_lifecycle, pairing_error
 from .history import changes, apply_changes
 from .root import BrahmanAgent
@@ -253,6 +253,16 @@ class World:
         self._last_committed_state=copy.deepcopy(self.initial_state)
 
     @property
+    def geography_version(self):
+        """The terrain generator recorded in this world's genesis plan (worlds without one use geography-v1)."""
+        genesis_record = (getattr(self, "manifest", None) or {}).get("genesis") or {}
+        return genesis_record.get("generators", {}).get("terrain", DEFAULT_GEOGRAPHY)
+
+    def terrain_at(self, x, z):
+        """The one way production code asks what the land is at a tile: it honours the generator this world was created with."""
+        return geography(x, z, self.width, self.depth, self.seed, self.geography_version)
+
+    @property
     def hours_per_tick(self):
         return physiology.hours_per_tick(self)
 
@@ -288,7 +298,7 @@ class World:
                 nx, nz = a.x + step[0], a.z + step[1]
                 if not (0 <= nx < world.width and 3 <= nz < world.depth):
                     return "blocked terrain"
-                if not geography(nx, nz, world.width, world.depth, world.seed)["walkable"]:
+                if not world.terrain_at(nx, nz)["walkable"]:
                     return "water requires a crossing"
                 if not world._spend_energy(a, 2):         # the same cost as MOVE
                     return "insufficient energy"
@@ -374,7 +384,7 @@ class World:
             eligible_parenting_partners=[b.id for b in nearby_agents if pairing_error(self,a,b) is None],
             parenting_requests=[b.id for b in nearby_agents if b.parenting_proposals.get(aid,-1)>=self.tick*self.biology.days_per_tick],
             blocked=[[x,z] for x,z in [(a.x-1,a.z),(a.x+1,a.z),(a.x,a.z-1),(a.x,a.z+1)]
-                     if not (0<=x<self.width and 0<=z<self.depth) or not geography(x,z,self.width,self.depth,self.seed)["walkable"]],
+                     if not (0<=x<self.width and 0<=z<self.depth) or not self.terrain_at(x,z)["walkable"]],
             others=[dict(id=b.id,x=b.x,z=b.z,age_years=round(age(self,b),3),life_stage=stage(self,b),
                 gender=b.gender,health=b.health,hunger=b.hunger,thirst=b.thirst,parent_ids=b.parent_ids) for b in nearby_agents],
             works=[copy.deepcopy(w) for w in self.works.values() if nearby(w)])
@@ -448,7 +458,7 @@ class World:
                 return self.reject(intent,"invalid movement")
             if not (0 <= a.x+p["dx"] < self.width and 3 <= a.z+p["dz"] < self.depth):
                 return self.reject(intent,"blocked terrain")
-            if not geography(a.x+p["dx"],a.z+p["dz"],self.width,self.depth,self.seed)["walkable"]:
+            if not self.terrain_at(a.x+p["dx"],a.z+p["dz"])["walkable"]:
                 return self.reject(intent,"water requires a crossing")
         if action == "GATHER":
             if not isinstance(p["resource_id"],str): return self.reject(intent,"invalid resource id")
@@ -704,7 +714,7 @@ class World:
         for aid,a in self.agents.items():
             if "reproductive_roles" not in s["agents"][aid]:a.reproductive_roles=roles_for(a.biological_sex)
             if "adult_height_cm" not in s["agents"][aid]:a.adult_height_cm=a.height_cm
-        self.terrain=[dict(x=x,z=z,size=min(8,self.width-x,self.depth-z),**geography(x+4,z+4,self.width,self.depth,self.seed))
+        self.terrain=[dict(x=x,z=z,size=min(8,self.width-x,self.depth-z),**self.terrain_at(x+4,z+4))
                       for x in range(0,self.width,8) for z in range(0,self.depth,8)]
         def tuples(v): return tuple(tuples(x) for x in v) if isinstance(v,(list,tuple)) else v
         self.rng=random.Random(); self.rng.setstate(tuples(s["rng_state"]))

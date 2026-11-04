@@ -4,6 +4,7 @@ import math
 import pytest
 from conftest import FakeLFM, IdleBackend
 from caitanya import engine as engine_module
+from caitanya import scheduler as scheduler_module
 from caitanya.autonomy import AutonomyConfig
 from caitanya.engine import World, Intent, digest, MockInferenceBackend
 from caitanya.scheduler import find_path
@@ -174,8 +175,17 @@ def test_blocked_route_replans_a_bounded_number_of_times_then_stops(monkeypatch)
     a, node = start_gather(w)
     next_tile = tuple(a.task["path"][0])
     real = engine_module.geography
-    monkeypatch.setattr(engine_module, "geography",
-                        lambda x, z, *rest: dict(real(x, z, *rest), walkable=False) if (x, z) == next_tile else real(x, z, *rest))
+    blocked = lambda x, z, *rest: dict(real(x, z, *rest), walkable=False) if (x, z) == next_tile else real(x, z, *rest)
+    monkeypatch.setattr(engine_module, "geography", blocked)
+    planner = scheduler_module.find_path
+
+    def stale_planner(*args, **kw):      # the route was planned from a map drawn before the tile became impassable
+        monkeypatch.setattr(engine_module, "geography", real)
+        try:
+            return planner(*args, **kw)
+        finally:
+            monkeypatch.setattr(engine_module, "geography", blocked)
+    monkeypatch.setattr(scheduler_module, "find_path", stale_planner)
     for _ in range(6):
         w.step()
     assert a.task is None
