@@ -35,11 +35,25 @@ def summarize(directory):
     sources0 = [(n["x"], n["z"]) for n in start_world.resources.values() if n["kind"] in ("food", "water")]
     first_dist = {i: nearest_source(p, sources0) for i, p in start.items()}
     peak = {i: 0 for i in start}
+    timeline = []              # every `every` ticks: how need and movement build up (aggregate numbers only)
+    every = max(1, pb.final_tick // 10)
     for t in range(1, pb.final_tick + 1):
         w = pb.seek(t)
         for a in w.agents.values():
             if a.id in peak:
                 peak[a.id] = max(peak[a.id], manhattan((a.x, a.z), start[a.id]))
+        if t % every == 0 or t == pb.final_tick:
+            living = [a for a in w.agents.values() if a.id in start and a.alive]
+            far = [manhattan((a.x, a.z), start[a.id]) for a in living]
+            timeline.append({"tick": t, "alive": len(living),
+                             "thirst_mean": round(statistics.mean(a.thirst for a in living), 2) if living else None,
+                             "thirst_max": round(max((a.thirst for a in living), default=0), 2),
+                             "hunger_mean": round(statistics.mean(a.hunger for a in living), 2) if living else None,
+                             "health_min": round(min((a.health for a in living), default=0), 2),
+                             "water_units_carried": sum(a.inventory.get("water", 0) for a in living),
+                             "humans_away_from_start_at_least_1": sum(1 for d in far if d >= 1),
+                             "humans_away_from_start_at_least_8": sum(1 for d in far if d >= 8),
+                             "mean_distance_from_start": round(statistics.mean(far), 2) if far else None})
     end = pb.seek(pb.final_tick)
     humans = [a for a in end.agents.values() if a.id in start]
     final = {a.id: (a.x, a.z) for a in humans}
@@ -73,6 +87,7 @@ def summarize(directory):
         "distance_to_nearest_food_or_water": {"at_start_mean": round(statistics.mean(d for d in first_dist.values() if d is not None), 2),
                                               "closer_by_tiles_mean": round(statistics.mean(closer), 2) if closer else None,
                                               "humans_closer": sum(1 for c in closer if c > 0), "humans_farther": sum(1 for c in closer if c < 0)},
+        "timeline": timeline,
         "events_by_type_and_origin": dict(sorted(by.items())),
         "task_interrupt_reasons": dict(sorted(interrupts.items())),
         "rejections_by_reason": dict(sorted(reasons.items())),
