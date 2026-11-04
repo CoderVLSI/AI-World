@@ -58,8 +58,13 @@ v2 is selected only through the version recorded in the genesis plan (opt-in for
 * One seed is one map. Reachability and shares will be checked over many seeds, but "looks like Mesopotamia" is a judgement, not a test.
 * Rivers made from polylines are an approximation, not hydrology (no real flow, erosion or water table).
 
-## Decisions I need from you
-1. **Shape:** two rivers joining at a delta with dry land between (recommended), or one long valley (Nile/Indus-like)?
-2. **Default map size** for v2: keep 256, or 384?
-3. **Plant names:** use real names (cotton, jute, flax) or neutral ones (e.g. "downy fibre") so no real-world technology is implied?
-4. **Floods:** opt-in only (recommended) or on by default in v2?
+## Decisions (you said to do what I think is right; these are mine and can be changed)
+1. **Shape:** two rivers joining at a delta with dry land between.
+2. **Default size:** stays 256; larger maps remain available. The model's speed, not the map size, is the limit.
+3. **Plant names:** neutral, property-based names, so no real-world technology is implied. Not built until PR E.
+4. **Floods:** opt-in only, off by default. Not built until PR E.
+5. **Independence:** the map never tells inhabitants what to do or what exists. They learn the land only through their own observations,
+   and everything they decide to do about it (settle, farm, trade, name things) is theirs.
+
+## Progress
+* PR A (versioned dispatch, no behaviour change): #24.
