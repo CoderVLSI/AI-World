@@ -8,6 +8,12 @@ and what the world recorded. A scripted stand-in on CPU shows what the machinery
     python scripts/hazard_response_diagnostic.py --backend lfm3 --revision <sha> --ticks 40 --max-real-seconds 900 --out hazard_lfm3.json
     python scripts/hazard_response_diagnostic.py --backend lfm3 --revision <sha> --exit-hint --ticks 40 --max-real-seconds 900 --out hazard_lfm3_hint.json
 
+    python scripts/hazard_response_diagnostic.py --backend lfm3 --revision <sha> --pain-signal --ticks 40 --max-real-seconds 900 --out hazard_lfm3_pain.json
+    python scripts/hazard_response_diagnostic.py --backend lfm3 --revision <sha> --walk-by-direction --ticks 40 --max-real-seconds 900 --out hazard_lfm3_walk.json
+    python scripts/hazard_response_diagnostic.py --backend lfm3 --revision <sha> --pain-signal --walk-by-direction --ticks 40 --max-real-seconds 900 --out hazard_lfm3_pain_walk.json
+
+--pain-signal (EXPERIMENT, default off): an inhabitant hurt in the last hour is told how much health it lost and what did it ("recent_harm"),
+never what to do. --walk-by-direction (EXPERIMENT, default off): the model gets WALK north/south/east/west instead of MOVE dx,dz.
 --exit-hint is an EXPERIMENT variant (default off): an inhabitant inside the zone also sees the geometric way out (leave_dx, leave_dz,
 steps_to_leave). Run the two variants one at a time, same fixture and revision, and compare; neither run is tuned or forced.
 
@@ -72,6 +78,29 @@ class HintStandIn(IdleStandIn):
         return super().decide(observation)
 
 
+class PainStandIn(IdleStandIn):
+    """Walks away only once it has been told it was hurt (scripted; shows what the pain variants measure, not a model)."""
+    model_revision = "scripted-pain-follower-v1"
+
+    def __init__(self):
+        super().__init__()
+        self.heading = {}
+
+    def decide(self, observation):
+        a = observation["self"]
+        if "recent_harm" in observation:
+            self.calls += 1
+            blocked = {tuple(b) for b in observation.get("blocked", [])}
+            for dx, dz in [self.heading.get(a["id"], (1, 0)), (1, 0), (-1, 0), (0, 1), (0, -1)]:
+                if (a["x"] + dx, a["z"] + dz) not in blocked:
+                    self.heading[a["id"]] = (dx, dz)
+                    if observation.get("walk_by_direction"):
+                        word = {(1, 0): "east", (-1, 0): "west", (0, 1): "south", (0, -1): "north"}[(dx, dz)]
+                        return Intent(a["id"], observation["tick"], "WALK", {"direction": word}, "")
+                    return Intent(a["id"], observation["tick"], "MOVE", {"dx": dx, "dz": dz}, "")
+        return super().decide(observation)
+
+
 class Recorder:
     """Wraps a backend and counts the parsed choice of each decision with the chooser's zone status. Text is never kept."""
     def __init__(self, inner, world_ref):
@@ -80,6 +109,7 @@ class Recorder:
         self.moves = {"outward": 0, "inward": 0}        # MOVE choices made while inside the zone, by effect on distance from its centre
         self.move_steps = Counter()                      # which (dx,dz) were chosen while inside
         self.hint_seen = 0
+        self.moves_all, self.malformed, self.pain_seen = 0, 0, 0     # every MOVE/WALK chosen anywhere; those the engine must reject; pain shown
 
     def __getattr__(self, name):
         return getattr(self.inner, name)
@@ -93,24 +123,39 @@ class Recorder:
             self.failures += 1
             raise
         hz = self.world_ref.get("hz")
-        if inside and hz and intent.action == "MOVE":
+        step = None
+        if intent.action == "MOVE":
+            p = intent.parameters
+            step = (p.get("dx", 0), p.get("dz", 0))
+            self.moves_all += 1
+            if type(step[0]) is not int or type(step[1]) is not int or abs(step[0]) + abs(step[1]) != 1:
+                self.malformed += 1               # not a one-cell cardinal step: the engine rejects it
+        elif intent.action == "WALK":
+            step = {"east": (1, 0), "west": (-1, 0), "south": (0, 1), "north": (0, -1)}.get(intent.parameters.get("direction"))
+            self.moves_all += 1
+            if step is None:
+                self.malformed += 1
+        if inside and hz and step is not None:
             x, z = observation["self"]["x"], observation["self"]["z"]
-            dx, dz = intent.parameters.get("dx", 0), intent.parameters.get("dz", 0)
+            dx, dz = step
             before = abs(x - hz["x"]) + abs(z - hz["z"])
             after = abs(x + dx - hz["x"]) + abs(z + dz - hz["z"])
             self.moves["outward" if after > before else "inward"] += 1
             self.move_steps[f"{dx},{dz}"] += 1
-        if any("leave_dx" in h for h in observation.get("environment_hazards", [])):
+        if any(("leave_dx" in h or "leave_direction" in h) for h in observation.get("environment_hazards", [])):
             self.hint_seen += 1
+        if "recent_harm" in observation:
+            self.pain_seen += 1
         self.choices.append({"tick": observation["tick"], "agent": observation["self"]["id"], "tool": intent.action, "inside": inside,
                              "hazard_visible": bool(offered), "health": observation["self"]["health"]})
         return intent
 
 
-def run(backend, ticks, max_seconds, seed=314159, hint=False):
+def run(backend, ticks, max_seconds, seed=314159, hint=False, pain=False, walk=False):
     holder = {}
     rec = Recorder(backend, holder)
-    w = World(seed=seed, population=5, width=128, depth=128, wildlife_per_species=6, nature_forces=True, hazard_exit_hint=hint, backend=rec)
+    w = World(seed=seed, population=5, width=128, depth=128, wildlife_per_species=6, nature_forces=True, hazard_exit_hint=hint,
+              hazard_pain_signal=pain, walk_by_direction=walk, backend=rec)
     holder["w"] = w
     xs, zs = [a.x for a in w.agents.values()], [a.z for a in w.agents.values()]
     cx, cz = round(sum(xs) / 5), round(sum(zs) / 5)
@@ -146,7 +191,9 @@ def run(backend, ticks, max_seconds, seed=314159, hint=False):
             "lowest_health": minhp, "alive": sum(a.alive for a in w.agents.values()),
             "hazard_summary_recorded": bool(end), "move_choices_while_inside": by["inside"].get("MOVE", 0),
             "hazard_visible_in_observations": sum(1 for c in rec.choices if c["hazard_visible"]),
-            "variant": "exit_hint" if hint else "baseline", "exit_hint_visible_in_observations": rec.hint_seen,
+            "variant": "+".join(n for n, on in (("exit_hint", hint), ("pain_signal", pain), ("walk_by_direction", walk)) if on) or "baseline",
+            "exit_hint_visible_in_observations": rec.hint_seen, "pain_signal_visible_in_observations": rec.pain_seen,
+            "moves_chosen_anywhere": rec.moves_all, "malformed_moves_chosen_anywhere": rec.malformed,
             "moves_while_inside": {"total": sum(rec.moves.values()), **rec.moves, "steps_chosen": dict(sorted(rec.move_steps.items()))},
             "distance_to_zone_edge_by_tick": {a: t for a, t in sorted(edge_trace.items())}}
 
@@ -155,6 +202,8 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--backend", choices=["cpu", "lfm3"], default="cpu")
     p.add_argument("--revision")
+    p.add_argument("--pain-signal", action="store_true", help="EXPERIMENT variant: a recently hurt inhabitant is told how much and by what")
+    p.add_argument("--walk-by-direction", action="store_true", help="EXPERIMENT variant: WALK north/south/east/west replaces MOVE dx,dz")
     p.add_argument("--exit-hint", action="store_true", help="EXPERIMENT variant: inside the zone, observations also carry the geometric way out")
     p.add_argument("--ticks", type=int, default=40)
     p.add_argument("--max-real-seconds", type=float, default=900.0)
@@ -164,7 +213,9 @@ def main():
         record = {"status": "completed", "label": "SCRIPTED stand-ins on CPU: shows what is measured; says nothing about any model",
                   "idle_stand_in": run(IdleStandIn(), args.ticks, args.max_real_seconds),
                   "fleeing_stand_in": run(FleeStandIn(), args.ticks, args.max_real_seconds),
-                  "hint_following_stand_in": run(HintStandIn(), args.ticks, args.max_real_seconds, hint=True)}
+                  "hint_following_stand_in": run(HintStandIn(), args.ticks, args.max_real_seconds, hint=True),
+                  "pain_following_stand_in": run(PainStandIn(), args.ticks, args.max_real_seconds, pain=True),
+                  "pain_and_walk_stand_in": run(PainStandIn(), args.ticks, args.max_real_seconds, pain=True, walk=True)}
     else:
         gpu = None
         try:
@@ -181,8 +232,9 @@ def main():
         backend = TransformersLFM3Backend(revision=args.revision)
         record = {"status": "completed", "label": "REAL LFM3 on GPU, ONE bounded episode; no follow-on", "gpu": gpu,
                   "model_id": backend.model_id, "model_revision": backend.model_revision, "requested": vars(args),
-                  "variant": "exit_hint" if args.exit_hint else "baseline",
-                  "episode": run(backend, args.ticks, args.max_real_seconds, hint=args.exit_hint),
+                  "variant": "+".join(n for n, on in (("exit_hint", args.exit_hint), ("pain_signal", args.pain_signal),
+                                                      ("walk_by_direction", args.walk_by_direction)) if on) or "baseline",
+                  "episode": run(backend, args.ticks, args.max_real_seconds, hint=args.exit_hint, pain=args.pain_signal, walk=args.walk_by_direction),
                   "inference": {k: v for k, v in backend.metrics().items() if k in ("model_calls", "parse_or_inference_failures", "gpu_peak_allocated_bytes",
                                                                                    "inference_seconds", "prompt_tokens")}}
     Path(args.out).write_text(json.dumps(record, indent=2))
