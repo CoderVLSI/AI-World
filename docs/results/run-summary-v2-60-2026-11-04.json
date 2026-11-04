@@ -1,0 +1,50 @@
+{
+  "ticks": 60,
+  "humans": 50,
+  "displacement_from_start_tiles": {
+    "final_mean": 0,
+    "final_median": 0.0,
+    "final_max": 0,
+    "peak_max": 0,
+    "humans_moved_at_least_1": 0,
+    "humans_peaked_at_least_8": 0,
+    "humans_peaked_at_least_16": 0,
+    "humans_peaked_at_least_24": 0
+  },
+  "distance_to_nearest_food_or_water": {
+    "at_start_mean": 0,
+    "closer_by_tiles_mean": 0,
+    "humans_closer": 0,
+    "humans_farther": 0
+  },
+  "events_by_type_and_origin": {
+    "gather:lfm_decision": 8
+  },
+  "task_interrupt_reasons": {},
+  "rejections_by_reason": {
+    "inference_failed": 2,
+    "no water": 7
+  },
+  "needs_at_end": {
+    "thirst_mean": 12.12,
+    "thirst_max": 15.97,
+    "hunger_mean": 1.84,
+    "hunger_max": 8.33,
+    "water_units_still_carried": 3,
+    "alive": 50
+  },
+  "sources_near_the_start_at_tick_0": {
+    "nodes_within_sight_of_any_human": 114,
+    "kinds": {
+      "food": 51,
+      "fruit": 1,
+      "grain": 1,
+      "herbs": 3,
+      "plant_fiber": 4,
+      "water": 53,
+      "wood": 1
+    },
+    "depleted_nodes_at_end_by_kind": {}
+  },
+  "note": "Aggregate numbers only. Derived from the recorded run; nothing was re-simulated with a model."
+}
