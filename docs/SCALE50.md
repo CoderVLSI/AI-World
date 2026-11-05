@@ -60,3 +60,11 @@ The question it tests: does a thirsty model act on water it can see? `scripts/sc
 * **NOT verified:** that it is faster on a T4 or L4, memory use, and whether greedy decoding with left padding gives the same text as a batch of one.
   `scripts/batch_check.py` measures exactly that on fixed observations (speed, peak memory, failures, and the fraction of choices equal to batch size 1).
   The protected `scheduler.py` has one small guarded addition for the hook; `root.py`, prompts and tool descriptions are untouched.
+
+## The water ladder (`scripts/scenario_ladder.py`): small, fast, one question at a time
+Fifty-person runs take about an hour and mostly say "the model did not act". The ladder asks ONE question with a clear pass condition, on 5 inhabitants
+for 40 ticks (about 6 minutes per rung on a T4): **does a thirsty inhabitant get to water and drink?** Operator fixture, stated openly: every resource
+node is removed, one water node (40 units, renewable) is placed `distance` tiles from the group, and each inhabitant starts thirsty (60/100) with no water and
+3 food. PASS means a DRINK that lowered their thirst; a parsed TRAVEL_TO/GATHER_AT is only an intermediate result. Also recorded: who reached the node,
+who gathered, and the first ticks. Rungs: R0 water at the group; R1 6 tiles, in sight; R2 16 tiles, sight 32; R3 30 tiles, sight 32; R4 16 tiles, NOT in
+sight (exploration). The first rung that fails shows where the model stops. A mock policy passes R0-R3 and fails R4 (checks the harness only).
