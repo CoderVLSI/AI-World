@@ -36,6 +36,21 @@ func show_playback(tick: int, final_tick: int, playing: bool, speed: float) -> v
 	bar.set_value_no_signal(tick)
 	bar_label.text = "tick %d / %d   %s   %s×" % [tick, final_tick, "▶ playing" if playing else "❚❚ paused", str(speed)]
 
+## How many living people are at least `level` thirsty / hungry (0-100 scales the simulation publishes); for the top line. Display only.
+static func needs_summary(agents: Array, level: float = 50.0) -> String:
+	var thirsty := 0; var hungry := 0; var hurt := 0
+	for a in agents:
+		if not a.get("alive", false): continue
+		if float(a.get("thirst", 0)) >= level: thirsty += 1
+		if float(a.get("hunger", 0)) >= level: hungry += 1
+		if float(a.get("health", 100)) < level: hurt += 1
+	if thirsty + hungry + hurt == 0: return ""
+	var parts := []
+	if thirsty > 0: parts.append("%d thirsty" % thirsty)
+	if hungry > 0: parts.append("%d hungry" % hungry)
+	if hurt > 0: parts.append("%d badly hurt" % hurt)
+	return "   ⚠ " + ", ".join(parts) + " (≥%d)" % int(level)
+
 ## Plain names of the hazard zones currently listed, for the top line.
 static func zone_summary(hazards: Array) -> String:
 	var words := []
@@ -57,6 +72,7 @@ func show_live(live: Dictionary, connected: bool) -> void:
 		int(live.tick), int(c.get("day", 0)), int(hour), int((hour - floor(hour)) * 60.0), str(c.get("season", "")),
 		str(c.get("weather", "")), str(c.get("temperature_c", "")), alive, ("   %d animals" % animals) if animals > 0 else ""]
 	top.text += zone_summary(live.get("environment_hazards", []))
+	top.text += needs_summary(live.get("agents", []))
 
 func show_selected(a) -> void:
 	if a == null:

@@ -226,3 +226,10 @@ def test_the_godot_terrain_has_a_colour_for_every_biome_the_api_lists():
     assert table.count("Color(") == len(BIOMES)
     web = (ROOT / "web" / "viewer.js").read_text(encoding="utf-8")
     assert all(f"{b}:'#" in web.split("const colors={")[1].split("}")[0] for b in BIOMES)
+
+
+@pytest.mark.skipif(godot_binary() is None, reason="no Godot binary (set GODOT_BIN or run scripts/setup_godot_tools.sh)")
+def test_godot_top_line_shows_how_many_are_thirsty_hungry_or_hurt():
+    done = subprocess.run([godot_binary(), "--headless", "--path", str(GODOT_DIR), "--script", "res://tests/hud_test.gd"],
+                          capture_output=True, text=True, timeout=240)
+    assert "hud tests: ok" in done.stdout and "FAIL" not in done.stdout, done.stdout[-800:] + done.stderr[-400:]
