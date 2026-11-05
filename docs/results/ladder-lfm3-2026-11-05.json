@@ -1,0 +1,228 @@
+{
+  "status": "completed",
+  "label": "REAL LFM3 on GPU, bounded water ladder",
+  "environment": {
+    "python": "3.13.16",
+    "platform": "Linux-6.6.159+-x86_64-with-glibc2.39",
+    "backend": "lfm3",
+    "gpu": "Tesla T4"
+  },
+  "model_id": "LiquidAI/LFM3-1.7B",
+  "model_revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+  "requested": {
+    "backend": "lfm3",
+    "revision": "ac2586a34f1a1c03329dbdcdefabd8b6478ddaa7",
+    "seed": 314159,
+    "humans": 5,
+    "ticks": 40,
+    "rungs": "R0,R1,R2,R3,R4",
+    "max_real_seconds": 600.0,
+    "max_failure_rate": 0.4
+  },
+  "results": [
+    {
+      "rung": "R0",
+      "node_distance_from_group": 0,
+      "sight_range": 8,
+      "stop": "completed",
+      "ticks_completed": 40,
+      "humans": 5,
+      "node_in_sight_of_humans_at_start": 5,
+      "start_distance_to_water_mean": 1.2,
+      "PASS_humans_who_drank": 0,
+      "pass_fraction": 0.0,
+      "humans_who_gathered_water": 0,
+      "humans_who_reached_the_node": 1,
+      "first_tick": {
+        "reach_median": 1,
+        "gather_median": null,
+        "drink_median": null
+      },
+      "closest_approach_mean": 1.2,
+      "thirst_mean": {
+        "start": 60.0,
+        "end": 73.89
+      },
+      "alive": 5,
+      "decisions": {
+        "calls": 166,
+        "failures": 4,
+        "failure_categories": {
+          "bad_parameter": 4
+        },
+        "tool_choices": {
+          "EAT": 3,
+          "GATHER_AT": 93,
+          "SPEAK": 50,
+          "WAIT": 16
+        },
+        "seconds_per_call_p50": 2.2772,
+        "seconds_per_call_p95": 2.8687
+      },
+      "real_seconds": 369.114
+    },
+    {
+      "rung": "R1",
+      "node_distance_from_group": 6,
+      "sight_range": 8,
+      "stop": "completed",
+      "ticks_completed": 40,
+      "humans": 5,
+      "node_in_sight_of_humans_at_start": 5,
+      "start_distance_to_water_mean": 7.2,
+      "PASS_humans_who_drank": 0,
+      "pass_fraction": 0.0,
+      "humans_who_gathered_water": 0,
+      "humans_who_reached_the_node": 0,
+      "first_tick": {
+        "reach_median": null,
+        "gather_median": null,
+        "drink_median": null
+      },
+      "closest_approach_mean": 7.2,
+      "thirst_mean": {
+        "start": 60.0,
+        "end": 73.89
+      },
+      "alive": 5,
+      "decisions": {
+        "calls": 200,
+        "failures": 0,
+        "failure_categories": {},
+        "tool_choices": {
+          "EAT": 3,
+          "GATHER_AT": 116,
+          "SPEAK": 51,
+          "WAIT": 30
+        },
+        "seconds_per_call_p50": 2.299,
+        "seconds_per_call_p95": 2.9818
+      },
+      "real_seconds": 439.851
+    },
+    {
+      "rung": "R2",
+      "node_distance_from_group": 16,
+      "sight_range": 32,
+      "stop": "completed",
+      "ticks_completed": 40,
+      "humans": 5,
+      "node_in_sight_of_humans_at_start": 5,
+      "start_distance_to_water_mean": 17.2,
+      "PASS_humans_who_drank": 0,
+      "pass_fraction": 0.0,
+      "humans_who_gathered_water": 0,
+      "humans_who_reached_the_node": 0,
+      "first_tick": {
+        "reach_median": null,
+        "gather_median": null,
+        "drink_median": null
+      },
+      "closest_approach_mean": 17.2,
+      "thirst_mean": {
+        "start": 60.0,
+        "end": 73.89
+      },
+      "alive": 5,
+      "decisions": {
+        "calls": 172,
+        "failures": 6,
+        "failure_categories": {
+          "bad_parameter": 6
+        },
+        "tool_choices": {
+          "EAT": 8,
+          "GATHER_AT": 70,
+          "SPEAK": 65,
+          "WAIT": 23
+        },
+        "seconds_per_call_p50": 2.3263,
+        "seconds_per_call_p95": 3.3297
+      },
+      "real_seconds": 395.243
+    },
+    {
+      "rung": "R3",
+      "node_distance_from_group": 30,
+      "sight_range": 32,
+      "stop": "completed",
+      "ticks_completed": 40,
+      "humans": 5,
+      "node_in_sight_of_humans_at_start": 5,
+      "start_distance_to_water_mean": 30,
+      "PASS_humans_who_drank": 0,
+      "pass_fraction": 0.0,
+      "humans_who_gathered_water": 0,
+      "humans_who_reached_the_node": 0,
+      "first_tick": {
+        "reach_median": null,
+        "gather_median": null,
+        "drink_median": null
+      },
+      "closest_approach_mean": 30,
+      "thirst_mean": {
+        "start": 60.0,
+        "end": 73.89
+      },
+      "alive": 5,
+      "decisions": {
+        "calls": 180,
+        "failures": 4,
+        "failure_categories": {
+          "bad_parameter": 4
+        },
+        "tool_choices": {
+          "DRINK": 80,
+          "EAT": 10,
+          "GATHER_AT": 1,
+          "INSPECT": 6,
+          "SPEAK": 74,
+          "WAIT": 5
+        },
+        "seconds_per_call_p50": 1.1672,
+        "seconds_per_call_p95": 2.2423
+      },
+      "real_seconds": 262.826
+    },
+    {
+      "rung": "R4",
+      "node_distance_from_group": 16,
+      "sight_range": 8,
+      "stop": "completed",
+      "ticks_completed": 40,
+      "humans": 5,
+      "node_in_sight_of_humans_at_start": 0,
+      "start_distance_to_water_mean": 17.2,
+      "PASS_humans_who_drank": 0,
+      "pass_fraction": 0.0,
+      "humans_who_gathered_water": 0,
+      "humans_who_reached_the_node": 0,
+      "first_tick": {
+        "reach_median": null,
+        "gather_median": null,
+        "drink_median": null
+      },
+      "closest_approach_mean": 17.2,
+      "thirst_mean": {
+        "start": 60.0,
+        "end": 73.89
+      },
+      "alive": 5,
+      "decisions": {
+        "calls": 200,
+        "failures": 0,
+        "failure_categories": {},
+        "tool_choices": {
+          "DRINK": 20,
+          "EAT": 15,
+          "SPEAK": 147,
+          "WAIT": 18
+        },
+        "seconds_per_call_p50": 1.3428,
+        "seconds_per_call_p95": 1.6843
+      },
+      "real_seconds": 260.431
+    }
+  ],
+  "note": "Operator fixture (one water node, thirsty start, nothing else in the world). Pass = drank. One seed, no control."
+}
