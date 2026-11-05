@@ -60,3 +60,43 @@ def test_limits_stop_a_rung_and_unknown_rungs_are_refused(tmp_path):
     assert record["results"][0]["stop"] == "stopped_at_wall_clock_limit" and record["status"] == "partial"
     with pytest.raises(SystemExit):
         mod.run(args(tmp_path, "--rungs", "R9"))
+
+
+class Scripted:
+    """Stand-in 'model' that makes the mistakes we want the ladder to explain."""
+    model_id, model_revision, metadata = "fake/real", "fake", {}
+
+    def __init__(self, behaviour):
+        self.behaviour, self.calls, self.last_request = behaviour, 0, {"request_id": "r"}
+
+    def decide(self, observation):
+        from caitanya.engine import Intent
+        self.calls += 1
+        me = observation["self"]
+        if self.behaviour == "wrong_id":
+            return Intent(me["id"], observation["tick"], "GATHER_AT", {"resource_id": "resource-0001", "amount": 2}, "")
+        if self.behaviour == "big_amount":
+            return Intent(me["id"], observation["tick"], "GATHER_AT", {"resource_id": mod.NODE_ID, "amount": 20}, "")
+        if self.behaviour == "drink_dry":
+            return Intent(me["id"], observation["tick"], "DRINK", {}, "")
+        return Intent(me["id"], observation["tick"], "WAIT", {}, "")
+
+
+def test_the_ladder_explains_why_a_choice_did_not_work(tmp_path):
+    def why(behaviour):
+        record, _ = mod.run(args(tmp_path, "--ticks", "4", "--rungs", "R0"), backend=Scripted(behaviour))
+        return record["results"][0]["why"], record["results"][0]
+    w, r = why("wrong_id")
+    assert w["gather_at_names_another_id"] > 0 and w["gather_at_names_the_water_node"] == 0 and r["PASS_humans_who_drank"] == 0
+    assert w["rejections_by_reason"].get("resource unavailable", 0) > 0
+    w, _ = why("big_amount")
+    assert w["gather_at_names_the_water_node"] > 0 and w["gather_at_amount_out_of_range"] > 0 and w["rejections_by_reason"].get("invalid amount", 0) > 0
+    w, _ = why("drink_dry")
+    assert w["chosen_not_offered"].get("DRINK", 0) > 0 and w["drink_chosen_without_water"] > 0 and w["drink_chosen_with_water_carried"] == 0
+    w, _ = why("wait")
+    assert w["decisions_with_the_node_in_sight"] > 0 and w["water_node_units_left"] == 40
+
+
+def test_the_node_id_can_be_changed_and_the_scripted_tests_follow_it(tmp_path):
+    record, _ = mod.run(args(tmp_path, "--ticks", "25", "--rungs", "R1", "--node-id", "resource-0001"))
+    assert record["requested"]["node_id"] == "resource-0001" and record["results"][0]["PASS_humans_who_drank"] == 5
