@@ -27,3 +27,46 @@ failure categories, rejections by reason, decisions per human with a fairness in
 humans vs wildlife reported separately, and a checkpoint restore check (state equal, zero model calls). Mock: `python scripts/scale50_check.py
 --backend mock --out m.json`. Real model needs a CUDA GPU and the owner's go-ahead; without one it writes `unverified_no_gpu` and exits 2.
 Not included: a batch-size micro-benchmark (needs a batched decide, to be built only if worthwhile).
+
+## Fixes after the 200-tick far-start run (PR #35, stopped at tick 160 by the failure-rate rule)
+* **Used-up nodes are no longer listed to the model** (`inference.visible_resources`): in that run 427 of 528 GATHER_AT requests were rejected as
+  "resource unavailable" while only 2 nodes were depleted on the whole map, i.e. the model kept asking for nodes that were still listed with 0 units
+  (inferred from that arithmetic; the result file has no per-node record). The engine still keeps the node; an inhabitant's own memory already forgets
+  sites seen empty. This changes what the real model sees; mock policy and all fixtures are unchanged.
+* **An over-long optional `reason` is cut to its 300-character limit** instead of failing the whole decision (19 of 42 failures were "too long", most
+  likely this). Every other text limit still fails, and the message now names the parameter (a fixed label, never model text).
+* **Failure detail:** `metrics()["failure_detail"]` counts failures by fixed message label and how many filled the token budget; reported by
+  `scripts/scale50_check.py` as `failure_detail`.
+* **`--founder-water N`** (World/CLI/script; default 3 = unchanged): 0 starts everyone thirsty about 80 ticks sooner, so a shorter run reaches real need.
+
+## Sight range (`sight_range`, opt-in experiment)
+Inhabitants see resource nodes only within 8 tiles and have no terrain information at all, so a thirsty person with no water in sight has nothing to act
+on (the 200-tick thirsty-start run, PR #37: mean thirst 69, nobody drank, 52% of choices were SPEAK, 16 of 50 moved at all). `World(sight_range=N)` /
+`--sight-range N` (8 to 64; default 8 = unchanged and not recorded) lets them see resource nodes N tiles away (Manhattan), nearest first, up to the usual
+16 listed. It is a fact about what a person can see, not advice; nobody is told what to do, and others, works and animals keep their own ranges.
+At 32 tiles, 48 of 50 far-start founders see food or water (0 of 50 at 8). It is stored in the checkpoint manifest, so restore and replay keep it.
+The question it tests: does a thirsty model act on water it can see? `scripts/scale50_check.py --sight-range 32`.
+## Batched decisions (opt-in, off by default)
+`TransformersLFM3Backend(batch_size=N)` / `scripts/scale50_check.py --batch-size N` decide up to N inhabitants in one generate call.
+* **How:** before a tick's decisions, `Scheduler._prefetch` (a guarded hook: only when the backend offers `batch_size` > 1) takes observations of the
+  first `max_decisions_per_tick` inhabitants in the queue at one moment and hands them to the backend in chunks of N; `decide` then returns each batched
+  choice when the scheduler asks in its normal order. Each choice is still validated against the world as it is when applied, so conflicts are rejected
+  as usual. Who is asked, in what order and how many per tick are unchanged. The per-tick wall-clock cap also limits how many batches start.
+* **Semantics that differ (by design, say so when comparing runs):** inhabitants in one batch decide from the same snapshot instead of seeing the
+  effects of earlier inhabitants in the same tick. A prompt over the token budget, an unparseable output or a failed item fails alone; if a whole
+  batch cannot run (for example out of memory) each item is retried one at a time.
+* **Verified (fakes, no GPU):** batch of one equals the ordinary path; one prompt of several fails alone; stale-tick results are never used; fallback;
+  counters; the scheduler hook (chunking, one snapshot, cap); nothing changes with batch size 1 or the mock.
+* **NOT verified:** that it is faster on a T4 or L4, memory use, and whether greedy decoding with left padding gives the same text as a batch of one.
+  `scripts/batch_check.py` measures exactly that on fixed observations (speed, peak memory, failures, and the fraction of choices equal to batch size 1).
+  The protected `scheduler.py` has one small guarded addition for the hook; `root.py`, prompts and tool descriptions are untouched.
+
+## The water ladder (`scripts/scenario_ladder.py`): small, fast, one question at a time
+Fifty-person runs take about an hour and mostly say "the model did not act". The ladder asks ONE question with a clear pass condition, on 5 inhabitants
+for 40 ticks (about 6 minutes per rung on a T4): **does a thirsty inhabitant get to water and drink?** Operator fixture, stated openly: every resource
+node is removed, one water node (40 units, renewable) is placed `distance` tiles from the group, and each inhabitant starts thirsty (60/100) with no water and
+3 food. PASS means a DRINK that lowered their thirst; a parsed TRAVEL_TO/GATHER_AT is only an intermediate result. Also recorded: who reached the node,
+who gathered, and the first ticks. Rungs: R0 water at the group; R1 6 tiles, in sight; R2 16 tiles, sight 32; R3 30 tiles, sight 32; R4 16 tiles, NOT in
+sight (exploration). The first rung that fails shows where the model stops. A mock policy passes R0-R3 and fails R4 (checks the harness only).
+
+**First real result (Codex, T4, 5 rungs, 40 ticks each; its push to GitHub was blocked, so the JSON is not in the repo yet):** zero inhabitants gathered water or drank on any rung, including R0 (water at the group), with 280 GATHER_AT and 100 DRINK choices and zero TRAVEL_TO/MOVE/WALK. The first version of the ladder did not record why. It now records, as counts only: whether each chosen tool was on offer (DRINK is only offered when water is carried), whether GATHER_AT named the water node or another id, whether its amount was in range, whether the node was in sight, rejections by reason, and the node's units left. `--node-id` lets you test an id in the usual `resource-0001` style in case the fixture's descriptive id is what confuses the model.
