@@ -1,0 +1,192 @@
+{
+  "ticks": 200,
+  "humans": 50,
+  "displacement_from_start_tiles": {
+    "final_mean": 1.74,
+    "final_median": 0.0,
+    "final_max": 10,
+    "peak_max": 11,
+    "humans_moved_at_least_1": 16,
+    "humans_peaked_at_least_8": 4,
+    "humans_peaked_at_least_16": 0,
+    "humans_peaked_at_least_24": 0
+  },
+  "distance_to_nearest_food_or_water": {
+    "at_start_mean": 26.44,
+    "closer_by_tiles_mean": -0.7,
+    "humans_closer": 3,
+    "humans_farther": 10
+  },
+  "timeline": [
+    {
+      "tick": 20,
+      "alive": 50,
+      "thirst_mean": 6.94,
+      "thirst_max": 6.94,
+      "hunger_mean": 1.59,
+      "health_min": 100,
+      "water_units_carried": 0,
+      "humans_away_from_start_at_least_1": 5,
+      "humans_away_from_start_at_least_8": 1,
+      "mean_distance_from_start": 0.42
+    },
+    {
+      "tick": 40,
+      "alive": 50,
+      "thirst_mean": 13.89,
+      "thirst_max": 13.89,
+      "hunger_mean": 3.26,
+      "health_min": 100,
+      "water_units_carried": 0,
+      "humans_away_from_start_at_least_1": 7,
+      "humans_away_from_start_at_least_8": 0,
+      "mean_distance_from_start": 0.64
+    },
+    {
+      "tick": 60,
+      "alive": 50,
+      "thirst_mean": 20.83,
+      "thirst_max": 20.83,
+      "hunger_mean": 5.14,
+      "health_min": 100,
+      "water_units_carried": 0,
+      "humans_away_from_start_at_least_1": 12,
+      "humans_away_from_start_at_least_8": 2,
+      "mean_distance_from_start": 1.32
+    },
+    {
+      "tick": 80,
+      "alive": 50,
+      "thirst_mean": 27.78,
+      "thirst_max": 27.78,
+      "hunger_mean": 6.66,
+      "health_min": 100,
+      "water_units_carried": 0,
+      "humans_away_from_start_at_least_1": 14,
+      "humans_away_from_start_at_least_8": 3,
+      "mean_distance_from_start": 1.62
+    },
+    {
+      "tick": 100,
+      "alive": 50,
+      "thirst_mean": 34.72,
+      "thirst_max": 34.72,
+      "hunger_mean": 9.37,
+      "health_min": 100,
+      "water_units_carried": 0,
+      "humans_away_from_start_at_least_1": 14,
+      "humans_away_from_start_at_least_8": 3,
+      "mean_distance_from_start": 1.62
+    },
+    {
+      "tick": 120,
+      "alive": 50,
+      "thirst_mean": 41.67,
+      "thirst_max": 41.67,
+      "hunger_mean": 11.51,
+      "health_min": 100,
+      "water_units_carried": 0,
+      "humans_away_from_start_at_least_1": 15,
+      "humans_away_from_start_at_least_8": 3,
+      "mean_distance_from_start": 1.66
+    },
+    {
+      "tick": 140,
+      "alive": 50,
+      "thirst_mean": 48.61,
+      "thirst_max": 48.61,
+      "hunger_mean": 13.43,
+      "health_min": 100,
+      "water_units_carried": 0,
+      "humans_away_from_start_at_least_1": 15,
+      "humans_away_from_start_at_least_8": 3,
+      "mean_distance_from_start": 1.66
+    },
+    {
+      "tick": 160,
+      "alive": 50,
+      "thirst_mean": 55.56,
+      "thirst_max": 55.56,
+      "hunger_mean": 15.36,
+      "health_min": 100,
+      "water_units_carried": 0,
+      "humans_away_from_start_at_least_1": 15,
+      "humans_away_from_start_at_least_8": 3,
+      "mean_distance_from_start": 1.66
+    },
+    {
+      "tick": 180,
+      "alive": 50,
+      "thirst_mean": 62.5,
+      "thirst_max": 62.5,
+      "hunger_mean": 17.23,
+      "health_min": 100,
+      "water_units_carried": 0,
+      "humans_away_from_start_at_least_1": 15,
+      "humans_away_from_start_at_least_8": 3,
+      "mean_distance_from_start": 1.66
+    },
+    {
+      "tick": 200,
+      "alive": 50,
+      "thirst_mean": 69.44,
+      "thirst_max": 69.44,
+      "hunger_mean": 17.04,
+      "health_min": 100,
+      "water_units_carried": 0,
+      "humans_away_from_start_at_least_1": 16,
+      "humans_away_from_start_at_least_8": 3,
+      "mean_distance_from_start": 1.74
+    }
+  ],
+  "events_by_type_and_origin": {
+    "gather:lfm_decision": 16,
+    "gather:mechanical_execution": 60,
+    "gather_at:lfm_decision": 21,
+    "move:mechanical_execution": 115,
+    "task_completed:mechanical_execution": 16,
+    "task_interrupted:mechanical_execution": 7,
+    "travel_to:lfm_decision": 2
+  },
+  "task_interrupt_reasons": {
+    "resource_unavailable": 7
+  },
+  "rejections_by_reason": {
+    "already at destination": 2,
+    "inference_failed": 25,
+    "insufficient inventory": 83,
+    "invalid amount": 62,
+    "invalid movement": 2,
+    "no such material carried": 7,
+    "no water": 2,
+    "resource out of reach": 5,
+    "resource unavailable": 116,
+    "target unavailable or not nearby": 163
+  },
+  "needs_at_end": {
+    "thirst_mean": 69.44,
+    "thirst_max": 69.44,
+    "hunger_mean": 17.04,
+    "hunger_max": 27.78,
+    "water_units_still_carried": 0,
+    "alive": 50
+  },
+  "sources_near_the_start_at_tick_0": {
+    "nodes_within_sight_of_any_human": 16,
+    "kinds": {
+      "fruit": 2,
+      "herbs": 3,
+      "plant_fiber": 6,
+      "wood": 5
+    },
+    "of_these_depleted_at_end_by_kind": {
+      "fruit": 2,
+      "herbs": 2
+    }
+  },
+  "depleted_nodes_at_end_by_kind_whole_map": {
+    "fruit": 2,
+    "herbs": 2
+  },
+  "note": "Aggregate numbers only. Derived from the recorded run; nothing was re-simulated with a model."
+}
