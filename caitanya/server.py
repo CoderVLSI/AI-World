@@ -251,6 +251,7 @@ def build_parser():
     p.add_argument("--start-distance",type=int,default=0,help="EXPERIMENT (default off): NEW world where no food or water is placed under the founders and the nearest source is this many tiles away or more")
     p.add_argument("--sight-range",type=int,default=8,help="EXPERIMENT: how many tiles away an inhabitant sees resource nodes in a NEW world (default 8; 8 to 64)")
     p.add_argument("--founder-water",type=int,default=3,help="EXPERIMENT: units of water each founder carries at the start of a NEW world (default 3); 0 starts everyone thirsty sooner")
+    p.add_argument("--host",default="127.0.0.1",help="Address to listen on. The default (127.0.0.1) is this computer only. The viewer API has NO login and is read-only: use another address (for example the computer's Tailscale address, or 0.0.0.0) only on a private network you trust.")
     p.add_argument("--terrain",choices=["geography-v1","geography-v2"],default="geography-v1",help="Map generator for the NEW world: geography-v2 is two river valleys with floodplains (opt-in); recovery keeps the saved map")
     p.add_argument("--recover",help="Restore newest valid image and replay its committed journal tail")
     p.add_argument("--playback",help="Watch a FINISHED run folder read-only (no model, no GPU, nothing written); for example one made on Colab")
@@ -275,12 +276,13 @@ def build_world(args,p,backend=None):
 def main():
     import uvicorn
     p=build_parser();args=p.parse_args()
+    if args.host not in ("127.0.0.1","localhost","::1"):print(f"WARNING: listening on {args.host}: anyone who can reach this address can WATCH the world (read-only, no login). Use a private network only.")
     if args.playback:
         if args.speed<=0:p.error("--speed must be positive")
         from .playback import Playback
         pb=Playback(args.playback)
         print(f"Playback of {args.playback}: {pb.final_tick} recorded ticks, model {pb.backend.model_id}. Read-only; no model is loaded.")
-        uvicorn.run(create_app(playback=pb,interval=1/args.speed,loop=not args.no_loop),host="127.0.0.1",port=args.port)
+        uvicorn.run(create_app(playback=pb,interval=1/args.speed,loop=not args.no_loop),host=args.host,port=args.port)
         return
     if args.backend=="lfm3":
         from .inference import TransformersLFM3Backend
@@ -288,5 +290,5 @@ def main():
     else:backend=None
     world=build_world(args,p,backend)
     uvicorn.run(create_app(world,args.run_dir,max_ticks=args.max_ticks,max_seconds=args.max_seconds,report_dir=args.report_dir,
-                           checkpoint_every=args.checkpoint_every,segment_bytes=args.segment_bytes,max_run_bytes=args.max_run_bytes),host="127.0.0.1",port=args.port)
+                           checkpoint_every=args.checkpoint_every,segment_bytes=args.segment_bytes,max_run_bytes=args.max_run_bytes),host=args.host,port=args.port)
 if __name__=="__main__": main()
