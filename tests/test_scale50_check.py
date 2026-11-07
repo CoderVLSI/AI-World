@@ -82,3 +82,15 @@ def test_the_terrain_option_selects_the_river_valley_map_and_the_founders_stand_
     assert code == 0 and record["terrain"] == "geography-v2" and record["identity"]["humans"] == 50
     default, _ = mod.run(args(tmp_path, "--ticks", "1"))
     assert default["terrain"] == "geography-v1"
+
+
+def test_a_batching_backend_is_reported_with_batch_figures_not_per_call_time(tmp_path):
+    from test_batched_decisions import FakeBatching
+    fake = FakeBatching(batch_size=4)
+    record, code = mod.run(args(tmp_path, "--ticks", "3", "--couples", "6", "--batch-size", "4"), backend=fake)
+    assert code == 0
+    b = record["batching"]
+    assert b["batch_size"] == 4 and b["batches"] == len(fake.prefetches) > 0 and sum(int(k) * v for k, v in b["batch_sizes"].items()) == sum(len(c) for c in fake.prefetches)
+    assert b["model_seconds_per_decision"] is not None and "seconds_per_call is not the model time" in b["reading"]
+    sequential, _ = mod.run(args(tmp_path, "--ticks", "2", "--couples", "3"))
+    assert sequential["batching"]["batches"] == 0 and sequential["batching"]["model_seconds_per_decision"] is None
