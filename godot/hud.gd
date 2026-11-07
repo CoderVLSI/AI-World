@@ -30,6 +30,9 @@ func _ready() -> void:
 ## Playback of a finished run: a bar over the recorded ticks. Moving it only chooses which recorded moment to show.
 func setup_playback(final_tick: int) -> void:
 	bar.max_value = maxi(final_tick, 1); bar.visible = true; bar_label.visible = true
+	if OS.has_feature("mobile"):
+		hint.text = "PLAYBACK  |  drag the bar to any tick  |  drag: orbit · pinch: zoom · two fingers: pan"
+		return
 	hint.text = "PLAYBACK  |  space pause · ←/→ step · [ ] speed · Home/End · drag the bar  |  right-drag orbit · wheel zoom · WASD pan · click a person"
 
 func show_playback(tick: int, final_tick: int, playing: bool, speed: float) -> void:

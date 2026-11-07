@@ -233,3 +233,22 @@ def test_godot_top_line_shows_how_many_are_thirsty_hungry_or_hurt():
     done = subprocess.run([godot_binary(), "--headless", "--path", str(GODOT_DIR), "--script", "res://tests/hud_test.gd"],
                           capture_output=True, text=True, timeout=240)
     assert "hud tests: ok" in done.stdout and "FAIL" not in done.stdout, done.stdout[-800:] + done.stderr[-400:]
+
+
+@pytest.mark.skipif(godot_binary() is None, reason="no Godot binary (set GODOT_BIN or run scripts/setup_godot_tools.sh)")
+def test_godot_phone_support_address_panel_and_touch_camera():
+    done = subprocess.run([godot_binary(), "--headless", "--path", str(GODOT_DIR), "--script", "res://tests/mobile_test.gd"],
+                          capture_output=True, text=True, timeout=240)
+    assert "mobile tests: ok" in done.stdout and "FAIL" not in done.stdout, done.stdout[-800:] + done.stderr[-400:]
+
+
+def test_the_android_export_is_configured_read_only_and_with_what_android_requires():
+    preset = (GODOT_DIR / "export_presets.cfg").read_text(encoding="utf-8")
+    assert 'platform="Android"' in preset and "permissions/internet=true" in preset and "architectures/arm64-v8a=true" in preset
+    assert "gradle_build/use_gradle_build=false" in preset and 'exclude_filter="tests/*"' in preset
+    for forbidden in ("keystore/release", "password", "storepass"):
+        assert forbidden not in preset, "no signing secrets in the committed preset"
+    project = (GODOT_DIR / "project.godot").read_text(encoding="utf-8")
+    assert "import_etc2_astc=true" in project and 'config/icon="res://icon.svg"' in project and (GODOT_DIR / "icon.svg").exists()
+    sources = [p.read_text(encoding="utf-8") for p in GODOT_DIR.glob("*.gd")]
+    assert all("HTTPClient.METHOD_POST" not in s and "METHOD_PUT" not in s for s in sources), "the app stays GET-only"

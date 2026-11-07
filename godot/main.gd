@@ -7,6 +7,7 @@ const OrbitCamera := preload("res://orbit_camera.gd")
 const Hud := preload("res://hud.gd")
 const HazardView := preload("res://hazard_view.gd")
 const Human := preload("res://human.gd")
+const ConnectPanel := preload("res://connect_panel.gd")
 const SPEEDS := [0.5, 1.0, 2.0, 4.0, 8.0]
 
 var server := "http://127.0.0.1:8000"
@@ -27,6 +28,10 @@ var play_tick := 0
 var playing := true
 var speed_index := 2
 var playback_checked := false
+var connect_panel := ConnectPanel.new()
+var awaiting_address := false         # a phone has no command line: the app asks for the server address first
+var address_given := false
+var ask_server := false
 var start_tick := -1
 var start_paused := false
 var sun := DirectionalLight3D.new()
@@ -42,7 +47,8 @@ var focus_id := ""
 
 func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
-		if arg.begins_with("--server="): server = arg.substr(9).rstrip("/")
+		if arg.begins_with("--server="): server = arg.substr(9).rstrip("/"); address_given = true
+		elif arg == "--ask-server": ask_server = true
 		elif arg.begins_with("--screenshot="): screenshot_path = arg.substr(13)
 		elif arg.begins_with("--wait="): screenshot_wait = float(arg.substr(7))
 		elif arg.begins_with("--poll="): poll_seconds = float(arg.substr(7))
@@ -60,6 +66,15 @@ func _ready() -> void:
 	sun.shadow_enabled = false; add_child(sun)
 	add_child(terrain_view); add_child(hazards); add_child(actors); add_child(cam); add_child(hud)
 	hud.scrubbed.connect(_on_scrub)
+	add_child(connect_panel)
+	connect_panel.submitted.connect(_on_address)
+	connect_panel.opened.connect(func(): awaiting_address = true)
+	var mobile := OS.has_feature("mobile")
+	if mobile:
+		hud.hint.text = "drag: orbit · pinch: zoom · two fingers: pan · tap a person to inspect"
+	if not address_given and (mobile or ask_server):
+		var saved := ConnectPanel.load_saved()
+		connect_panel.open(saved)
 	actors.terrain = terrain_view
 	_apply_sky(12.0)
 
@@ -125,7 +140,14 @@ func _apply_sky(hour: float) -> void:
 	env.ambient_light_color = Color(0.45, 0.5, 0.6).lerp(Color(0.85, 0.85, 0.8), elev)
 	env.ambient_light_energy = lerpf(0.6, 1.0, elev)
 
+func _on_address(url: String) -> void:
+	server = url; awaiting_address = false
+	terrain = {}; live = {}; framed = false; playback_checked = false; playback_on = false
+	hud.top.text = "Connecting…"; since_poll = 99.0
+
 func _process(delta: float) -> void:
+	if awaiting_address:
+		return
 	since_poll += delta
 	if not busy and since_poll >= _poll_interval():
 		_poll()

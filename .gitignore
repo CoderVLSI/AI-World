@@ -12,3 +12,15 @@ tools/
 
 godot/assets/characters/
 godot/.godot/
+
+build/
+godot/**/*.gd.uid
+!godot/actors.gd.uid
+!godot/animation_map.gd.uid
+!godot/character.gd.uid
+!godot/character_library.gd.uid
+!godot/hud.gd.uid
+!godot/main.gd.uid
+!godot/orbit_camera.gd.uid
+!godot/terrain_view.gd.uid
+!godot/tests/animation_map_test.gd.uid
