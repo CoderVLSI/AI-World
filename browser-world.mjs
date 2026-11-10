@@ -7,7 +7,7 @@ const realFetch=globalThis.fetch.bind(globalThis);
 worker.onmessage=({data})=>{
   if(data.type==='loading')status.textContent=data.message;
   if(data.type==='error'){status.textContent='World stopped: '+data.message;rejectReady(Error(data.message));}
-  if(data.type==='frame'){current=data;resolveReady();}
+  if(data.type==='frame'){current=data;document.getElementById('pause-world').disabled=false;resolveReady();}
 };
 worker.onerror=()=>{status.textContent='World engine could not start. Try reloading.';rejectReady(Error('Worker failed'));};
 const seedParam=Number(new URLSearchParams(location.search).get('seed')||314159);
