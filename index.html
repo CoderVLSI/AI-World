@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Learning lab · AI World</title>
+<style>
+:root{color-scheme:dark;font:16px/1.6 system-ui;background:#101923;color:#e4edf4}body{max-width:1050px;margin:5vh auto;padding:24px}a{color:#8ee3c5}h1{font-size:clamp(32px,6vw,60px);margin:.2em 0}.eyebrow{color:#8ee3c5;letter-spacing:.15em;text-transform:uppercase;font-size:12px}.panel{border:1px solid #334451;border-radius:16px;background:#192733;padding:24px;margin:24px 0}.muted{color:#b2c4d1}table{border-collapse:collapse;width:100%;white-space:nowrap}th,td{text-align:left;padding:14px 10px;border-bottom:1px solid #334451}.scroll{overflow-x:auto}#status{color:#8ee3c5}nav{display:flex;gap:24px}code{overflow-wrap:anywhere}footer{margin-top:32px;font-size:14px}
+</style></head><body>
+<nav>AI World · Published experiment snapshot</nav>
+<header><p class="eyebrow">CAITANYA / Experimental research</p><h1>Does experience help?</h1><p class="muted">One starting world. Three memory conditions. Measured actions.</p></header>
+<section class="panel"><strong id="status" role="status">Loading study…</strong><p id="context"></p><p id="interpretation" class="muted">Comparing continuation behaviour does not by itself demonstrate learning.</p></section>
+<section class="panel"><h2>Memory comparison</h2><div class="scroll"><table><thead><tr><th>Condition</th><th>Removed entries</th><th>Ticks</th><th>Actions</th><th>Experiments</th><th>Rejected</th><th>Living</th></tr></thead><tbody id="rows"></tbody></table></div><p class="muted">Physical state, random state, scheduler and existing intentions match at the branch point. Each condition receives the same tick budget; actual action counts may differ.</p></section>
+<section class="panel"><h2>What this tells us</h2><p>Removing memories lets us investigate whether past experience changes later behaviour. A zero difference is a valid result. If no procedural memories were acquired, removing them cannot test their usefulness.</p><p>A convincing learning result also needs a defined follow-up challenge, independently verified success, matched controls and repeated real-model trials. Those evaluations are not included in this first comparison.</p></section>
+<footer>Inspired by <a href="https://arxiv.org/abs/2610.07130">Is this machine playing? — Cloos et al.</a> and <a href="https://github.com/nacloos/clawblox">Clawblox</a>. This implementation uses AI World’s existing engine.</footer>
+<script type="module">const names={retained:'Memory retained',procedural_removed:'Procedures removed',structured_memory_removed:'Structured memory removed'};
+try {
+  const response={ok:true,json:async()=>({
+  "schema": 1,
+  "paper": "https://arxiv.org/abs/2610.07130",
+  "classification": "mock-or-test",
+  "model_id": "mock/deterministic-forager",
+  "model_revision": "1",
+  "seed": 314159,
+  "start_tick": 24,
+  "requested_ticks": 24,
+  "source_digest": "083cb50814e30a1b69c78675205a6309462772366e8a86d6ef177c57a322c173",
+  "branches": [
+    {
+      "condition": "retained",
+      "removed_entries": 0,
+      "same_non_memory_start": true,
+      "completed_ticks": 24,
+      "validated_actions": 120,
+      "rejected_actions": 0,
+      "experiment_actions": 0,
+      "failed_decisions": 0,
+      "living": 5,
+      "action_counts": {
+        "gather": 22,
+        "rest": 45,
+        "rest_for": 7,
+        "gather_at": 7,
+        "move": 35,
+        "drink": 4
+      }
+    },
+    {
+      "condition": "procedural_removed",
+      "removed_entries": 0,
+      "same_non_memory_start": true,
+      "completed_ticks": 24,
+      "validated_actions": 120,
+      "rejected_actions": 0,
+      "experiment_actions": 0,
+      "failed_decisions": 0,
+      "living": 5,
+      "action_counts": {
+        "gather": 22,
+        "rest": 45,
+        "rest_for": 7,
+        "gather_at": 7,
+        "move": 35,
+        "drink": 4
+      }
+    },
+    {
+      "condition": "structured_memory_removed",
+      "removed_entries": 22,
+      "same_non_memory_start": true,
+      "completed_ticks": 24,
+      "validated_actions": 120,
+      "rejected_actions": 0,
+      "experiment_actions": 0,
+      "failed_decisions": 0,
+      "living": 5,
+      "action_counts": {
+        "gather": 22,
+        "rest": 45,
+        "rest_for": 7,
+        "gather_at": 7,
+        "move": 35,
+        "drink": 4
+      }
+    }
+  ],
+  "interpretation": "Continuation comparison only; no task-success or learning claim. Short-term history, intentions and public writings are retained in every branch."
+}
+)};
+  if(!response.ok) throw new Error(response.status===404?'No study yet. Run a comparison to populate this page.':'The study is temporarily unavailable.');
+  const report=await response.json();
+  document.querySelector('#status').textContent=report.classification==='mock-or-test'?'CPU / mock comparison — learning not demonstrated':'Model continuation comparison — learning not established';
+  document.querySelector('#context').textContent=`Seed ${report.seed} · Branch tick ${report.start_tick} · ${report.requested_ticks} ticks per condition · ${report.model_id}`;
+  document.querySelector('#interpretation').textContent=report.interpretation;
+  for(const branch of report.branches){
+    const row=document.createElement('tr');
+    for(const value of [names[branch.condition]??branch.condition,branch.removed_entries,branch.completed_ticks,branch.validated_actions,branch.experiment_actions,branch.rejected_actions,branch.living]){
+      const cell=document.createElement('td');cell.textContent=String(value);row.append(cell);
+    }
+    document.querySelector('#rows').append(row);
+  }
+}catch(error){document.querySelector('#status').textContent=error.message;}
+</script></body></html>
